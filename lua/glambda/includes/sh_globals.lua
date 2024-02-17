@@ -141,14 +141,14 @@ if ( SERVER ) then
         }
     end
 
-    GLAMBDA:AddVoiceType( "idle", "npcvoicechat/vo/idle/" )
-    GLAMBDA:AddVoiceType( "taunt", "npcvoicechat/vo/taunt/" )
-    GLAMBDA:AddVoiceType( "death", "npcvoicechat/vo/death/" )
-    GLAMBDA:AddVoiceType( "panic", "npcvoicechat/vo/panic/" )
-    GLAMBDA:AddVoiceType( "kill", "npcvoicechat/vo/kill/" )
-    GLAMBDA:AddVoiceType( "witness", "npcvoicechat/vo/witness/" )
-    GLAMBDA:AddVoiceType( "assist", "npcvoicechat/vo/assist/" )
-    GLAMBDA:AddVoiceType( "fall", "npcvoicechat/vo/panic/" )
+    GLAMBDA:AddVoiceType( "idle",       "lamdaplayers/vo/idle/" )
+    GLAMBDA:AddVoiceType( "taunt",      "lamdaplayers/vo/taunt/" )
+    GLAMBDA:AddVoiceType( "death",      "lamdaplayers/vo/death/" )
+    GLAMBDA:AddVoiceType( "panic",      "lamdaplayers/vo/panic/" )
+    GLAMBDA:AddVoiceType( "kill",       "lamdaplayers/vo/kill/" )
+    GLAMBDA:AddVoiceType( "witness",    "lamdaplayers/vo/witness/" )
+    GLAMBDA:AddVoiceType( "assist",     "lamdaplayers/vo/assist/" )
+    GLAMBDA:AddVoiceType( "fall",       "lamdaplayers/vo/fall/" )
 
     --
 

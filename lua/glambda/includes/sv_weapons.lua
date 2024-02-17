@@ -113,7 +113,8 @@ function GLAMBDA:AddWeapon( wepName, wepData )
     GLAMBDA.WeaponList[ wepName ] = ( wepData or {} )
 end
 
--- Half-Life 1 --
+-- Test --
+--[[
 GLAMBDA:AddWeapon( {
     weapon_hl1_crowbar = {
         IsMeleeWeapon = true
@@ -149,8 +150,6 @@ GLAMBDA:AddWeapon( {
         end
     }
 } )
-
--- Test --
 GLAMBDA:AddWeapon( "rust_eoka", {
     Automatic = true,
     AttackDistance = 500,
@@ -175,3 +174,4 @@ GLAMBDA:AddWeapon( "tfusion_combustible_lemon", {
         return true
     end
 } )
+]]
