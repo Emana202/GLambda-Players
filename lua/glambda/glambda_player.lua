@@ -58,32 +58,19 @@ function GLAMBDA:CreateLambdaPlayer()
     --
 
     local ply = player.CreateNextBot( defNames[ math.random( #defNames ) ] )
-    
     ply.gl_IsLambdaPlayer = true
-    ply.gl_ProfilePicture = GLAMBDA.ProfilePictures[ math.random( #GLAMBDA.ProfilePictures ) ] 
+    
+    local pfp = self:GetProfilePictures( true )
+    ply.gl_ProfilePicture = pfp
 
     ply:SetNW2Vector( "lambdaglace_playercolor", Vector( math.Rand( 0.0, 1.0 ), math.Rand( 0.0, 1.0 ), math.Rand( 0.0, 1.0 ) ) )
     ply:SetNW2Vector( "lambdaglace_weaponcolor", Vector( math.Rand( 0.0, 1.0 ), math.Rand( 0.0, 1.0 ), math.Rand( 0.0, 1.0 ) ) )
 
     --
 
-    local mdlTbl = GLAMBDA.PlayerModels
-    local mdlList = mdlTbl.Default
-
-    local defCount = #mdlList
-    local mdlCount = defCount
-    if GLAMBDA:GetConVar( "player_addonplymdls" ) then
-        mdlCount = ( mdlCount + #mdlTbl.Addons )
-    end
-
-    local mdlIndex = math.random( mdlCount )
-    if mdlIndex > defCount then
-        mdlIndex = ( mdlIndex - defCount )
-        mdlList = mdlTbl.Addons
-    end
-
-    ply.gb_playermodel = mdlList[ mdlIndex ]
-    ply:SetModel( ply.gb_playermodel )
+    local rndPm = self:GetRandomPlayerModel()
+    ply.SpawnPlayerModel = rndPm
+    ply:SetModel( ply.SpawnPlayerModel )
 
     --
 
@@ -103,35 +90,29 @@ function GLAMBDA:CreateLambdaPlayer()
     -- Network this player to clients
     net.Start( "glambda_playerinit" )
         net.WritePlayer( ply )
-        net.WriteString( ply.gl_ProfilePicture )
+        net.WriteString( pfp or "" )
     net.Broadcast()
-
-    GLAMBDA:InitializeHooks( ply, GLACE )
 
     --
 
-    for name, func in pairs( GLAMBDA.Player ) do
+    for name, func in pairs( self.Player ) do
         if !isfunction( func ) then continue end
 
-        GLACE[ name ] = function( self, ... ) 
-            return GLAMBDA.Player[ name ]( self, ... ) 
+        GLACE[ name ] = function( glace, ... ) 
+            return self.Player[ name ]( glace, ... ) 
         end
     end
 
     --
-
-    GLACE:BuildPersonalityTable()
-
-    --
-
-    GLACE.AbortMovement = false
     
     GLACE.State = "Idle"
-    GLACE.ThreadState = "Idle"
+    GLACE.ThreadState = GLACE.State
     GLACE.LastPlayedVoiceType = nil
     
     GLACE.CombatPathPosition = vector_origin
     GLACE.PreCombatMovePos = false
+
+    GLACE.AbortMovement = false
 
     GLACE.StateVariable = nil
     GLACE.NextCombatPathUpdateT = 0
@@ -156,14 +137,28 @@ function GLAMBDA:CreateLambdaPlayer()
     GLACE:SetAutoReload( true )
     GLACE:SetAutoSwitchWeapon( false )
 
-    local spawnWep = GLAMBDA:GetConVar( "player_spawnweapon" )
+    --
+
+    GLACE:InitializeHooks( ply, GLACE )
+    GLACE:BuildPersonalityTable()
+
+    local spawnWep = self:GetConVar( "player_spawnweapon" )
     if spawnWep == "random" then
         GLACE:SelectRandomWeapon()
     else
-        GLACE:SwitchToWeapon( spawnWep )
+        GLACE:SelectWeapon( spawnWep )
     end
+
+    local voiceProfile
+    if math.random( 100 ) <= self:GetConVar( "player_vp_chance" ) then
+        local profiles = table.GetKeys( self.VoiceProfiles )
+        voiceProfile = profiles[ math.random( #profiles ) ]
+    end
+    GLACE.VoiceProfile = voiceProfile
+
+    --
 
     return GLACE
 end
 
-concommand.Add( "glacebase_spawnlambdaplayer", GLAMBDA.CreatePlayer )
+-- concommand.Add( "glacebase_spawnlambdaplayer", GLAMBDA.CreatePlayer )

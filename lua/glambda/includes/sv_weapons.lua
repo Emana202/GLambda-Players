@@ -58,7 +58,7 @@ GLAMBDA.WeaponList = {
 
         OverrideAim = function( self, weapon, target )
             local targPos = target:GetPos()
-            return ( targPos - vector_up * ( self:RangeTo( targPos ) * 0.25 ) )
+            return ( targPos - vector_up * ( self:RangeTo( targPos ) * 0.2 ) )
         end,
 
         SpecialAttack = function( self, weapon, target )

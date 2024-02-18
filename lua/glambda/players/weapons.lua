@@ -1,4 +1,4 @@
-function GLAMBDA.Player:SwitchToWeapon( weapon )
+function GLAMBDA.Player:SelectWeapon( weapon )
     local curWep = self:GetActiveWeapon()
     if IsValid( curWep ) and curWep:GetClass() == weapon then return end
 
@@ -19,8 +19,7 @@ function GLAMBDA.Player:SwitchToWeapon( weapon )
         end
     end
 
-    self:SelectWeapon( wepEnt )
-
+    self.CmdSelectWeapon = wepEnt
     self.NextWeaponThinkT = 0
 
     return true
@@ -43,7 +42,7 @@ function GLAMBDA.Player:SelectRandomWeapon( filter )
             if !hasMounts then continue end
         end
 
-        if !self:SwitchToWeapon( name ) then continue end
+        if !self:SelectWeapon( name ) then continue end
         return true
     end
 

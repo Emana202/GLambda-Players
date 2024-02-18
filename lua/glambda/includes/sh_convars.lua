@@ -15,7 +15,10 @@ function GLAMBDA:CreateConVar( name, value, desc, shouldSave, isClient, isUserin
         else
             if isbool( value ) then
                 cvarType = 2 
-                value = tonumber( value )
+                value = ( value == true and 1 or 0 )
+
+                if !min then min = 0 end
+                if !max then max = 1 end
             else
                 cvarType = 3
             end
@@ -34,7 +37,7 @@ function GLAMBDA:CreateConVar( name, value, desc, shouldSave, isClient, isUserin
         return cvar
     end
 
-    return self.ConVars[ name ].cvar
+    return cvarTbl.cvar
 end
 
 function GLAMBDA:GetConVar( name, returnCvar )
@@ -59,8 +62,10 @@ end
 
 GLAMBDA:CreateConVar( "debug_glace", false, "Enables debug mode.", false )
 
-GLAMBDA:CreateConVar( "player_personalitypreset", "random", "The personality preset the player should spawn with.", nil, true, true )
+GLAMBDA:CreateConVar( "combat_targetplys", true, "If the player bots are allowed to target and attack real players." )
 
+GLAMBDA:CreateConVar( "player_personalitypreset", "random", "The personality preset the player should spawn with.", nil, true, true )
+GLAMBDA:CreateConVar( "player_vp_chance", 0, "The chance that a player will be created with a random voice profile assigned to them.", nil, nil, nil, 0, 100 )
 GLAMBDA:CreateConVar( "player_respawn", true, "If the players should be able to respawn when killed. Disabling will disconnect them instead." )
 GLAMBDA:CreateConVar( "player_respawntime", 3.0, "The time the player will respawn after being killed.", nil, nil, nil, 0 )
 GLAMBDA:CreateConVar( "player_spawnweapon", "random", "The weapon the player should (re)spawn with. Setting to 'random' will make them select random weapons." )

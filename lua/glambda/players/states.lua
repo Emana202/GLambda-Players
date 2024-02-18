@@ -136,6 +136,43 @@ function GLAMBDA.Player:TBaggingPosition( pos )
     return true
 end
 
+local acts = { ACT_GMOD_TAUNT_DANCE, ACT_GMOD_TAUNT_ROBOT, ACT_GMOD_TAUNT_MUSCLE, ACT_GMOD_TAUNT_CHEER }
+function GLAMBDA.Player:UseActTaunt()
+    self:PlayGestureAndWait( acts[ math.random( #acts ) ] )
+    return true
+end
+
+function GLAMBDA.Player:Laughing( args )
+    if !args or !istable( args ) then return true end
+
+    local target = args[ 1 ]
+    if isentity( target ) and !IsValid( target ) then return true end
+
+    if target:IsPlayer() then
+        local ragdoll = target:GetRagdollEntity()
+        if IsValid( ragdoll ) then target = ragdoll end
+    end
+    self:LookTo( target, 0.75, 1 )
+
+    local laughDelay = ( math.random( 6 ) * 0.1 )
+    self:PlayVoiceLine( "laugh", laughDelay )
+
+    local movePos = args[ 2 ]
+    local actTime = ( laughDelay * math.Rand( 0.75, 1.1 ) )
+    if !movePos then
+        coroutine.wait( actTime )
+    else
+        self:MoveToPos( movePos, { sprint = false, cbTime = actTime, callback = function( self ) return true end } )
+    end
+
+    if self:GetState( "Laughing" ) then
+        if !self:IsSpeaking( "laugh" ) then self:PlayVoiceLine( "laugh", false ) end
+        ErrorNoHaltWithStack( self:GetPlayer(), target )
+        self:PlayGestureAndWait( ACT_GMOD_TAUNT_LAUGH )
+    end
+    return true
+end
+
 local retreatOptions = { sprint = true, callback = function( self )
     local target = self:GetEnemy()
     if CurTime() >= self.RetreatEndTime or IsValid( target ) and ( target:IsPlayer() and !target:Alive() or self:SqrRangeTo( target ) > ( 3000 ^ 2 ) ) then

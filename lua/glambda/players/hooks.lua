@@ -1,9 +1,5 @@
-local aiDisabled = GetConVar( "ai_disabled" )
-
---
-
 function GLAMBDA.Player:Think()
-    if !self:Alive() or aiDisabled:GetBool() then return end
+    if !self:Alive() or self:IsDisabled() then return end
 
     if CurTime() >= self.NextUniversalActionT then
         local UAFunc = table.Random( GLAMBDA.UniversalActions )
@@ -64,7 +60,8 @@ function GLAMBDA.Player:Think()
             local attackRange = self:GetWeaponStat( "AttackDistance", ( isMelee and 70 or 1000 ) )
             if isPanicking and !isMelee then attackRange = ( attackRange * 0.8 ) end
 
-            if canShoot and self:SqrRangeTo( enemy ) <= ( attackRange ^ 2 ) then
+            local inFireRange = ( self:SqrRangeTo( enemy ) <= ( attackRange ^ 2 ) )
+            if canShoot and inFireRange then
                 local aimFunc = self:GetWeaponStat( "OverrideAim" )
                 local aimPos = ( aimFunc and aimFunc( self, weapon, enemy ) or enemy )
                 self:LookTowards( aimPos, 0.66 )
@@ -116,7 +113,7 @@ function GLAMBDA.Player:Think()
 
                 local movePos = self.CombatPathPosition
                 local preCombatMovePos = self.PreCombatMovePos
-                if preCombatMovePos and isReloading then
+                if preCombatMovePos and isReloading and inFireRange and preCombatMovePos != enemy then
                     movePos = preCombatMovePos
                 else
                     self.PreCombatMovePos = false
@@ -141,7 +138,7 @@ end
 function GLAMBDA.Player:ThreadedThink()
     while true do
         if self:Alive() then
-            if !aiDisabled:GetBool() then
+            if !self:IsDisabled() then
                 local curState = self:GetState()
                 local statefunc = self[ curState ]
 
@@ -187,9 +184,12 @@ function GLAMBDA.Player:OnPlayerRespawn()
     end
 
     local spawner = self.Spawner
-    if IsValid( spawner ) then 
-        self:SetPos( spawner:GetPos() )
-        self:SetEyeAngles( spawner:GetAngles() )
+    if IsValid( spawner ) then
+        local spawnPos = spawner:GetPos()
+        self:SetPos( spawnPos )
+
+        spawnPos.z = self:EyePos().z
+        self:LookTowards( spawnPos + spawner:GetForward() * 1, 1 )
     end
 
     self:SimpleTimer( 0, function()
@@ -197,7 +197,7 @@ function GLAMBDA.Player:OnPlayerRespawn()
         if spawnWep == "random" then
             self:SelectRandomWeapon()
         else
-            self:SwitchToWeapon( spawnWep )
+            self:SelectWeapon( spawnWep )
         end
     end )
 end
@@ -241,6 +241,7 @@ function GLAMBDA.Player:OnOtherKilled( victim, dmginfo )
         self:SetState()
         self:CancelMovement()
     end
+    if !self:Alive() then return end
 
     local attacker = dmginfo:GetAttacker()
     if attacker == self:GetPlayer() then
@@ -271,23 +272,30 @@ function GLAMBDA.Player:OnOtherKilled( victim, dmginfo )
         self:PlayVoiceLine( "assist" )
     end
 
-    if attacker != self and victim != enemy and self:SqrRangeTo( victim ) <= ( 1500 ^ 2 ) and self:IsVisible( victim ) then
-        if math.random( 10 ) == 1 then
-            self:LookTo( victim:WorldSpaceCenter(), 0.33, math.random( 2, 4 ) )
-
-            if self:GetSpeechChance( 100 ) then
-                self:PlayVoiceLine( "witness" )
-            end
-        end
-        
-        if !self:InCombat() and self:GetCowardnessChance( 200 ) then
-            local targ = ( ( self:CanTarget( attacker ) and self:IsVisible( attacker ) and math.random( 3 ) == 1 ) and attacker or nil )
-            self:LookTo( targ or victim:WorldSpaceCenter(), 0.5, math.random( 3 ) )
-            
-            self:RetreatFrom( targ, nil, !self:IsSpeaking( "witness" ) )
+    if attacker != self and self:SqrRangeTo( victim ) <= ( 1500 ^ 2 ) and self:IsVisible( victim ) then
+        local witnessChance = 1
+        if witnessChance == 1 or ( attacker == victim or attacker:IsWorld() ) and witnessChance > 6 then
+            self:SetState( "Laughing", { victim, self:GetMovePosition() } )
             self:CancelMovement()
+            self:DevMsg( "I killed or saw someone die. Laugh at this person!" )
+        elseif victim != enemy then
+            if witnessChance == 2 then
+                self:LookTo( victim:WorldSpaceCenter(), 0.33, math.random( 2, 4 ) )
+
+                if self:GetSpeechChance( 100 ) then
+                    self:PlayVoiceLine( "witness" )
+                end
+            end
             
-            self:DevMsg( "I saw someone die. Retreating..." )
+            if !self:InCombat() and self:GetCowardnessChance( 200 ) then
+                local targ = ( ( self:CanTarget( attacker ) and self:IsVisible( attacker ) and math.random( 3 ) == 1 ) and attacker or nil )
+                self:LookTo( targ or victim:WorldSpaceCenter(), 0.5, math.random( 3 ) )
+                
+                self:RetreatFrom( targ, nil, !self:IsSpeaking( "witness" ) )
+                self:CancelMovement()
+                
+                self:DevMsg( "I saw someone die. Retreating..." )
+            end
         end
     end
 end

@@ -1,13 +1,16 @@
-local function MergeDirectory( dir, tbl )
+function GLAMBDA:MergeDirectory( dir, tbl )
     if dir[ #dir ] != "/" then dir = dir .. "/" end
+    tbl = ( tbl or {} )
 
     local files, dirs = file.Find( dir .. "*", "GAME", "nameasc" )    
     if files then  
         for _, fileName in ipairs( files ) do tbl[ #tbl + 1 ] = dir .. fileName end
     end
     if dirs then
-        for _, addDir in ipairs( dirs ) do MergeDirectory( dir .. addDir, tbl ) end
+        for _, addDir in ipairs( dirs ) do self:MergeDirectory( dir .. addDir, tbl ) end
     end
+
+    return tbl
 end
 
 --
@@ -121,71 +124,34 @@ if ( SERVER ) then
             self.PlayerModels.Addons[ #self.PlayerModels.Addons + 1 ] = mdl
         end
     end
-    GLAMBDA:UpdatePlayerModels()
 
-    --
-
-    GLAMBDA.ProfilePictures = {}
-    MergeDirectory( "materials/lambdaplayers/custom_profilepictures/", GLAMBDA.ProfilePictures )
-
-    --
-
-    GLAMBDA.VoiceTypes = {}
-
-    function GLAMBDA:AddVoiceType( typeName, defPath, voiceDesc )
-        local cvar = self:CreateConVar( "voice_path_" .. typeName, defPath, voiceDesc, true )
-
-        self.VoiceTypes[ #self.VoiceTypes + 1 ] = { 
-            name = typeName, 
-            pathCvar = cvar
-        }
-    end
-
-    GLAMBDA:AddVoiceType( "idle",       "lamdaplayers/vo/idle/" )
-    GLAMBDA:AddVoiceType( "taunt",      "lamdaplayers/vo/taunt/" )
-    GLAMBDA:AddVoiceType( "death",      "lamdaplayers/vo/death/" )
-    GLAMBDA:AddVoiceType( "panic",      "lamdaplayers/vo/panic/" )
-    GLAMBDA:AddVoiceType( "kill",       "lamdaplayers/vo/kill/" )
-    GLAMBDA:AddVoiceType( "witness",    "lamdaplayers/vo/witness/" )
-    GLAMBDA:AddVoiceType( "assist",     "lamdaplayers/vo/assist/" )
-    GLAMBDA:AddVoiceType( "fall",       "lamdaplayers/vo/fall/" )
-
-    --
-
-    GLAMBDA.VoiceLines = {}
-
-    for _, data in ipairs( GLAMBDA.VoiceTypes ) do
-        local lineTbl = {}
-        GLAMBDA.VoiceLines[ data.name ] = lineTbl
-        MergeDirectory( "sound/" .. data.pathCvar:GetString(), lineTbl )
+    function GLAMBDA:GetRandomPlayerModel()
+        local mdlTbl = self.PlayerModels
+        local mdlList = mdlTbl.Default
+    
+        local defCount = #mdlList
+        local mdlCount = defCount
+        if self:GetConVar( "player_addonplymdls" ) then
+            mdlCount = ( mdlCount + #mdlTbl.Addons )
+        end
+    
+        local mdlIndex = math.random( mdlCount )
+        if mdlIndex > defCount then
+            mdlIndex = ( mdlIndex - defCount )
+            mdlList = mdlTbl.Addons
+        end
+        
+        return mdlList[ mdlIndex ]
     end
 
     --
-    
-    GLAMBDA.UniversalActions = {
-        [ "Killbind" ] = function( self )
-            if math.random( 150 ) != 1 then return end
-            self:Kill()
-        end,
-        [ "SelectRandomWeapon" ] = function( self )
-            if math.random( 3 ) != 1 then return end
-            
-            if self:InCombat() then
-                self:SelectLethalWeapon()
-            else
-                self:SelectRandomWeapon()
-            end
-        end,
-        [ "Undo" ] = function( self )
-            if !self:GetState( "Idle" ) then return end
-            self:Timer( "Undo", math.Rand( 0.3, 0.6 ), math.random( 6 ), function()
-                self:UndoCommand()
-            end )
-        end,
-    }
-    
-    function GLAMBDA:AddUniversalAction( uaName, func )
-        self.UniversalActions[ uaName ] = func
+
+    GLAMBDA.ProfilePictures = GLAMBDA:MergeDirectory( "materials/lambdaplayers/custom_profilepictures/" )
+
+    function GLAMBDA:GetProfilePictures( rnd )
+        local pfps = self.ProfilePictures
+        if rnd then return ( pfps[ math.random( #pfps ) ] ) end
+        return pfps
     end
 
 end

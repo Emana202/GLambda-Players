@@ -42,12 +42,12 @@ function ENT:PathToPos()
 
     self._PATH = Path( "Follow" )
     self._PATH:SetMinLookAheadDistance( 10 )
-	self._PATH:SetGoalTolerance( GLACE.gb_goaltolerance or 20 )
+	self._PATH:SetGoalTolerance( GLACE.GoalPathTolerance or 20 )
 	self._PATH:Compute( self, self:TranslateGoal(), GLACE:PathfindingGenerator() )
     self.gb_CurrentSeg = 1
 
-    if !self._PATH:IsValid() then GLACE.gb_pathgenerating = false return end
-    GLACE.gb_pathgenerating = false
+    if !self._PATH:IsValid() then GLACE.IsPathGenerating = false return end
+    GLACE.IsPathGenerating = false
 
     while self._PATH:IsValid() do
         if !GLACE:IsValid() then break end

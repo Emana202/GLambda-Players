@@ -4,6 +4,7 @@ if ( SERVER ) then
     util.AddNetworkString( "glambda_playerremove" )
     util.AddNetworkString( "glambda_playvoicesnd" )
     util.AddNetworkString( "glambda_sendsndduration" )
+    util.AddNetworkString( "glambda_playgesture" )
 
     --
 
@@ -27,27 +28,40 @@ if ( CLIENT ) then
         ply.gl_IsVoiceMuted = false
 
         local profilePic = net.ReadString()
-        if !string.EndsWith( profilePic, ".vtf" ) then
-            profilePic = Material( profilePic )
-        else
-            profilePic = CreateMaterial( "GLambda_PfpMaterial_" .. RealTime(), "UnlitGeneric", {
-                [ "$basetexture" ] = profilePic,
-                [ "$translucent" ] = 1,
-
-                [ "Proxies" ] = {
-                    [ "AnimatedTexture" ] = {
-                        [ "animatedTextureVar" ] = "$basetexture",
-                        [ "animatedTextureFrameNumVar" ] = "$frame",
-                        [ "animatedTextureFrameRate" ] = 10
-                    }
-                }
-            } )
-        end
-        if !profilePic or profilePic:IsError() then
+        if #profilePic == 0 then
             local plyMdl = ply:GetModel()
             profilePic = Material( "spawnicons/" .. string.sub( plyMdl, 1, #plyMdl - 4 ) .. ".png" )
+        else
+            if !string.EndsWith( profilePic, ".vtf" ) then
+                profilePic = Material( profilePic )
+            else
+                profilePic = CreateMaterial( "GLambda_PfpMaterial_" .. RealTime(), "UnlitGeneric", {
+                    [ "$basetexture" ] = profilePic,
+                    [ "$translucent" ] = 1,
+
+                    [ "Proxies" ] = {
+                        [ "AnimatedTexture" ] = {
+                            [ "animatedTextureVar" ] = "$basetexture",
+                            [ "animatedTextureFrameNumVar" ] = "$frame",
+                            [ "animatedTextureFrameRate" ] = 10
+                        }
+                    }
+                } )
+            end
+            if !profilePic or profilePic:IsError() then
+                local plyMdl = ply:GetModel()
+                profilePic = Material( "spawnicons/" .. string.sub( plyMdl, 1, #plyMdl - 4 ) .. ".png" )
+            end
         end
         ply.gl_ProfilePicture = profilePic
+    end )
+
+    net.Receive( "glambda_playgesture", function()
+        local ply = net.ReadPlayer()
+        if !IsValid( ply ) then return end
+
+        local act = net.ReadFloat()
+        ply:AnimRestartGesture( GESTURE_SLOT_VCD, act, true )
     end )
 
     local function StopCurrentVoice( ply )
@@ -71,7 +85,7 @@ if ( CLIENT ) then
 
         sound.PlayFile( sndDir, "noplay" .. ( is3d and " 3d" or "" ), function( snd, errId, errName )
             if !IsValid( snd ) then
-                print( "GLambda Players: Sound file " .. sndDir .. " failed to open!\nError ID: " .. errorName .. "#" .. errorId )
+                print( "GLambda Players: Sound file " .. sndDir .. " failed to open!\nError ID: " .. errName .. "#" .. errId )
                 return
             end
 
