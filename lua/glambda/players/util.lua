@@ -177,7 +177,7 @@ end
 --
 
 function GLAMBDA.Player:CanTarget( ent )
-    return ( ent != self:GetPlayer() and ( ent:IsPlayer() and ent:Alive() and ( ent.gl_IsLambdaPlayer or !ignorePlys:GetBool() or GLAMBDA:GetConVar( "combat_targetplys" ) ) or ( ent:IsNPC() or ent:IsNextBot() and !ent.gb_IsGlaceNavigator ) and ent:GetInternalVariable( "m_lifeState" ) == 0 ) )
+    return ( ent != self:GetPlayer() and ( ent:IsPlayer() and ent:Alive() and ( ent.gl_IsLambdaPlayer or !ignorePlys:GetBool() and GLAMBDA:GetConVar( "combat_targetplys" ) ) or ( ent:IsNPC() or ent:IsNextBot() and !ent.gb_IsGlaceNavigator ) and ent:GetInternalVariable( "m_lifeState" ) == 0 ) )
 end
 
 function GLAMBDA.Player:AttackTarget( ent )
@@ -196,17 +196,48 @@ function GLAMBDA.Player:RetreatFrom( target, timeout, speakLine )
     if !alreadyPanic then
         self:CancelMovement()
         self:SetState( "Retreat" )
-
+        
         if ( speakLine == nil or speakLine == true ) and self:GetSpeechChance() > 0 then
             self:PlayVoiceLine( "panic" )
         end
     end
-
+    
     local retreatTime = ( CurTime() + ( timeout or math.random( 10, 15 ) ) )
     if retreatTime > self.RetreatEndTime then self.RetreatEndTime = retreatTime end
-
+    
     local ene = self:GetEnemy()
     if !alreadyPanic or IsValid( ene ) then self:SetEnemy( target ) end
+end
+
+function GLAMBDA.Player:ApplySpawnBehavior()
+    local spawnBehav = GLAMBDA:GetConVar( "combat_spawnbehavior" )
+    if spawnBehav == 0 then return end
+    
+    local closeTarget, searchDist
+    local selfZ = self:GetPos().z
+    
+    local getClosest = GLAMBDA:GetConVar( "combat_spawnbehavior_getclosest" )
+    local pairGen = ( getClosest and ipairs or RandomPairs )
+
+    for _, ent in pairGen( ents.GetAll() ) do
+        if !IsValid( ent ) or !self:CanTarget( ent ) then continue end
+        if spawnBehav == 1 and !ent:IsPlayer() or spawnBehav == 2 and !ent:IsNPC() and !ent:IsNextBot() then continue end
+
+        if !getClosest then
+            closeTarget = ent
+            break
+        end
+
+        local entDist = self:SqrRangeTo( ent )
+        local heightDiff = math.abs( selfZ - ent:GetPos().z )
+        if searchDist and ( entDist + ( heightDiff * heightDiff ) ) > searchDist then continue end
+
+        closeTarget = ent
+        searchDist = entDist
+    end
+    
+    if !closeTarget then return end
+    self:AttackTarget( closeTarget )
 end
 
 --

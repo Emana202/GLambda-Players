@@ -5,6 +5,7 @@ if ( SERVER ) then
     util.AddNetworkString( "glambda_playvoicesnd" )
     util.AddNetworkString( "glambda_sendsndduration" )
     util.AddNetworkString( "glambda_playgesture" )
+    util.AddNetworkString( "glambda_syncweapons" )
 
     --
 
@@ -19,6 +20,11 @@ if ( SERVER ) then
 end
 
 if ( CLIENT ) then
+
+    net.Receive( "glambda_syncweapons", function()
+        local wepName = net.ReadString()
+        GLAMBDA.WeaponList[ wepName ] = wepName
+    end )
 
     net.Receive( "glambda_playerinit", function()
         local ply = net.ReadPlayer()
@@ -84,7 +90,10 @@ if ( CLIENT ) then
         StopCurrentVoice( ply )
 
         sound.PlayFile( sndDir, "noplay" .. ( is3d and " 3d" or "" ), function( snd, errId, errName )
-            if !IsValid( snd ) then
+            if errId == 21 then
+                PlaySoundFile( ply, sndDir, origin, delay, false )
+                return
+            elseif !IsValid( snd ) then
                 print( "GLambda Players: Sound file " .. sndDir .. " failed to open!\nError ID: " .. errName .. "#" .. errId )
                 return
             end
@@ -116,6 +125,8 @@ if ( CLIENT ) then
             end
             
             snd:Set3DFadeDistance( 300, 0 )
+            snd:SetVolume( ply:IsMuted() and 0 or GLAMBDA:GetConVar( "voice_volume" ) )
+            snd:Set3DEnabled( GLAMBDA:GetConVar( "voice_globalchat" ) or is3d )
 
             net.Start( "glambda_sendsndduration" )
                 net.WritePlayer( ply )

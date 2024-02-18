@@ -167,7 +167,6 @@ function GLAMBDA.Player:Laughing( args )
 
     if self:GetState( "Laughing" ) then
         if !self:IsSpeaking( "laugh" ) then self:PlayVoiceLine( "laugh", false ) end
-        ErrorNoHaltWithStack( self:GetPlayer(), target )
         self:PlayGestureAndWait( ACT_GMOD_TAUNT_LAUGH )
     end
     return true
@@ -187,7 +186,7 @@ function GLAMBDA.Player:Retreat( pos )
 end
 
 function GLAMBDA.Player:SpawnSomething()
-    self:LookTo( self:GetPos() + self:GetForward() * math.random( -500, 500 ) + self:GetRight() * math.random( -500, 500 ) - self:GetUp() * math.random( 0, 100 ), 0.5, 1 )
+    self:LookTo( self:GetPos() + self:GetForward() * math.random( -400, 400 ) + self:GetRight() * math.random( -400, 400 ) - self:GetUp() * math.random( -30, 100 ), 0.5, 1 )
     coroutine.wait( math.random( 3, 10 ) * 0.1 )
 
     if self:GetState( "SpawnSomething" ) then

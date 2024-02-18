@@ -17,7 +17,7 @@ end
 
 if ( SERVER ) then
 
-    GLAMBDA.PlayerModels = {
+    GLAMBDA.PlayerModels = ( GLAMBDA.PlayerModels or {
         Default = {
             "models/player/alyx.mdl",
             "models/player/arctic.mdl",
@@ -108,7 +108,7 @@ if ( SERVER ) then
             "models/player/zombie_fast.mdl"
         },
         Addons = {}
-    }
+    } )
 
     function GLAMBDA:UpdatePlayerModels()
         table.Empty( self.PlayerModels.Addons )
@@ -132,6 +132,11 @@ if ( SERVER ) then
         local defCount = #mdlList
         local mdlCount = defCount
         if self:GetConVar( "player_addonplymdls" ) then
+            if self:GetConVar( "player_onlyaddonpms" ) then
+                mdlList = mdlTbl.Addons
+                return mdlList[ math.random( #mdlList ) ]
+            end
+            
             mdlCount = ( mdlCount + #mdlTbl.Addons )
         end
     

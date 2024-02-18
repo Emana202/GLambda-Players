@@ -57,13 +57,13 @@ function GLAMBDA.Player:Think()
             local canShoot = ( self:GetWeaponStat( "IsLethalWeapon", true ) and self:CanShootAt( enemy ) )
             local isMelee = self:GetWeaponStat( "IsMeleeWeapon" )
             local isPanicking = self:IsPanicking()
-            local attackRange = self:GetWeaponStat( "AttackDistance", ( isMelee and 70 or 1000 ) )
+            local attackRange = self:GetWeaponStat( "AttackDistance", ( isMelee and 80 or 1000 ) )
             if isPanicking and !isMelee then attackRange = ( attackRange * 0.8 ) end
 
             local inFireRange = ( self:SqrRangeTo( enemy ) <= ( attackRange ^ 2 ) )
             if canShoot and inFireRange then
                 local aimFunc = self:GetWeaponStat( "OverrideAim" )
-                local aimPos = ( aimFunc and aimFunc( self, weapon, enemy ) or enemy )
+                local aimPos = ( aimFunc and aimFunc( self, weapon, enemy ) or ( isMelee and enemy:NearestPoint( self:EyePos() ) or enemy ) )
                 self:LookTowards( aimPos, 0.66 )
                 
                 local canSprint = true
@@ -156,6 +156,11 @@ function GLAMBDA.Player:ThreadedThink()
             coroutine.wait( 0.1 )
         else
             if ( CurTime() - self.LastDeathTime ) >= GLAMBDA:GetConVar( "player_respawntime" ) and !self:IsSpeaking() then
+                if !GLAMBDA:GetConVar( "player_respawn" ) then
+                    self:Kick()
+                    return
+                end
+
                 self:Spawn()
                 self:OnPlayerRespawn()
             end
@@ -167,22 +172,7 @@ end
 
 --
 
-function GLAMBDA.Player:OnKilled()
-    self:PlayVoiceLine( "death" )
-
-    self:SetEnemy( NULL )
-    self:SetState()
-    self:UndoCommand( true )
-
-    self.LastDeathTime = CurTime()
-end
-
 function GLAMBDA.Player:OnPlayerRespawn()
-    if !GLAMBDA:GetConVar( "player_respawn" ) then
-        self:Kick()
-        return
-    end
-
     local spawner = self.Spawner
     if IsValid( spawner ) then
         local spawnPos = spawner:GetPos()
@@ -193,11 +183,15 @@ function GLAMBDA.Player:OnPlayerRespawn()
     end
 
     self:SimpleTimer( 0, function()
-        local spawnWep = GLAMBDA:GetConVar( "player_spawnweapon" )
+        local spawnWep = GLAMBDA:GetConVar( "combat_spawnweapon" )
         if spawnWep == "random" then
             self:SelectRandomWeapon()
         else
             self:SelectWeapon( spawnWep )
+        end
+
+        if !GLAMBDA:GetConVar( "combat_spawnbehavior_initialspawn" ) then
+            self:ApplySpawnBehavior()
         end
     end )
 end
@@ -224,14 +218,14 @@ function GLAMBDA.Player:OnHurt( attacker, healthLeft, damage )
     end
 end
 
-function GLAMBDA.Player:OnDisconnect()
+function GLAMBDA.Player:OnKilled()
+    self:PlayVoiceLine( "death" )
+
+    self:SetEnemy( NULL )
+    self:SetState()
     self:UndoCommand( true )
 
-    local spawner = self.Spawner
-    if IsValid( spawner ) then
-        spawner:SetOwner()
-        spawner:Remove()
-    end
+    self.LastDeathTime = CurTime()
 end
 
 function GLAMBDA.Player:OnOtherKilled( victim, dmginfo )
@@ -273,7 +267,7 @@ function GLAMBDA.Player:OnOtherKilled( victim, dmginfo )
     end
 
     if attacker != self and self:SqrRangeTo( victim ) <= ( 1500 ^ 2 ) and self:IsVisible( victim ) then
-        local witnessChance = 1
+        local witnessChance = math.random( 10 )
         if witnessChance == 1 or ( attacker == victim or attacker:IsWorld() ) and witnessChance > 6 then
             self:SetState( "Laughing", { victim, self:GetMovePosition() } )
             self:CancelMovement()
@@ -297,5 +291,15 @@ function GLAMBDA.Player:OnOtherKilled( victim, dmginfo )
                 self:DevMsg( "I saw someone die. Retreating..." )
             end
         end
+    end
+end
+
+function GLAMBDA.Player:OnDisconnect()
+    self:UndoCommand( true )
+
+    local spawner = self.Spawner
+    if IsValid( spawner ) then
+        spawner:SetOwner()
+        spawner:Remove()
     end
 end

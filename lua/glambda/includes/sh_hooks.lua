@@ -25,6 +25,8 @@ if ( CLIENT ) then
 
     hook.Add( "Tick", "GLambda_UpdateVoiceSounds", function()
         local eyePos = EyePos()
+        local isGlobal = GLAMBDA:GetConVar( "voice_globalchat" )
+        local voiceVol = GLAMBDA:GetConVar( "voice_volume" )
 
         for ply, sndData in pairs( GLAMBDA.VoiceChannels ) do
             local snd = sndData.Sound
@@ -52,17 +54,20 @@ if ( CLIENT ) then
 
             if ply:IsMuted() then
                 snd:SetVolume( 0 )
+            elseif isGlobal then
+                snd:SetVolume( voiceVol )
+                snd:Set3DEnabled( false )
             else
-                local sndVol = 1
+                local sndVol = voiceVol
                 if !sndData.Is3D then
-                    sndVol = math.Clamp( 1 / ( curPos:DistToSqr( eyePos ) / 90000 ), 0, 1 )
+                    sndVol = math.Clamp( voiceVol / ( eyePos:DistToSqr( lastPos ) / 90000 ), 0, 1 )
                     snd:Set3DEnabled( false )
                 else
                     snd:Set3DEnabled( true )
                     snd:SetPos( lastPos )
                 end
 
-                snd:SetVolume( 1 )
+                snd:SetVolume( sndVol )
             end
 
             local leftC, rightC = snd:GetLevel()

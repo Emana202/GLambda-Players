@@ -53,7 +53,7 @@ GLAMBDA.WeaponList = {
         AmmoEntity = "item_ammo_crossbow"
     },
     weapon_frag = {
-        AttackDistance = 700,
+        AttackDistance = 1000,
         AmmoEntity = "weapon_frag",
 
         OverrideAim = function( self, weapon, target )
@@ -106,10 +106,17 @@ GLAMBDA.WeaponList = {
 }
 
 function GLAMBDA:AddWeapon( wepName, wepData )
+    if ( CLIENT ) then return end
+
+    net.Start( "glambda_syncweapons" )
+        net.WriteString( wepName )
+    net.Broadcast()
+
     if istable( wepName ) then
         table.Merge( GLAMBDA.WeaponList, wepName )
         return
     end
+
     GLAMBDA.WeaponList[ wepName ] = ( wepData or {} )
 end
 

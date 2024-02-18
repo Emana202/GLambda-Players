@@ -142,12 +142,16 @@ function GLAMBDA:CreateLambdaPlayer()
     GLACE:InitializeHooks( ply, GLACE )
     GLACE:BuildPersonalityTable()
 
-    local spawnWep = self:GetConVar( "player_spawnweapon" )
+    --
+
+    local spawnWep = self:GetConVar( "combat_spawnweapon" )
     if spawnWep == "random" then
         GLACE:SelectRandomWeapon()
     else
         GLACE:SelectWeapon( spawnWep )
     end
+
+    GLACE:ApplySpawnBehavior()
 
     local voiceProfile
     if math.random( 100 ) <= self:GetConVar( "player_vp_chance" ) then
