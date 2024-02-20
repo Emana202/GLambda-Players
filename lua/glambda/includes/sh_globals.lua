@@ -1,20 +1,3 @@
-function GLAMBDA:MergeDirectory( dir, tbl )
-    if dir[ #dir ] != "/" then dir = dir .. "/" end
-    tbl = ( tbl or {} )
-
-    local files, dirs = file.Find( dir .. "*", "GAME", "nameasc" )    
-    if files then  
-        for _, fileName in ipairs( files ) do tbl[ #tbl + 1 ] = dir .. fileName end
-    end
-    if dirs then
-        for _, addDir in ipairs( dirs ) do self:MergeDirectory( dir .. addDir, tbl ) end
-    end
-
-    return tbl
-end
-
---
-
 if ( SERVER ) then
 
     GLAMBDA.PlayerModels = ( GLAMBDA.PlayerModels or {
@@ -112,15 +95,27 @@ if ( SERVER ) then
 
     function GLAMBDA:UpdatePlayerModels()
         table.Empty( self.PlayerModels.Addons )
-        
+        local blockList = GLAMBDA.FILE:ReadFile( "glambda/pmblocklist.json", "json" )
+
         for _, mdl in pairs( player_manager.AllValidModels() ) do
             local isDefaultMdl = false
             for _, defMdl in ipairs( self.PlayerModels.Default ) do
                 if mdl != defMdl then continue end
                 isDefaultMdl = true; break
             end
-
             if isDefaultMdl then continue end
+
+            if blockList then
+                local isBlocked = false
+                for k, blockedMdl in ipairs( blockList ) do
+                    if mdl != blockedMdl then continue end
+                    print( blockedMdl )
+                    table.remove( blockList, k )
+                    isBlocked = true; break
+                end
+                if isBlocked then continue end
+            end
+
             self.PlayerModels.Addons[ #self.PlayerModels.Addons + 1 ] = mdl
         end
     end
@@ -149,14 +144,80 @@ if ( SERVER ) then
         return mdlList[ mdlIndex ]
     end
 
-    --
+end
 
-    GLAMBDA.ProfilePictures = GLAMBDA:MergeDirectory( "materials/lambdaplayers/custom_profilepictures/" )
+--
 
-    function GLAMBDA:GetProfilePictures( rnd )
-        local pfps = self.ProfilePictures
-        if rnd then return ( pfps[ math.random( #pfps ) ] ) end
-        return pfps
+if ( CLIENT ) then
+
+    function GLAMBDA:InitializeLambda( ply, pfp )
+        ply.gb_IsLambdaPlayer = true
+        ply.gb_IsVoiceMuted = false
+
+        if !string.EndsWith( pfp, ".vtf" ) then
+            pfp = Material( pfp )
+        else
+            pfp = CreateMaterial( "GLambda_PfpMaterial_" .. pfp, "UnlitGeneric", {
+                [ "$basetexture" ] = pfp,
+                [ "$translucent" ] = 1,
+
+                [ "Proxies" ] = {
+                    [ "AnimatedTexture" ] = {
+                        [ "animatedTextureVar" ] = "$basetexture",
+                        [ "animatedTextureFrameNumVar" ] = "$frame",
+                        [ "animatedTextureFrameRate" ] = 10
+                    }
+                }
+            } )
+
+            if !pfp or pfp:IsError() then
+                local plyMdl = ply:GetModel()
+                pfp = Material( "spawnicons/" .. string.sub( plyMdl, 1, #plyMdl - 4 ) .. ".png" )
+            end
+        end
+        ply.gb_ProfilePicture = pfp
     end
 
 end
+
+--
+
+function GLAMBDA:SendNotification( ply, text, notifyType, length, snd )
+    if ( CLIENT ) then
+        notification.AddLegacy( text, ( notifyType or 0 ), ( length or 3 ) )
+        if snd and #snd != 0 then surface.PlaySound( snd ) end   
+    end
+    if ( SERVER ) then
+        net.Start( "glambda_sendnotify" )
+            net.WriteString( text )
+            net.WriteUInt( ( notifyType or 0 ), 3 )
+            net.WriteFloat( length or 3 )
+            net.WriteString( snd or "" )
+        net.Send( ply )
+    end
+end
+
+--
+
+GLAMBDA.VoiceTypes = {}
+
+function GLAMBDA:AddVoiceType( typeName, defPath, voiceDesc )
+    local cvar = self:CreateConVar( "voice_path_" .. typeName, defPath, "The filepath for the " .. typeName .. " voice type voicelines.\n" .. voiceDesc, {
+        name = string.upper( typeName[ 1 ] ) .. string.sub( typeName, 2, #typeName ) .. " Voice Type",
+        category = "Voice Type Paths"
+    } )
+
+    self.VoiceTypes[ #self.VoiceTypes + 1 ] = { 
+        name = typeName, 
+        pathCvar = cvar
+    }
+end
+
+GLAMBDA:AddVoiceType( "idle",       "lambdaplayers/vo/idle/",       "Played when the player is idle and not panicking and in combat." )
+GLAMBDA:AddVoiceType( "taunt",      "lambdaplayers/vo/taunt/",      "Played when the player starts attacking someone and is in combat." )
+GLAMBDA:AddVoiceType( "death",      "lambdaplayers/vo/death/",      "Played when the player is killed." )
+GLAMBDA:AddVoiceType( "panic",      "lambdaplayers/vo/panic/",      "Played when the player is panicking and running away." )
+GLAMBDA:AddVoiceType( "kill",       "lambdaplayers/vo/kill/",       "Played when the player killed someone." )
+GLAMBDA:AddVoiceType( "witness",    "lambdaplayers/vo/witness/",    "Played when the player saw someone get killed." )
+GLAMBDA:AddVoiceType( "assist",     "lambdaplayers/vo/assist/",     "Played when the player's enemy is killed by someone else." )
+GLAMBDA:AddVoiceType( "laugh",      "lambdaplayers/vo/laugh/",      "Played when the player saw someone get killed and plays a laugh taunt." )

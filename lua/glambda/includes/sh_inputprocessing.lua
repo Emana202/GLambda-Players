@@ -6,14 +6,14 @@ local ents_Create = ents.Create
 
 -- Process the queued inputs from players
 hook.Add( "StartCommand", "GlaceBase-InputProcessing", function( ply, cmd )
-    if !ply:IsGLambdaPlayer() or !ply:Alive() then return end 
+    if !ply:IsGLambdaPlayer() then return end
     
     cmd:ClearButtons()
     cmd:ClearMovement()
+    
+    if !ply:Alive() or ply:IsTyping() then return end
 
     local GLACE = ply:GetGlaceObject()
-    if GLACE:IsDisabled() then return end
-
     local buttonQueue = GLACE.CmdButtonQueue
     if GLACE.MoveSprint then buttonQueue = ( buttonQueue + IN_SPEED ) end
     if GLACE.MoveCrouch then buttonQueue = ( buttonQueue + IN_DUCK ) end
@@ -31,9 +31,8 @@ hook.Add( "StartCommand", "GlaceBase-InputProcessing", function( ply, cmd )
         GLACE.CmdSelectWeapon = nil
     end
 
-
     if buttonQueue > 0 then
-        cmd:SetButtons( buttonQueue )
+        if !GLACE:IsDisabled() then cmd:SetButtons( buttonQueue ) end
         GLACE.CmdButtonQueue = 0
     end
 end )
@@ -45,55 +44,63 @@ hook.Add( "SetupMove", "Glacebase-MovementProcessing", function( ply,  mv, cmd )
     local GLACE = ply:GetGlaceObject()
     if GLACE:IsDisabled() then return end
 
-    local eyePos = ply:EyePos()
+    if !ply:IsTyping() then
+        local eyePos = ply:EyePos()
+        local lookPos = GLACE.LookTowards_Pos
+        local smoothLook = GLACE.LookTowards_Smooth
+        if !lookPos or ( GLACE.LookTowards_EndT and CurTime() > GLACE.LookTowards_EndT or isentity( lookPos ) and !IsValid( lookPos ) ) then
+            GLACE.LookTowards_Pos = nil
+            lookPos = GLACE.LookTo_Pos
+            smoothLook = GLACE.LookTo_Smooth
 
-    local lookPos = GLACE.LookTowards_Pos
-    local smoothLook = GLACE.LookTowards_Smooth
-    if !lookPos or ( GLACE.LookTowards_EndT and CurTime() > GLACE.LookTowards_EndT or isentity( lookPos ) and !IsValid( lookPos ) ) then
-        GLACE.LookTowards_Pos = nil
-        lookPos = GLACE.LookTo_Pos
-        smoothLook = GLACE.LookTo_Smooth
-
-        if lookPos and ( GLACE.LookTo_EndT and CurTime() > GLACE.LookTo_EndT or isentity( lookPos ) and !IsValid( lookPos ) ) then
-            GLACE.LookTo_Pos = nil
-            lookPos = nil
+            if lookPos and ( GLACE.LookTo_EndT and CurTime() > GLACE.LookTo_EndT or isentity( lookPos ) and !IsValid( lookPos ) ) then
+                GLACE.LookTo_Pos = nil
+                lookPos = nil
+            end
         end
-    end
-    if lookPos then
-        local ang = ( ( isentity( lookPos ) and lookPos:WorldSpaceCenter() or lookPos ) - eyePos ):Angle()
-        ang.z = 0
-        ply:SetEyeAngles( LerpAngle( smoothLook, ply:EyeAngles(), ang ) )
-    end
+        if lookPos then
+            if ( GLACE:InCombat() or GLACE:IsPanicking() ) and lookPos == GLACE:GetEnemy() then
+                lookPos = GLACE:GetNearestAimPoint( lookPos )
+            end
 
-    local approachPos = GLACE.MoveApproachPos
-    if !approachPos or CurTime() > GLACE.MoveApproachEndT then
-        GLACE.MoveApproachPos = nil
-        approachPos = GLACE.FollowPath_Pos
+            local ang = ( ( isentity( lookPos ) and lookPos:WorldSpaceCenter() or lookPos ) - eyePos ):Angle()
+            ang.z = 0
 
-        if approachPos and CurTime() > GLACE.FollowPath_EndT then
-            GLACE.FollowPath_Pos = nil
-            approachPos = nil
-        end
-    end
-    if approachPos then
-        if !lookPos then 
-            ply:SetEyeAngles( LerpAngle( 0.2, ply:EyeAngles(), ( ( approachPos + vector_up * 70 ) - eyePos ):Angle() ) ) 
+            ply:SetEyeAngles( LerpAngle( smoothLook, ply:EyeAngles(), ang ) )
         end
 
-        mv:SetMoveAngles( ( approachPos - ply:GetPos() ):Angle() )
-        mv:SetForwardSpeed( ply:IsSprinting() and ply:GetRunSpeed() or ply:GetWalkSpeed() )
-    end
+        local approachPos = GLACE.MoveApproachPos
+        local isApproaching = true
+        if !approachPos or CurTime() > GLACE.MoveApproachEndT then
+            GLACE.MoveApproachPos = nil
+            approachPos = GLACE.FollowPath_Pos
+            isApproaching = false
 
-    local moveInput = GLACE.MoveInputForward
-    if moveInput then
-        mv:SetForwardSpeed( moveInput )
-        GLACE.MoveInputForward = nil
-    end
+            if approachPos and CurTime() > GLACE.FollowPath_EndT then
+                GLACE.FollowPath_Pos = nil
+                approachPos = nil
+            end
+        end
+        if approachPos then
+            if !lookPos and !isApproaching then 
+                ply:SetEyeAngles( LerpAngle( 0.2, ply:EyeAngles(), ( ( approachPos + vector_up * 70 ) - eyePos ):Angle() ) ) 
+            end
 
-    moveInput = GLACE.MoveInputSideway
-    if moveInput then
-        mv:SetSideSpeed( moveInput ) 
-        GLACE.MoveInputSideway = nil
+            mv:SetMoveAngles( ( approachPos - ply:GetPos() ):Angle() )
+            mv:SetForwardSpeed( ply:IsSprinting() and ply:GetRunSpeed() or ply:GetWalkSpeed() )
+        end
+
+        local moveInput = GLACE.MoveInputForward
+        if moveInput then
+            mv:SetForwardSpeed( moveInput )
+            GLACE.MoveInputForward = nil
+        end
+
+        moveInput = GLACE.MoveInputSideway
+        if moveInput then
+            mv:SetSideSpeed( moveInput ) 
+            GLACE.MoveInputSideway = nil
+        end
     end
 
     local navigator = GLACE:GetNavigator()

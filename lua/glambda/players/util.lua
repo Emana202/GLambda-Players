@@ -15,7 +15,7 @@ function GLAMBDA.Player:IsVisible( ent )
 end
 
 function GLAMBDA.Player:IsSpeaking( voiceType )
-    return ( ( !voiceType or self.LastPlayedVoiceType == voiceType ) and RealTime() <= self:GetSpeechEndTime() )
+    return ( ( !voiceType or self:GetLastVoiceType() == voiceType ) and RealTime() <= self:GetSpeechEndTime() )
 end
 
 function GLAMBDA.Player:InCombat()
@@ -28,6 +28,45 @@ end
 
 function GLAMBDA.Player:IsDisabled()
     return ( self:IsFrozen() or aiDisabled:GetBool() )
+end
+
+function GLAMBDA.Player:CanType()
+    if !GLAMBDA:GetConVar( "textchat_enabled" ) then return end
+
+    local chatLimit = GLAMBDA:GetConVar( "textchat_limit" )
+    if chatLimit <= 0 then return true end
+
+    local count = 0
+    for _, ply in ipairs( player.GetBots() ) do
+        if !ply:IsGLambdaPlayer() or !ply:IsTyping() then continue end
+        count = ( count + 1 )
+        if count >= chatLimit then return false end
+    end
+    return true
+end
+
+function GLAMBDA.Player:GetNearestAimPoint( target )
+    local eyePos = self:EyePos()
+    local nearPoint = target:WorldSpaceCenter()
+    local closeDist
+
+    local setCount = target:GetHitboxSetCount()
+    if isnumber( setCount ) then
+        for hboxSet = 0, ( setCount - 1 ) do
+            for hitbox = 0, ( target:GetHitBoxCount( hboxSet ) - 1 ) do
+                local bone = target:GetHitBoxBone( hitbox, hboxSet )
+                local bonePos = target:GetBonePosition( bone )
+
+                local boneDist = eyePos:DistToSqr( bonePos )
+                if closeDist and boneDist > closeDist then continue end
+
+                closeDist = boneDist
+                nearPoint = bonePos
+            end
+        end
+    end
+
+    return nearPoint
 end
 
 --
@@ -48,6 +87,7 @@ function GLAMBDA.Player:MoveToPos( pos, options )
     self:SetSprint( shouldSprint == nil and ( path:GetLength() > 1000 ) or shouldSprint )
 
     local pathResult = "ok"
+    local cbResult = nil
     local timeout = options.maxage
     local updateTime = options.updatetime
     local callback = options.callback
@@ -60,8 +100,8 @@ function GLAMBDA.Player:MoveToPos( pos, options )
             pathResult = "dead"
             break
         end
-        if self.AbortMovement then
-            self.AbortMovement = false
+        if self:GetAbortMovement() then
+            self:SetAbortMovement( false )
             pathResult = "abort"
             break
         end
@@ -72,7 +112,8 @@ function GLAMBDA.Player:MoveToPos( pos, options )
 
         if !self:IsDisabled() then
             if callback and CurTime() >= nextCallbackTime then
-                if callback( self ) == true then
+                cbResult = callback( self )
+                if cbResult != nil then
                     pathResult = "callback"
                     break
                 end
@@ -90,6 +131,9 @@ function GLAMBDA.Player:MoveToPos( pos, options )
                 if path:GetAge() >= time then self:RecomputePath() end
             end
 
+            self:AvoidCheck()
+            self:DoorCheck()
+
             self:UpdateOnPath()
         end
 
@@ -98,7 +142,7 @@ function GLAMBDA.Player:MoveToPos( pos, options )
 
     self:SetIsMoving( false )
 
-    return pathResult
+    return pathResult, cbResult
 end
 
 function GLAMBDA.Player:GetMovePosition()
@@ -108,10 +152,36 @@ function GLAMBDA.Player:GetMovePosition()
 end
 
 function GLAMBDA.Player:CancelMovement()
-    self.AbortMovement = self:GetIsMoving()
+    self:SetAbortMovement( self:GetIsMoving() )
 end
 
 --
+
+function GLAMBDA.Player:TypeMessage( msg, keyEnt )
+    local textTbl = GLAMBDA.TextMessages[ msg ]
+    if textTbl then 
+        for _, text in RandomPairs( textTbl ) do
+            local condMet, modLine = GLAMBDA.KEYWORD:IsValidCondition( self, text )
+            if condMet then msg = modLine; break end
+        end
+    else
+        local condMet, modLine = GLAMBDA.KEYWORD:IsValidCondition( self, text )
+        if !condMet then return end
+        msg = modLine
+    end
+    msg = GLAMBDA.KEYWORD:ModifyTextKeyWords( self, msg )
+
+    self:SetNW2String( "glambda_queuedtext", msg )
+    self.TypedTextMsg = ""
+    self.TextKeyEnt = keyEnt
+    self:StopSpeaking()
+end
+
+function GLAMBDA.Player:StopSpeaking()
+    net.Start( "glambda_stopspeech" )
+        net.WritePlayer( self:GetPlayer() )
+    net.Broadcast()
+end
 
 function GLAMBDA.Player:PlayVoiceLine( voiceType, delay )
     local voiceProfile, voiceTbl = self.VoiceProfile
@@ -124,15 +194,16 @@ function GLAMBDA.Player:PlayVoiceLine( voiceType, delay )
         if !voiceTbl or #voiceTbl == 0 then return end
     end
 
-    self.LastPlayedVoiceType = voiceType
+    self:SetLastVoiceType( voiceType )
     if !isnumber( delay ) then
-        delay = ( delay == nil and math.Rand( 0.1, 0.75 ) or 0 )
+        delay = ( delay == nil and math.Rand( 0.1, 0.66 ) or 0 )
     end
     self:SetSpeechEndTime( RealTime() + 4 )
 
     net.Start( "glambda_playvoicesnd" )
         net.WritePlayer( self:GetPlayer() )
         net.WriteString( voiceTbl[ math.random( #voiceTbl ) ] )
+        net.WriteUInt( self:GetVoicePitch(), 8 )
         net.WriteVector( self:GetPos() )
         net.WriteFloat( delay )
     net.Broadcast()
@@ -142,7 +213,7 @@ function GLAMBDA.Player:SetState( state, data )
     state = ( state or "Idle" )
     if self:GetState( state ) then return end
     self.State = state
-    self.StateVariable = data
+    self:SetStateArg( data )
 end
 
 function GLAMBDA.Player:UndoCommand( undoAll )
@@ -177,7 +248,7 @@ end
 --
 
 function GLAMBDA.Player:CanTarget( ent )
-    return ( ent != self:GetPlayer() and ( ent:IsPlayer() and ent:Alive() and ( ent.gl_IsLambdaPlayer or !ignorePlys:GetBool() and GLAMBDA:GetConVar( "combat_targetplys" ) ) or ( ent:IsNPC() or ent:IsNextBot() and !ent.gb_IsGlaceNavigator ) and ent:GetInternalVariable( "m_lifeState" ) == 0 ) )
+    return ( ent != self:GetPlayer() and ( ent:IsPlayer() and ent:Alive() and ( ent:IsGLambdaPlayer() or !ignorePlys:GetBool() and GLAMBDA:GetConVar( "combat_targetplys" ) ) or ( ent:IsNPC() or ent:IsNextBot() and !ent.gb_IsGlaceNavigator ) and ent:GetInternalVariable( "m_lifeState" ) == 0 ) )
 end
 
 function GLAMBDA.Player:AttackTarget( ent )
@@ -242,125 +313,155 @@ end
 
 --
 
-function GLAMBDA.Player:InitializeHooks( ply, GLACE )
-    -- Sometimes real players join mid game so we need to network this player to them
-    hook.Add( "PlayerInitialSpawn", ply, function( plyself, player )
+function GLAMBDA.Player:Hook( hookName, uniqueName, func )
+    local hookIdent = "GLambda-PlayerHook-#" .. self:EntIndex() .. "-" .. uniqueName
+    self:DevMsg( "Created a hook: " .. hookName .. " | " .. uniqueName )
+
+    hook.Add( hookName, hookIdent, function( ... )
+        if !IsValid( self ) then hook.Remove( hookName, hookIdent ) return end
+        return func( ... )
+    end )
+end
+
+function GLAMBDA.Player:InitializeHooks()
+    local ply = self:GetPlayer()
+
+    -- Sometimes the real players join the server mid-game, so we need to network the bots to them
+    self:Hook( "PlayerInitialSpawn", "NetworkToSpawnedPlayer", function( player )
+        if player == ply or player:IsBot() then return end
+
         net.Start( "glambda_playerinit" )
             net.WritePlayer( ply )
-            net.WriteString( ply.gl_ProfilePicture )
+            net.WriteString( ply.gb_ProfilePicture )
         net.Send( player )
     end )
 
     -- Reset the player's playermodel | Call respawn hook
-    hook.Add( "PlayerSpawn", ply, function( plyself, player )
+    self:Hook( "PlayerSpawn", "PlayerSpawn", function( player )
         if player != ply then return end
-        GLACE:OnRespawn()
+        self:OnRespawn()
 
         -- To make sure models are set
-        GLACE:SimpleTimer( 0, function()
+        self:SimpleTimer( 0, function()
             if !ply.SpawnPlayerModel then return end 
             ply:SetModel( ply.SpawnPlayerModel )
         end )
     end )
 
     -- On Killed hook
-    hook.Add( "PlayerDeath", ply, function( plyself, player, inflictor, attacker ) 
+    self:Hook( "PlayerDeath", "PlayerDeath", function( player, inflictor, attacker ) 
         if player != ply then return end
-        GLACE:OnKilled( attacker, inflictor )
+        self:OnKilled( attacker, inflictor )
     end )
 
     -- Update our navigator on map cleanup
-    hook.Add( "PostCleanupMap", ply, function()
-        local navigator = GLACE:GetNavigator()
+    self:Hook( "PostCleanupMap", "PostCleanupMap", function()
+        local navigator = self:GetNavigator()
         if !IsValid( navigator ) then
             navigator = ents.Create( "glace_navigator" )
             navigator:SetOwner( ply )
             navigator:Spawn()
-            GLACE:SetNavigator( navigator ) 
+            self:SetNavigator( navigator ) 
         end
 
-        navigator:SetPos( GLACE:GetPos() )
-        if GLACE.GoalPath then GLACE:ComputePathTo( GLACE.GoalPath )  end
+        navigator:SetPos( self:GetPos() )
+        if self.GoalPath then self:ComputePathTo( self.GoalPath )  end
     end )
 
     -- On hurt hook
-    hook.Add( "PlayerHurt", ply, function( plyself, player, attacker, healthremaining, damage )
+    self:Hook( "PlayerHurt", "PlayerHurt", function( player, attacker, healthremaining, damage )
         if player != ply then return end
-        GLACE:OnHurt( attacker, healthremaining, damage )
+        self:OnHurt( attacker, healthremaining, damage )
     end )
 
     -- On someone killed hook
-    hook.Add( "PostEntityTakeDamage", ply, function( plyself, victim, info, tookdmg )
+    self:Hook( "PostEntityTakeDamage", "PostEntityTakeDamage", function( victim, info, tookdmg )
         if victim == ply or ( !victim:IsNPC() and ( !victim:IsNextBot() or victim.gb_IsGlaceNavigator ) and !victim:IsPlayer() ) or victim:Health() > 0 or !tookdmg  then return end
-        GLACE:OnOtherKilled( victim, info )
+        self:OnOtherKilled( victim, info )
     end )
 
     -- On our disconnect
-    hook.Add( "PlayerDisconnected", ply, function( plyself, player )
+    self:Hook( "PlayerDisconnected", "PlayerDisconnected", function( player )
         if player != ply then return end
-        GLACE:OnDisconnect()
+        self:OnDisconnect()
+    end )
+
+    -- On someone's text message
+    self:Hook( "PlayerSay", "PlayerSay", function( player, text )
+        if player == ply or self:IsTyping() or self:IsSpeaking() or self:IsDisabled() or !self:CanType() then return end
+        if self:InCombat() or self:IsPanicking() then return end
+
+        local replyChan = ( string.match( text, self:Nick() ) and 100 or 200 )
+        if !self:GetTextingChance( replyChan ) then return end
+
+        local replyTime = ( math.random( 5, 20 ) / 10 )
+        self:SimpleTimer( replyTime, function()
+            if !IsValid( player ) or self:IsTyping() or self:IsSpeaking() or self:IsDisabled() or !self:CanType() then return end
+            if self:InCombat() or self:IsPanicking() then return end
+            self:TypeMessage( "response", ply )
+        end )
     end )
 
     --
 
     local STUCK_RADIUS = 10000
-    GLACE.StuckPosition = GLACE:GetPos()
-    GLACE.StuckTimer = CurTime() + 3
-    GLACE.m_stillstucktimer = CurTime() + 1
+    self.StuckPosition = self:GetPos()
+    self.StuckTimer = CurTime() + 3
+    self.StillStuckTimer = CurTime() + 1
 
     -- Think and the Threaded think
-    hook.Add( "Think", ply, function() 
-        GLACE:Think()
+    self:Hook( "Think", "Think", function() 
+        self:Think()
 
-        if coroutine.status( GLACE:GetThread() ) != "dead" then
-            local ok, msg = coroutine.resume( GLACE:GetThread() )
+        if coroutine.status( self:GetThread() ) != "dead" then
+            local ok, msg = coroutine.resume( self:GetThread() )
             if !ok then ErrorNoHaltWithStack( msg ) end
         end
 
         if GLAMBDA:GetConVar( "glambda_debug" ) then
-            debugoverlay.Line( GLACE:EyePos(), GLACE:GetEyeTrace().HitPos, 0.1, color_white, true ) 
+            debugoverlay.Line( self:EyePos(), self:GetEyeTrace().HitPos, 0.1, color_white, true ) 
         end
 
         -- STUCK MONITOR --
         -- The following stuck monitoring system is a recreation of Source Engine's Stuck Monitoring for Nextbots
-        if IsValid( GLACE:GetPath() ) and GLACE:Alive() and ( !GLACE.GoalPathStuckChecl or CurTime() < GLACE.GoalPathStuckChecl ) then
-            if GLACE:IsStuck() then
+        if IsValid( self:GetPath() ) and self:Alive() and ( !self.GoalPathStuckChecl or CurTime() < self.GoalPathStuckChecl ) then
+            if self:IsStuck() then
                 -- we are/were stuck - have we moved enough to consider ourselves "dislodged"
-                if GLACE:SqrRangeTo( GLACE.StuckPosition ) > STUCK_RADIUS then
-                    GLACE:ClearStuck()
-                elseif CurTime() > GLACE.m_stillstucktimer then
+                if !self:InRange( self.StuckPosition, STUCK_RADIUS ) then
+                    self:ClearStuck()
+                elseif CurTime() > self.StillStuckTimer then
                     -- Still stuck
-                    GLACE:DevMsg( "IS STILL STUCK\n", GLACE:GetPos() )
-                    debugoverlay.Sphere( GLACE:GetPos(), 100, 1, Color( 255, 0, 0 ), true )
+                    self:DevMsg( "IS STILL STUCK\n", self:GetPos() )
+                    debugoverlay.Sphere( self:GetPos(), 100, 1, Color( 255, 0, 0 ), true )
 
-                    GLACE:OnStuck()
-                    GLACE.m_stillstucktimer = CurTime() + 1
+                    self:OnStuck()
+                    self.StillStuckTimer = CurTime() + 1
                 end
             else
-                GLACE.m_stillstucktimer = CurTime() + 1
+                self.StillStuckTimer = CurTime() + 1
 
                 -- We have moved. Reset the timer and position
-                if GLACE:SqrRangeTo( GLACE.StuckPosition ) > STUCK_RADIUS then
-                    GLACE.StuckTimer = CurTime() + 3
-                    GLACE.StuckPosition = GLACE:GetPos()
+                if !self:InRange( self.StuckPosition, STUCK_RADIUS ) then
+                    self.StuckTimer = CurTime() + 3
+                    self.StuckPosition = self:GetPos()
                 else -- We are within the stuck radius. If we've been here too long, then, we are probably stuck
-                    debugoverlay.Line( GLACE:WorldSpaceCenter(), GLACE.StuckPosition, 1, Color( 255, 0, 0 ), true )
+                    debugoverlay.Line( self:WorldSpaceCenter(), self.StuckPosition, 1, Color( 255, 0, 0 ), true )
 
-                    if CurTime() > GLACE.StuckTimer then
-                        debugoverlay.Sphere( GLACE:GetPos(), 100, 2, Color( 255, 0, 0 ), true )
-                        GLACE:DevMsg( "IS STUCK AT\n", GLACE:GetPos() )
+                    if CurTime() > self.StuckTimer then
+                        debugoverlay.Sphere( self:GetPos(), 100, 2, Color( 255, 0, 0 ), true )
+                        self:DevMsg( "IS STUCK AT\n", self:GetPos() )
                         
-                        GLACE._ISSTUCK = true
-                        GLACE:OnStuck()
+                        self._ISSTUCK = true
+                        self:OnStuck()
                     end
                 end
             end
             
-            debugoverlay.Cross( GLACE.StuckPosition, 5, 1, color_white, true )
+            debugoverlay.Cross( self.StuckPosition, 5, 1, color_white, true )
         else -- Reset the stuck status
-            GLACE.m_stillstucktimer = CurTime() + 1
-            GLACE.StuckTimer = CurTime() + 3
-            GLACE.StuckPosition = GLACE:GetPos()
+            self.StillStuckTimer = CurTime() + 1
+            self.StuckTimer = CurTime() + 3
+            self.StuckPosition = self:GetPos()
         end
     end )
 end
@@ -388,5 +489,6 @@ function GLAMBDA.Player:BuildPersonalityTable( overrideTbl )
     end
 
     table.sort( personaTbl, function( a, b ) return a[ 2 ] > b[ 2 ] end )
+    -- PrintTable( personaTbl )
     self.Personality = personaTbl
 end

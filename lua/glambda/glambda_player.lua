@@ -9,42 +9,6 @@ end
 
 --
 
-local defNames = {
-    "Sorry_an_Error_has_Occurred",
-	"I am the Spy",
-	"engineer gaming",
-	"Ze Uberman",
-	"Regret",
-	"Sora",
-	"Sky",
-	"Scarf",
-	"Graves",
-	"bruh moment",
-	"Garrys Mod employee",
-	"i havent eaten in 69 days",
-	"DOORSTUCK89",
-	"PickUp That Can Cop",
-	"Never gonna give you up",
-	"The Lemon Arsonist",
-	"Cave Johnson",
-	"Chad",
-	"Speedy",
-	"Alan",
-	"Alpha",
-	"Bravo",
-	"Delta",
-	"Charlie",
-	"Echo",
-	"Foxtrot",
-	"Golf",
-	"Hotel",
-	"India",
-	"Juliet",
-	"Kilo",
-	"Lima",
-	"Lina",
-}
-
 function GLAMBDA:CreateLambdaPlayer()
     if game.SinglePlayer() then 
         ErrorNoHalt( "GLambda Players: Trying to create a player in a single player session. (Create a multiplayer one instead!)" ) 
@@ -57,20 +21,21 @@ function GLAMBDA:CreateLambdaPlayer()
 
     --
 
-    local ply = player.CreateNextBot( defNames[ math.random( #defNames ) ] )
-    ply.gl_IsLambdaPlayer = true
     
-    local pfp = self:GetProfilePictures( true )
-    ply.gl_ProfilePicture = pfp
-
-    ply:SetNW2Vector( "lambdaglace_playercolor", Vector( math.Rand( 0.0, 1.0 ), math.Rand( 0.0, 1.0 ), math.Rand( 0.0, 1.0 ) ) )
-    ply:SetNW2Vector( "lambdaglace_weaponcolor", Vector( math.Rand( 0.0, 1.0 ), math.Rand( 0.0, 1.0 ), math.Rand( 0.0, 1.0 ) ) )
-
-    --
+    local names = self.Nicknames
+    local ply = player.CreateNextBot( #names != 0 and names[ math.random( #names ) ] or "GLambda Player" )
+    ply.gb_IsLambdaPlayer = true
 
     local rndPm = self:GetRandomPlayerModel()
     ply.SpawnPlayerModel = rndPm
     ply:SetModel( ply.SpawnPlayerModel )
+    
+    local pfps = GLAMBDA.ProfilePictures
+    if #pfps == 0 then
+        ply.gb_ProfilePicture = "spawnicons/" .. string.sub( rndPm, 1, #rndPm - 4 ) .. ".png"
+    else
+        ply.gb_ProfilePicture = pfps[ math.random( #pfps ) ]
+    end
 
     --
 
@@ -88,9 +53,9 @@ function GLAMBDA:CreateLambdaPlayer()
     navigator:SetPos( GLACE:GetPos() )
 
     -- Network this player to clients
-    net.Start( "glambda_playerinit" )
-        net.WritePlayer( ply )
-        net.WriteString( pfp or "" )
+    net.Start( "glambda_waitforplynet" )
+        net.WriteUInt( ply:UserID(), 12 )
+        net.WriteString( ply.gb_ProfilePicture )
     net.Broadcast()
 
     --
@@ -106,15 +71,13 @@ function GLAMBDA:CreateLambdaPlayer()
     --
     
     GLACE.State = "Idle"
-    GLACE.ThreadState = GLACE.State
-    GLACE.LastPlayedVoiceType = nil
+    GLACE.TypedTextMsg = ""
+
+    GLACE.TextKeyEnt = nil
     
     GLACE.CombatPathPosition = vector_origin
-    GLACE.PreCombatMovePos = false
 
-    GLACE.AbortMovement = false
-
-    GLACE.StateVariable = nil
+    GLACE.NextTextTypeT = 0
     GLACE.NextCombatPathUpdateT = 0
     GLACE.NextAmmoCheckT = 0
     GLACE.NextWeaponAttackT = 0
@@ -125,17 +88,35 @@ function GLAMBDA:CreateLambdaPlayer()
     GLACE.RetreatEndTime = 0
     GLACE.NextNPCCheckT = CurTime()
 
+    GLACE.LookTo_Pos = nil
+    GLACE.LookTo_Smooth = 1
+    GLACE.LookTo_EndT = nil
+    GLACE.LookTo_Priority = -1
+
+    --
+
+    ply:SetNW2Vector( "glambda_plycolor", Vector( math.Rand( 0.0, 1.0 ), math.Rand( 0.0, 1.0 ), math.Rand( 0.0, 1.0 ) ) )
+    ply:SetNW2Vector( "glambda_wpncolor", Vector( math.Rand( 0.0, 1.0 ), math.Rand( 0.0, 1.0 ), math.Rand( 0.0, 1.0 ) ) )
+    
+    ply:SetNW2String( "glambda_queuedtext", "" )
+
     --
 
     GLACE:CreateGetSetFuncs( "Enemy" )
+    GLACE:CreateGetSetFuncs( "StateArg" )
+    GLACE:CreateGetSetFuncs( "ThreadState" )
     GLACE:CreateGetSetFuncs( "IsMoving" )
+    GLACE:CreateGetSetFuncs( "AbortMovement" )
+    GLACE:CreateGetSetFuncs( "LastVoiceType" )
     GLACE:CreateGetSetFuncs( "SpeechEndTime" )
+    GLACE:CreateGetSetFuncs( "VoicePitch" )
+    GLACE:CreateGetSetFuncs( "TextPerMinute" )
 
     --
-    
+
     GLACE:SetSpeechEndTime( 0 )
-    GLACE:SetAutoReload( true )
-    GLACE:SetAutoSwitchWeapon( false )
+    GLACE:SetTextPerMinute( math.random( 3, 10 ) * 100 )
+    GLACE:SetVoicePitch( math.random( self:GetConVar( "voice_pitch_min" ), self:GetConVar( "voice_pitch_max" ) ) )
 
     --
 
@@ -144,14 +125,16 @@ function GLAMBDA:CreateLambdaPlayer()
 
     --
 
-    local spawnWep = self:GetConVar( "combat_spawnweapon" )
-    if spawnWep == "random" then
-        GLACE:SelectRandomWeapon()
-    else
-        GLACE:SelectWeapon( spawnWep )
-    end
+    GLACE:SimpleTimer( 0, function()
+        local spawnWep = self:GetConVar( "combat_spawnweapon" )
+        if spawnWep == "random" then
+            GLACE:SelectRandomWeapon()
+        else
+            GLACE:SelectWeapon( spawnWep )
+        end
 
-    GLACE:ApplySpawnBehavior()
+        GLACE:ApplySpawnBehavior()
+    end )
 
     local voiceProfile
     if math.random( 100 ) <= self:GetConVar( "player_vp_chance" ) then

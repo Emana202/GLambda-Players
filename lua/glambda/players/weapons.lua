@@ -56,6 +56,11 @@ function GLAMBDA.Player:SelectLethalWeapon()
     end )
 end
 
+function GLAMBDA.Player:GetCurrentWeapon()
+    local curWep = self:GetActiveWeapon()
+    return ( IsValid( curWep ) and curWep:GetClass() or "" )
+end
+
 function GLAMBDA.Player:GetWeaponAmmo()
     local curWep = self:GetActiveWeapon()
     if !IsValid( curWep ) then return -1 end
@@ -69,9 +74,20 @@ function GLAMBDA.Player:GetWeaponMaxAmmo()
     return ( !ammoType and -1 or game.GetAmmoMax( ammoType ) )
 end
 
+function GLAMBDA.Player:IsReloadingWeapon()
+    local curWep = self:GetActiveWeapon()
+    if !IsValid( curWep ) then return false end
+
+    if curWep.ARC9 then return curWep:GetReloading() end
+    return string.match( curWep:GetSequenceActivityName( curWep:GetSequence() ), "RELOAD" )
+end
+
 --
 
 local fallbackDefaults = {
+    IsMeleeWeapon = function( weapon )
+        if weapon.IsTFAWeapon then return weapon.IsMelee end
+    end,
     Automatic = function( weapon )
         if weapon.IsTFAWeapon then
             return ( weapon.Primary.Automatic == true  )
@@ -82,6 +98,24 @@ local fallbackDefaults = {
     AttackDelay = function( weapon )
         if weapon.IsTFAWeapon and !weapon.Primary.Automatic or weapon.ARC9 and weapon:GetCurrentFiremode() != -1 then
             return { 0.2, 0.3 }
+        end
+    end,
+    AttackDistance = function( weapon )
+        if weapon.ARC9 then
+            local range = ( ( weapon.RangeMin + weapon.RangeMax ) * 0.5 )
+            return range
+        end
+        if weapon.RangeFalloffLUT then
+            return ( weapon.RangeFalloffLUT.lut.range * 0.2 )
+        end
+    end,
+    KeepDistance = function( weapon )
+        if weapon.ARC9 then
+            local range = ( ( ( weapon.RangeMin + weapon.RangeMax ) * 0.5 ) * 0.5 )
+            return range
+        end
+        if weapon.RangeFalloffLUT then
+            return ( ( weapon.RangeFalloffLUT.lut.range * 0.2 ) * 0.5 )
         end
     end
 }

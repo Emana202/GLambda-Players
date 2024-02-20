@@ -32,6 +32,10 @@ GLAMBDA.UniversalActions = {
             if !self:GetIsMoving() or !self:GetState( "Idle" ) then return true end
             self:PressKey( IN_JUMP )
         end )
+    end,
+    [ "UseMedkit" ] = function( self )
+        if self:Health() >= self:GetMaxHealth() or !self:GetState( "Idle" ) and !self:GetState( "Retreat" ) or math.random( 2 ) != 1 then return end
+        self:SelectWeapon( "weapon_medkit" )
     end
 }
 

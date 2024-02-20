@@ -15,15 +15,16 @@ function ENT:Initialize()
     
     self:SetPos( spawnPos )
     self:SetOwner( ply:GetPlayer() )
-    self.gl_PlyInitialized = false
+    self.gb_PlyInitialized = false
 end
 
 function ENT:InitializePlayer( creator )
-    self.gl_PlyInitialized = true
+    self.gb_PlyInitialized = true
     local ply = self:GetOwner()
 
     local presetCvar = creator:GetInfo( "glambda_player_personalitypreset" )
     ply:GetGlaceObject():BuildPersonalityTable( GLAMBDA.PersonalityPresets[ presetCvar ] )
+    PrintTable( ply:GetGlaceObject().Personality )
 
     local undoName = "GLambda Player ( " .. ply:Nick() .. " )"
     undo.Create( undoName )
@@ -34,7 +35,7 @@ function ENT:InitializePlayer( creator )
 end
 
 function ENT:Think()
-    if !self.gl_PlyInitialized then
+    if !self.gb_PlyInitialized then
         local creator = self:GetCreator()
         if IsValid( creator ) then self:InitializePlayer( creator ) end
     else
@@ -53,9 +54,3 @@ function ENT:OnRemove()
 
     timer.Simple( 0, function() if IsValid( ply ) then ply:Kick() end end )
 end
-
-list.Set( "NPC", "glambda_spawner", {
-    Name = "GLambda Player",
-    Class = "glambda_spawner",
-    Category = "GLambda Players"
-} )

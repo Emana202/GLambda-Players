@@ -95,14 +95,9 @@ function GLAMBDA:ApplyPlayerFunctions( ply )
         -- Sends a debug message to console. Only works if glambda_debug is set to 1
         function GLACE:DevMsg( ... )
             if !GLAMBDA:GetConVar( "glambda_debug" ) then return end
-            print( "GLACE DEBUG: " .. tostring( self:GetPlayer() ) .. " ", ... )
+            print( "GLAMBDA DEBUG: " .. tostring( self:GetPlayer() ) .. " ", ... )
         end
 
-        -- Simulates a key press on this player. 
-        -- This function will go on cooldown for each inkey for a very small delay so that it isn't running every tick and making it seem like it is being "held"
-        -- It's a key press for a reason lol
-        -- This shouldn't be used with movement keys like IN_FORWARD
-        
         local moveInputs = {
             [ IN_FORWARD ] = 1,
             [ IN_BACK ] = 2,
@@ -112,6 +107,11 @@ function GLAMBDA:ApplyPlayerFunctions( ply )
         GLACE.CmdButtonQueue = 0 -- The key presses we've done this tick
         GLACE.KeyPressCooldown = {} -- Table for keeping cooldowns for each inkey
 
+        -- Simulates a key press on this player. 
+        -- This function will go on cooldown for each inkey for a very small delay so that it isn't running every tick and making it seem like it is being "held"
+        -- It's a key press for a reason lol
+        -- This shouldn't be used with movement keys like IN_FORWARD
+        
         function GLACE:PressKey( inkey )
             local cooldown = self.KeyPressCooldown[ inkey ]
             if cooldown and ( CurTime() - cooldown ) < engine.TickInterval() then return end
@@ -169,7 +169,7 @@ function GLAMBDA:ApplyPlayerFunctions( ply )
         -- Makes the player approach the position. Similar to CLuaLocomotion:Approach()
         function GLACE:Approach( goal )
             self.MoveApproachPos = goal
-            self.MoveApproachEndT = ( CurTime() + 0.5 )
+            self.MoveApproachEndT = ( CurTime() + 0.2 )
         end
 
         -- Makes the player look towards a position or entity. 
@@ -185,10 +185,12 @@ function GLAMBDA:ApplyPlayerFunctions( ply )
         -- Smooth is fraction in a LerpAngle(). Set this to 1 for the Player to instantly snap their view onto a position or entity. Set this as a decimal like 0.1 to have a more smooth look
         -- endtime is the time in seconds before the Player stops looking at the pos/entity
         -- Set pos to nil to stop
-        function GLACE:LookTo( pos, smooth, endtime )
+        function GLACE:LookTo( pos, smooth, endtime, priority )
+            if priority and self.LookTo_Pos and self.LookTo_Priority > priority then return end
             self.LookTo_Pos = pos
             self.LookTo_Smooth = ( smooth or 1 )
             self.LookTo_EndT = ( endtime and CurTime() + endtime or nil )
+            self.LookTo_Priority = priority
         end
 
         -- Gets the current segment index we are on
@@ -322,29 +324,41 @@ function GLAMBDA:ApplyPlayerFunctions( ply )
         end
         
         -- Returns a squared distance to the position
-        function GLACE:SqrRangeTo( pos )
+        -- Much faster than the normal way
+        function GLACE:SqrRangeTo( pos, startPos )
             if isentity( pos ) and !IsValid( pos ) then ErrorNoHaltWithStack( "Attempt to get range from a entity that isn't valid!" ) return end
             pos = isentity( pos ) and pos:GetPos() or pos
-            return self:GetPos():DistToSqr( pos )
+
+            startPos = ( startPos or self:GetPos() )
+            return startPos:DistToSqr( pos )
         end
 
-        -- Returns a squared distance to the position on a 2d plane. This means the z axis is removed out of the picture
-        function GLACE:SqrRangeToXY( pos )
+        -- Returns a squared distance to the position on a 2D plane. This means the Z axis is removed out of the picture
+        function GLACE:SqrRangeToXY( pos, startPos )
             if isentity( pos ) and !IsValid( pos ) then ErrorNoHaltWithStack( "Attempt to get range from a entity that isn't valid!" ) return end
-            local selfpos = self:GetPos()
+
             pos = isentity( pos ) and pos:GetPos() or pos
             pos[ 3 ] = 0
-            selfpos[ 3 ] = 0
             
-            return selfpos:DistToSqr( pos )
+            startPos = ( startPos or self:GetPos() )
+            startPos[ 3 ] = 0
+
+            return startPos:DistToSqr( pos )
         end
 
         -- Returns a distance based on source units
-        -- For simple in range checks, use GLACE:SqrRangeTo( pos ). for example, GLACE:SqrRangeTo( Vector() ) < ( 500 * 500 ) it is much faster to calculate
-        function GLACE:RangeTo( pos )
+        -- For simple in range checks, use GLACE:SqrRangeTo( pos ). For example, GLACE:SqrRangeTo( Vector() ) < ( 500 * 500 ) is much faster to calculate
+        function GLACE:RangeTo( pos, startPos )
             if isentity( pos ) and !IsValid( pos ) then ErrorNoHaltWithStack( "Attempt to get range from a entity that isn't valid!" ) return end
             pos = isentity( pos ) and pos:GetPos() or pos
-            return self:GetPos():Distance( pos )
+
+            startPos = ( startPos or self:GetPos() )
+            return startPos:Distance( pos )
+        end
+
+        -- Returns if the given position in is range
+        function GLACE:InRange( pos, range, startPos )
+            return ( self:SqrRangeTo( pos, startPos ) <= ( range * range ) )
         end
 
         -- Returns a normalized vector from the player's position to the other pos or entity
@@ -385,12 +399,6 @@ function GLAMBDA:ApplyPlayerFunctions( ply )
             normaltrace.collisiongroup = col or COLLISION_GROUP_NONE
             
             return Trace( normaltrace )
-        end
-
-        -- Returns if we can safely shoot this entity
-        function GLACE:CanShootAt( ent ) 
-            local result = self:Trace( nil, ent, COLLISION_GROUP_NONE, MASK_SHOT_PORTAL )
-            return ( result.Fraction == 1.0 or result.Entity == ent )
         end
 
         -- Hull trace
@@ -438,12 +446,13 @@ function GLAMBDA:ApplyPlayerFunctions( ply )
 
         -- A function for creating get and set functions easily.
         -- func( old, new ) arg is optional. It will be called when the value changes
+        -- Returning true in the function will prevent the value change from happening
         function GLACE:CreateGetSetFuncs( name, func )
             self[ "Get" .. name ] = function( self )
                 return self[ "gb_getsetvar" .. name ]
             end
             self[ "Set" .. name ] = function( self, val )
-               if func then func( self[ "Get" .. name ]( self ), val ) end
+               if func and func( self[ "Get" .. name ]( self ), val ) == true then return end
                self[ "gb_getsetvar" .. name ] = val
             end
         end
@@ -478,28 +487,55 @@ function GLAMBDA:ApplyPlayerFunctions( ply )
 
         local QuickTrace = util.QuickTrace
 
-        GLACE.DoorCheckCooldown = 0
+        GLACE.DoorOpenCooldown = 0
         -- Performs a check that will make this Player open doors
         function GLACE:DoorCheck()
-            local ent = util.QuickTrace( self:EyePos(), self:GetAimVector() * 50, self:GetPlayer() ).Entity
+            local ent = QuickTrace( self:EyePos(), self:GetAimVector() * 50, self:GetPlayer() ).Entity
             if !IsValid( ent ) then return end
             
             self:LookTowards( ent:WorldSpaceCenter() )
-            if CurTime() < self.DoorCheckCooldown then return end
+            if CurTime() < self.DoorOpenCooldown then return end
 
             self:PressKey( IN_USE )
-            self.DoorCheckCooldown = ( CurTime() + 2 )
+            self.DoorOpenCooldown = ( CurTime() + 2 )
         end
 
         local tracetable = { -- Recycled table
-            mins = Vector( -16, -16, -10 ),
-            maxs = Vector( 16, 16, 10 )
+            mins = Vector( -10, -10, 0 ),
+            maxs = Vector( 10, 10, 20 )
         }
-        local leftcol = Color( 255, 0, 0 )
-        local rightcol = Color( 0, 255, 0 )
+        local hitcol = Color( 255, 0, 0, 10 )
+        local safecol = Color( 0, 255, 0, 10 )
 
         -- Fires 2 hull traces that will make the player try to move out of the way of whatever is blocking the way
         function GLACE:AvoidCheck()
+            local selfPos = self:GetPos()
+            local selfRight = self:GetRight()
+            local selfForward = self:GetForward()
+        
+            tracetable.start = ( selfPos + vector_up * self:GetStepSize() + selfForward * 30 + selfRight * 12.5 )
+            tracetable.endpos = tracetable.start
+            tracetable.filter = self:GetPlayer()
+        
+            local rightresult = TraceHull( tracetable )
+            debugoverlay.Box( tracetable.start, tracetable.mins, tracetable.maxs, 0.1, ( rightresult.Hit and hitcol or safecol ), false )
+        
+            tracetable.start = ( tracetable.start - selfRight * 25 )
+            tracetable.endpos = tracetable.start
+        
+            local leftresult = TraceHull( tracetable )
+            debugoverlay.Box( tracetable.start, tracetable.mins, tracetable.maxs, 0.1, ( leftresult.Hit and hitcol or safecol ), false )
+        
+            if leftresult.Hit and rightresult.Hit then -- Back up
+                self:Approach( self:GetPos() - selfForward * 50, 0.25 )
+            end
+            if leftresult.Hit and !rightresult.Hit then -- Move to the right
+                self:Approach( self:GetPos() + selfRight * 50 )
+            elseif rightresult.Hit and !leftresult.Hit then  -- Move to the left
+                self:Approach( self:GetPos() - selfRight * 50 )
+            end
+
+            --[[
             tracetable.filter = self:GetPlayer()
             local startPos = ( self:GetPos() + vector_up * self:GetStepSize() )
             local rightDir = ( self:GetRight() * 20 )
@@ -532,54 +568,11 @@ function GLAMBDA:ApplyPlayerFunctions( ply )
             end
 
             if righthit and !lefthit then  -- Move to the left
-                self:SetVelocity( self:GetRight() * -50 )
+                self:Approach( self:GetPos() + self:GetRight() * -50 )
             elseif lefthit and !righthit then -- Move to the right
-                self:SetVelocity( self:GetRight() * 50 )
+                self:Approach( self:GetPos() + self:GetRight() * 50 )
             end
-        end
-
-
-        -- Some weapon related functions
-
-        -- Makes the player automatically switch to a weapon with ammo if their current weapon is completely out of ammo
-        function GLACE:SetAutoSwitchWeapon( bool )
-            local id = tostring( self )
-            if bool then
-                hook.Add( "Tick", "glacebase-autoswitch" .. id, function()
-                    if !IsValid( self ) then hook.Remove( "Tick", "glacebase-autoswitch" .. id ) return end
-                    local wep = self:GetActiveWeapon()
-
-                    if IsValid( wep ) and !wep:HasAmmo() then
-                        self:SelectRandomWeapon( true )
-                    end
-                end )
-            else
-                hook.Remove( "Tick", "glacebase-autoswitch" .. id )
-            end
-        end
-
-        -- Makes the player automatically reload when their weapon's clip is empty or when they haven't shot for 3 seconds
-        function GLACE:SetAutoReload( bool )
-            local id = tostring( self )
-            if bool then
-                hook.Add( "Tick", "glacebase-autoreload" .. id, function()
-                    if !IsValid( self ) then hook.Remove( "Tick", "glacebase-autoreload" .. id ) return end
-                    local wep = self:GetActiveWeapon()
-
-                    if IsValid( wep ) and wep:Clip1() == 0 then
-                        self:PressKey( IN_RELOAD )
-                    elseif IsValid( wep ) and wep:Clip1() < wep:GetMaxClip1() and wep:GetNextPrimaryFire() + 3 < CurTime() then -- Sometimes you might need a full clip
-                        self:PressKey( IN_RELOAD )
-                    end
-                end )
-            else
-                hook.Remove( "Tick", "glacebase-autoreload" .. id )
-            end
-        end
-
-        -- Returns if the current weapon has ammo
-        function GLACE:CurWeaponHasAmmo()
-            return self:GetActiveWeapon():HasAmmo()
+            ]]
         end
 
         ---- ----

@@ -1,4 +1,23 @@
 function GLAMBDA.Player:Think()
+    local queuedText = self:GetNW2String( "glambda_queuedtext", "" )
+    if #queuedText != 0 and CurTime() >= self.NextTextTypeT then
+        local typedText = self.TypedTextMsg
+        local typedLen = #typedText
+        if typedLen >= #queuedText then
+            self:Say( typedText )
+            self:SetNW2String( "glambda_queuedtext", "" )
+            self.TypedTextMsg = ""
+        else
+            local nextChar = queuedText[ typedLen + 1 ]
+            self.TypedTextMsg = typedText .. nextChar
+
+            local typePerMinute = 60
+            if !self:Alive() then typePerMinute = ( typePerMinute / 1.33 ) end
+            
+            self.NextTextTypeT = ( CurTime() + ( 1 / ( self:GetTextPerMinute() / typePerMinute ) ) )
+        end
+    end
+
     if !self:Alive() or self:IsDisabled() then return end
 
     if CurTime() >= self.NextUniversalActionT then
@@ -7,13 +26,17 @@ function GLAMBDA.Player:Think()
         self.NextUniversalActionT = ( CurTime() + math.Rand( 10, 15 ) )
     end
     
-    if CurTime() >= self.NextIdleLineT and !self:IsSpeaking() and self:GetSpeechChance( 100 ) then
-        if self:InCombat() then
-            self:PlayVoiceLine( "taunt" )
-        elseif self:IsPanicking() then
-            self:PlayVoiceLine( "panic" )
-        else
-            self:PlayVoiceLine( "idle" )
+    if CurTime() >= self.NextIdleLineT and !self:IsSpeaking() and !self:IsTyping() then 
+        if self:GetSpeechChance( 100 ) then
+            if self:InCombat() then
+                self:PlayVoiceLine( "taunt" )
+            elseif self:IsPanicking() then
+                self:PlayVoiceLine( "panic" )
+            else
+                self:PlayVoiceLine( "idle" )
+            end
+        elseif !self:InCombat() and !self:IsPanicking() and self:CanType() and self:GetTextingChance( 100 ) then
+            self:TypeMessage( "idle" )
         end
 
         self.NextIdleLineT = ( CurTime() + math.random( 5, 10 ) )
@@ -48,24 +71,36 @@ function GLAMBDA.Player:Think()
             end
         end
 
+        local wepClip = weapon:Clip1()
+        if wepClip == 0 or wepClip < weapon:GetMaxClip1() and CurTime() >= self.NextAmmoCheckT then
+            self:PressKey( IN_RELOAD )
+        end
+
         local enemy = self:GetEnemy()
         if self:InCombat() or self:GetState( "Retreat" ) and IsValid( enemy ) then
-            if !weapon:HasAmmo() then
+            local isMelee = self:GetWeaponStat( "IsMeleeWeapon" )
+            if !isMelee and !weapon:HasAmmo() then
                 self:SelectLethalWeapon()
             end
             
-            local canShoot = ( self:GetWeaponStat( "IsLethalWeapon", true ) and self:CanShootAt( enemy ) )
-            local isMelee = self:GetWeaponStat( "IsMeleeWeapon" )
+            local isReloading = self:IsReloadingWeapon()
             local isPanicking = self:IsPanicking()
             local attackRange = self:GetWeaponStat( "AttackDistance", ( isMelee and 80 or 1000 ) )
             if isPanicking and !isMelee then attackRange = ( attackRange * 0.8 ) end
+            
+            local canShoot = self:GetWeaponStat( "IsLethalWeapon", true )
+            if canShoot then
+                local fireTr = self:Trace( nil, enemy, nil, MASK_SHOT_PORTAL )
+                canShoot = ( fireTr.Fraction >= 0.9 or fireTr.Entity == enemy )
+            end
+            
+            local aimFunc = self:GetWeaponStat( "OverrideAim" )
+            local aimPos = ( aimFunc and aimFunc( self, weapon, enemy ) or enemy )
 
-            local inFireRange = ( self:SqrRangeTo( enemy ) <= ( attackRange ^ 2 ) )
-            if canShoot and inFireRange then
-                local aimFunc = self:GetWeaponStat( "OverrideAim" )
-                local aimPos = ( aimFunc and aimFunc( self, weapon, enemy ) or ( isMelee and enemy:NearestPoint( self:EyePos() ) or enemy ) )
-                self:LookTowards( aimPos, 0.66 )
-                
+            if canShoot and self:InRange( aimPos, attackRange, self:EyePos() ) then
+                self:LookTo( aimPos, 0.2, math.random( 1, 3 ), 3 )
+                if aimPos == enemy then aimPos = aimPos:WorldSpaceCenter() end
+
                 local canSprint = true
                 if weapon.IsTFAWeapon then 
                     canSprint = false
@@ -74,11 +109,14 @@ function GLAMBDA.Player:Think()
                 end
                 self:SetSprint( canSprint )
 
-                if aimFunc or self:GetEyeTrace().Entity == enemy then
+                local canFire = ( ( aimPos - self:EyePos() ):GetNormalized():Dot( self:GetAimVector() ) >= 0.95 )
+                if canFire then
                     if !self:GetWeaponStat( "SpecialAttack" ) or !self:GetWeaponStat( "SpecialAttack" )( self, weapon, enemy ) then
                         if self:GetWeaponStat( "Automatic", isMelee ) then
-                            self:HoldKey( IN_ATTACK )
-                        elseif CurTime() >= self.NextWeaponAttackT then
+                            if !isReloading then
+                                self:HoldKey( IN_ATTACK )
+                            end
+                        elseif CurTime() >= self.NextWeaponAttackT and CurTime() >= weapon:GetNextPrimaryFire() then
                             self:PressKey( IN_ATTACK )
 
                             local fireDelay = self:GetWeaponStat( "AttackDelay" )
@@ -89,64 +127,62 @@ function GLAMBDA.Player:Think()
                         end
                     end
                 end
+
+                self.NextAmmoCheckT = ( CurTime() + math.random( 2, 8 ) )
             else
                 self:SetSprint( true )
             end
 
             if self:GetIsMoving() and !self:GetState( "Retreat" ) then
-                local isReloading = string.match( weapon:GetSequenceActivityName( weapon:GetSequence() ), "RELOAD" )
-
                 if CurTime() >= self.NextCombatPathUpdateT then
                     local keepDist = self:GetWeaponStat( "KeepDistance", ( isMelee and 50 or 500 ) )
                     
-                    if isReloading or canShoot and self:SqrRangeTo( enemy ) <= ( keepDist ^ 2 ) then
+                    if isReloading or canShoot and self:InRange( enemy, keepDist ) then
                         local moveAng = ( self:GetPos() - enemy:GetPos() ):Angle()
-                        local runSpeed = self:GetRunSpeed()
-                        local potentialPos = ( self:GetPos() + moveAng:Forward() * math.random( -( runSpeed * 0.5 ), keepDist ) + moveAng:Right() * math.random( -runSpeed, runSpeed ) )
+                        local potentialPos = ( self:GetPos() + moveAng:Forward() * math.random( ( self:GetRunSpeed() * -0.5 ), keepDist ) + moveAng:Right() * math.random( -keepDist, keepDist ) )
 
-                        self.CombatPathPosition = ( util.IsInWorld( potentialPos ) and potentialPos or self:Trace( nil, potentialPos ).HitPos )
+                        self.CombatPathPosition = ( util.IsInWorld( potentialPos ) and potentialPos or self:Trace( self:GetPos(), potentialPos ).HitPos )
                     else
                         self.CombatPathPosition = enemy
                     end
                     self.NextCombatPathUpdateT = ( CurTime() + 0.1 )
                 end
 
-                local movePos = self.CombatPathPosition
-                local preCombatMovePos = self.PreCombatMovePos
-                if preCombatMovePos and isReloading and inFireRange and preCombatMovePos != enemy then
-                    movePos = preCombatMovePos
-                else
-                    self.PreCombatMovePos = false
-                end
-                self:GetNavigator().gb_GoalPosition = movePos
+                self:GetNavigator().gb_GoalPosition = self.CombatPathPosition
             end
 
             local velocity = self:GetVelocity()
-            if !isCrouched and ( isPanicking or canShoot and self:SqrRangeTo( enemy ) <= ( ( attackRange * ( isMelee and 10 or 2 ) ) ^ 2 ) ) and velocity:Length2D() >= ( self:GetRunSpeed() * 0.8 ) and math.random( isPanicking and 25 or 35 ) == 1 then
+            if !isCrouched and ( isPanicking or canShoot and self:InRange( enemy, ( attackRange * ( isMelee and 10 or 2 ) ) ) ) and velocity:Length2D() >= ( self:GetRunSpeed() * 0.8 ) and self:OnGround() and math.random( isPanicking and 25 or 35 ) == 1 then
                 local collBounds = self:GetCollisionBounds()
-                local jumpTr = self:TraceHull( self:GetPos(), ( self:GetPos() + velocity ), collBounds.mins, collBounds.maxs, MASK_PLAYERSOLID, COLLISION_GROUP_PLAYER )
+                local jumpTr = self:TraceHull( self:GetPos(), ( self:GetPos() + velocity ), collBounds.mins, collBounds.maxs, MASK_PLAYERSOLID, COLLISION_GROUP_PLAYER, { self:GetPlayer(), enemy } )
 
                 local hitNorm = jumpTr.HitNormal
                 if ( hitNorm.x == 0 and hitNorm.y == 0 and hitNorm.z <= 0 ) then self:PressKey( IN_JUMP ) end
             end
-        else
-            self.PreCombatMovePos = self:GetNavigator():TranslateGoal()
         end
     end
 end
 
 function GLAMBDA.Player:ThreadedThink()
-    while true do
+    while ( true ) do
         if self:Alive() then
-            if !self:IsDisabled() then
+            if !self:IsDisabled() and !self:IsTyping() then
                 local curState = self:GetState()
                 local statefunc = self[ curState ]
 
                 if statefunc then
-                    self.ThreadState = curState
-                    local stateArg = self.StateVariable
+                    self:SetThreadState( curState )
+                    
+                    local stateArg = self:GetStateArg()
+                    if isvector( stateArg ) then
+                        stateArg = Vector( stateArg.x, stateArg.y, stateArg.z )
+                    elseif isangle( stateArg ) then
+                        stateArg = Angle( stateArg.p, stateArg.y, stateArg.r )
+                    elseif istable( stateArg ) then
+                        stateArg = table.Copy( stateArg )
+                    end
 
-                    local result = statefunc( self, ( istable( stateArg ) and table.Copy( stateArg ) or stateArg ) )
+                    local result = statefunc( self, stateArg )
                     if result and curState == self:GetState() then 
                         self:SetState( isstring( result ) and result )
                     end
@@ -155,7 +191,7 @@ function GLAMBDA.Player:ThreadedThink()
 
             coroutine.wait( 0.1 )
         else
-            if ( CurTime() - self.LastDeathTime ) >= GLAMBDA:GetConVar( "player_respawntime" ) and !self:IsSpeaking() then
+            if ( CurTime() - self.LastDeathTime ) >= GLAMBDA:GetConVar( "player_respawn_time" ) and ( !self:IsSpeaking() or !GLAMBDA:GetConVar( "voice_norespawn" ) ) and !self:IsTyping() then
                 if !GLAMBDA:GetConVar( "player_respawn" ) then
                     self:Kick()
                     return
@@ -165,7 +201,7 @@ function GLAMBDA.Player:ThreadedThink()
                 self:OnPlayerRespawn()
             end
 
-            coroutine.wait( math.Rand( 0.1, 0.5 ) )
+            coroutine.wait( math.Rand( 0.1, 0.33 ) )
         end
     end
 end
@@ -174,7 +210,7 @@ end
 
 function GLAMBDA.Player:OnPlayerRespawn()
     local spawner = self.Spawner
-    if IsValid( spawner ) then
+    if IsValid( spawner ) and GLAMBDA:GetConVar( "player_respawn_spawnpoints" ) then
         local spawnPos = spawner:GetPos()
         self:SetPos( spawnPos )
 
@@ -218,8 +254,12 @@ function GLAMBDA.Player:OnHurt( attacker, healthLeft, damage )
     end
 end
 
-function GLAMBDA.Player:OnKilled()
-    self:PlayVoiceLine( "death" )
+function GLAMBDA.Player:OnKilled( attacker )
+    if self:CanType() and self:GetTextingChance( 100 ) then
+        self:TypeMessage( "death" .. ( attacker:IsPlayer() and "byplayer" or "" ), attacker )
+    else
+        self:PlayVoiceLine( "death" )
+    end
 
     self:SetEnemy( NULL )
     self:SetState()
@@ -240,8 +280,10 @@ function GLAMBDA.Player:OnOtherKilled( victim, dmginfo )
     local attacker = dmginfo:GetAttacker()
     if attacker == self:GetPlayer() then
         if victim == enemy then 
-            if self:GetSpeechChance( 100 ) and math.random( 3 ) == 1 then
+            if self:GetSpeechChance( 100 ) and ( !self:IsSpeaking() or math.random( 3 ) == 1 ) then
                 self:PlayVoiceLine( "kill" )
+            elseif self:GetTextingChance( 100 ) and !self:IsSpeaking() and !self:IsTyping() and self:CanType() then
+                self:TypeMessage( "kill", victim )
             end
 
             if math.random( 10 ) == 1 then
@@ -258,15 +300,15 @@ function GLAMBDA.Player:OnOtherKilled( victim, dmginfo )
             self:DevMsg( "I killed someone. Retreating..." )
             return
         end
-    elseif victim == enemy and self:GetSpeechChance( 100 ) and self:SqrRangeTo( attacker ) <= ( 1000 ^ 2 ) and ( attacker:IsPlayer() or attacker:IsNPC() or attacker:IsNextBot() ) then
+    elseif victim == enemy and self:GetSpeechChance( 100 ) and self:InRange( attacker, 1000 ) and ( attacker:IsPlayer() or attacker:IsNPC() or attacker:IsNextBot() ) then
         if self:IsVisible( attacker ) then
-            self:LookTo( attacker, 0.5, 2 )
+            self:LookTo( attacker, 0.33, 2, 2 )
         end
 
         self:PlayVoiceLine( "assist" )
     end
 
-    if attacker != self and self:SqrRangeTo( victim ) <= ( 1500 ^ 2 ) and self:IsVisible( victim ) then
+    if attacker != self and self:InRange( victim, 1500 ) and self:IsVisible( victim ) then
         local witnessChance = math.random( 10 )
         if witnessChance == 1 or ( attacker == victim or attacker:IsWorld() ) and witnessChance > 6 then
             self:SetState( "Laughing", { victim, self:GetMovePosition() } )
@@ -274,16 +316,18 @@ function GLAMBDA.Player:OnOtherKilled( victim, dmginfo )
             self:DevMsg( "I killed or saw someone die. Laugh at this person!" )
         elseif victim != enemy then
             if witnessChance == 2 then
-                self:LookTo( victim:WorldSpaceCenter(), 0.33, math.random( 2, 4 ) )
+                self:LookTo( victim:WorldSpaceCenter(), 0.33, math.random( 2, 4 ), 2 )
 
                 if self:GetSpeechChance( 100 ) then
                     self:PlayVoiceLine( "witness" )
+                elseif self:GetTextingChance( 100 ) and !self:IsSpeaking() and !self:IsTyping() and self:CanType() then
+                    self:TypeMessage( "witness", victim )
                 end
             end
             
             if !self:InCombat() and self:GetCowardnessChance( 200 ) then
                 local targ = ( ( self:CanTarget( attacker ) and self:IsVisible( attacker ) and math.random( 3 ) == 1 ) and attacker or nil )
-                self:LookTo( targ or victim:WorldSpaceCenter(), 0.5, math.random( 3 ) )
+                self:LookTo( targ or victim:WorldSpaceCenter(), 0.33, math.random( 3 ), 2 )
                 
                 self:RetreatFrom( targ, nil, !self:IsSpeaking( "witness" ) )
                 self:CancelMovement()

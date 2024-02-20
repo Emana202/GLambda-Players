@@ -82,9 +82,30 @@ if ( CLIENT ) then
         end
     end )
 
+    --
+
+    hook.Add( "NetworkEntityCreated", "GLambda_NetworkInitPlayers", function( ent )
+        if !ent:IsValid() or !ent:IsPlayer() then return end
+
+        local netTbl = GLAMBDA.WaitingForNetwork[ ent:UserID() ]
+        if !netTbl then return end
+
+        GLAMBDA:InitializeLambda( ent, netTbl[ 1 ] )
+        GLAMBDA.WaitingForNetwork[ ent:UserID() ] = nil
+    end )
+
 end
 
 if ( SERVER ) then
+
+    hook.Add( "PlayerInitialSpawn", "GLambda_OnPlayerCreated", function( ply )
+        if ply:IsBot() then return end
+
+        net.Start( "glambda_getbirthday" )
+        net.Send( ply )
+    
+        print( "GLambda Players: Requesting " .. ply:Name() .. "'s birthday..." )
+    end )
 
     hook.Add( "PostGamemodeLoaded", "GLambda_OnRestStuffLoaded", function()
         GLAMBDA.GamemodeLoaded = true

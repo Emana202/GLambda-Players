@@ -9,7 +9,7 @@ if ( SERVER ) then
     --
 
     GLAMBDA:CreatePersonalityType( "Combat", function( self )
-        local rndCombat = math.random( 5 )
+        local rndCombat = math.random( 6 )
 
         if self:GetWeaponAmmo() == 0 or rndCombat == 1 then
             self:SetState( "GiveSelfAmmo" )
@@ -29,6 +29,7 @@ if ( SERVER ) then
     --
 
     GLAMBDA:CreatePersonalityType( "Speech" )
+    GLAMBDA:CreatePersonalityType( "Texting" )
     GLAMBDA:CreatePersonalityType( "Cowardness" )
 
 end
@@ -39,12 +40,10 @@ GLAMBDA.PersonalityPresets = {
     [ "fighter" ] = {
         [ "Combat" ] = 80,
         [ "Build" ] = 5,
-        [ "Speech" ] = 60,
     },
     [ "builder" ] = {
-        [ "Combat" ] = 5,
         [ "Build" ] = 80,
-        [ "Speech" ] = 60,
+        [ "Combat" ] = 5,
     }
 }
 

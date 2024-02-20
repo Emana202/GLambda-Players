@@ -1,5 +1,6 @@
 local function AddGLambdaPlayerTab()
-    spawnmenu.AddToolTab( "GLambda Players", "GLambda Players", "lambdaplayers/icon/lambda.png" )
+    if game.SinglePlayer() then return end
+    spawnmenu.AddToolTab( "GLambda Players", "GLambda Players", "glambdaplayers/icon/glambda.png" )
 end
 hook.Add( "AddToolMenuTabs", "AddGLambdaPlayerTab", AddGLambdaPlayerTab )
 
@@ -112,11 +113,12 @@ local function AddGLambdaPlayersOptions()
     
     local categories = {}
     local cvarSettings = GLAMBDA.ConVars.Settings
-    for _, tbl in pairs( cvarSettings ) do categories[ tbl.category ] = true end
+    for _, tbl in pairs( cvarSettings ) do categories[ tbl.settings.category ] = true end
 
     for catName, _ in pairs( categories ) do
         spawnmenu.AddToolMenuOption( "GLambda Players", "GLambda Players", "glambda_spawnmenucat_" .. catName , catName, "", "", function( panel )
-            for _, cvarTbl in ipairs( cvarSettings ) do
+            for _, tbl in SortedPairsByMemberValue( cvarSettings, "index", false ) do
+                local cvarTbl = tbl.settings
                 if cvarTbl.category != catName then continue end
 
                 local settingPanel, label
