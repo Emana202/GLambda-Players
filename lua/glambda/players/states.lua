@@ -1,29 +1,31 @@
 function GLAMBDA.Player:Idle()
-    if math.random( 3 ) == 1 then
+    if GLAMBDA:Random( 3 ) == 1 then
         self:MoveToPos( self:GetRandomPos() )
         return
     end
 
     local hundreds = 0
-    for _, persData in ipairs( self.Personality ) do
-        if persData[ 2 ] != 100 or !isfunction( persData[ 3 ] ) then continue end
+    local personaTbl = self.Personality[ 2 ]
+
+    for _, persData in pairs( personaTbl ) do
+        if persData[ 1 ] != 100 or !persData[ 2 ] then continue end
         hundreds = ( hundreds + 1 )
     end
 
-    for _, persData in ipairs( self.Personality ) do
-        if !isfunction( persData[ 3 ] ) then continue end
+    for _, persData in ipairs( personaTbl ) do
+        if !persData[ 2 ] then continue end
 
-        local chance = persData[ 2 ]
-        if hundreds != 0 and chance == 100 and math.random( 2 ) == 1 then
-            self:DevMsg( persData[ 1 ] .. " one of their hundred percent chances failed" )
+        local chance = persData[ 1 ]
+        if hundreds != 0 and chance == 100 and GLAMBDA:Random( 2 ) == 1 then
+            self:DevMsg( persData[ "__key" ] .. " one of their hundred percent chances failed" )
             hundreds = ( hundreds - 1 )
             continue
         end
 
-        local rnd = math.random( 100 )
+        local rnd = GLAMBDA:Random( 100 )
         if rnd <= chance then
-            self:DevMsg( persData[ 1 ] .. " chance succeeded in its chance. ( " .. rnd .. " to " .. chance .. " )" )
-            persData[ 3 ]( self )
+            self:DevMsg( persData[ "__key" ] .. " chance succeeded in its chance. ( " .. rnd .. " to " .. chance .. " )" )
+            persData[ 2 ]( self )
             return
         end
     end
@@ -40,13 +42,13 @@ end
 --
 
 function GLAMBDA.Player:SpawnPickup( classname, count, failCheck )
-    local rndVec = ( self:GetForward() * math.random( 16, 24 ) + self:GetRight() * math.random( -24, 24 ) - vector_up * 8 )
+    local rndVec = ( self:GetForward() * GLAMBDA:Random( 15, 20 ) + self:GetRight() * GLAMBDA:Random( -15, 20 ) - vector_up * 8 )
     if !self:Trace( nil, ( self:GetPos() + rndVec ) ).Hit then
         self:MoveToPos( self:GetRandomPos( 100 ) ) 
         if failCheck and failCheck( self ) == true then return true end
     end
 
-    local spawnRate = math.Rand( 0.15, 0.4 )
+    local spawnRate = GLAMBDA:Random( 0.15, 0.4, true )
     coroutine.wait( spawnRate )
 
     for i = 1, count do
@@ -66,7 +68,7 @@ function GLAMBDA.Player:HealUp()
     if self:Health() >= self:GetMaxHealth() then return true end
 
     local spawnCount = math.ceil( ( self:GetMaxHealth() - self:Health() ) / 25 )
-    spawnCount = math.random( ( spawnCount / 2 ), spawnCount )
+    spawnCount = GLAMBDA:Random( ( spawnCount / 2 ), spawnCount )
 
     return self:SpawnPickup( "item_healthkit", spawnCount, function( self )
         return ( !self:GetState( "HealUp" ) or self:Health() >= self:GetMaxHealth() )
@@ -77,7 +79,7 @@ function GLAMBDA.Player:ArmorUp()
     if self:Armor() >= self:GetMaxArmor() then return true end
 
     local spawnCount = math.ceil( ( self:GetMaxArmor() - self:Armor() ) / 15 )
-    spawnCount = math.random( ( spawnCount / 3 ), spawnCount )
+    spawnCount = GLAMBDA:Random( ( spawnCount / 3 ), spawnCount )
 
     return self:SpawnPickup( "item_battery", spawnCount, function( self )
         return ( !self:GetState( "ArmorUp" ) or self:Armor() >= self:GetMaxArmor() )
@@ -92,9 +94,9 @@ function GLAMBDA.Player:GiveSelfAmmo()
     local maxAmmo = game.GetAmmoMax( ammoType )
     if ammoCount >= maxAmmo then return true end
     
-    local spawnCount = math.random( 3, 8 )
+    local spawnCount = GLAMBDA:Random( 3, 8 )
     if istable( spawnEnt ) then
-        spawnEnt = spawnEnt[ math.random( #spawnEnt ) ]
+        spawnEnt = spawnEnt[ GLAMBDA:Random( #spawnEnt ) ]
     end
 
     return self:SpawnPickup( spawnEnt, spawnCount, function( self )
@@ -114,7 +116,7 @@ function GLAMBDA.Player:FindTarget()
             return ( self:CanTarget( ent ) and self:IsVisible( ent ) )
         end )
         if #findTargets != 0 then
-            self:AttackTarget( findTargets[ math.random( #findTargets ) ] )
+            self:AttackTarget( findTargets[ GLAMBDA:Random( #findTargets ) ] )
             return true
         end
     end } )
@@ -127,7 +129,7 @@ function GLAMBDA.Player:TBaggingPosition( pos )
         return ( !self:GetState( "TBaggingPosition" ) )
     end } )
 
-    for i = 1, math.random( 4, 10 ) do
+    for i = 1, GLAMBDA:Random( 4, 10 ) do
         if !self:GetState( "TBaggingPosition" ) then break end
         self:HoldKey( IN_DUCK )
         coroutine.wait( 0.4 )
@@ -138,7 +140,7 @@ end
 
 local acts = { ACT_GMOD_TAUNT_DANCE, ACT_GMOD_TAUNT_ROBOT, ACT_GMOD_TAUNT_MUSCLE, ACT_GMOD_TAUNT_CHEER }
 function GLAMBDA.Player:UseActTaunt()
-    self:PlayGestureAndWait( acts[ math.random( #acts ) ] )
+    self:PlayGestureAndWait( acts[ GLAMBDA:Random( #acts ) ] )
     return true
 end
 
@@ -154,11 +156,13 @@ function GLAMBDA.Player:Laughing( args )
     end
     self:LookTo( target, 0.5, 1, 4 )
 
-    local laughDelay = ( math.random( 2, 8 ) * 0.1 )
-    self:PlayVoiceLine( "laugh", laughDelay )
+    local laughDelay = ( GLAMBDA:Random( 2, 8 ) * 0.1 )
+    if self:GetSpeechChance( 100 ) then
+        self:PlayVoiceLine( "laugh", laughDelay )
+    end
 
     local movePos = args[ 2 ]
-    local actTime = ( laughDelay * math.Rand( 0.75, 1.1 ) )
+    local actTime = ( laughDelay * GLAMBDA:Random( 0.75, 1.1, true ) )
     if !movePos then
         coroutine.wait( actTime )
     else
@@ -166,7 +170,10 @@ function GLAMBDA.Player:Laughing( args )
     end
 
     if self:GetState( "Laughing" ) then
-        if !self:IsSpeaking( "laugh" ) then self:PlayVoiceLine( "laugh", false ) end
+        if !self:IsSpeaking( "laugh" ) and self:GetSpeechChance( 100 ) then 
+            self:PlayVoiceLine( "laugh", false ) 
+        end
+
         self:PlayGestureAndWait( ACT_GMOD_TAUNT_LAUGH )
     end
     return true
@@ -183,37 +190,6 @@ function GLAMBDA.Player:Retreat( pos )
     if CurTime() >= self.RetreatEndTime then return true end
     local rndPos = self:GetRandomPos( 2500 )
     self:MoveToPos( rndPos, retreatOptions )
-end
-
-function GLAMBDA.Player:SpawnSomething()
-    self:LookTo( self:GetPos() + self:GetForward() * math.random( -500, 500 ) + self:GetRight() * math.random( -500, 500 ) - self:GetUp() * math.random( -25, 80 ), 0.5, 1, 1 )
-    coroutine.wait( math.random( 3, 10 ) * 0.1 )
-
-    if self:GetState( "SpawnSomething" ) then
-        local rndSpawn = math.random( 4 )
-        if rndSpawn == 1 then
-            local npcTbl = GLAMBDA.SpawnlistNPCs
-            if #npcTbl == 0 then 
-                local _, rndNPC = table.Random( list.Get( "NPC" ) )
-                self:SpawnNPC( rndNPC )
-            else
-                self:SpawnNPC( npcTbl[ math.random( #npcTbl ) ] )
-            end
-        elseif rndSpawn == 2 then
-            local entTbl = GLAMBDA.SpawnlistENTs
-            if #entTbl == 0 then 
-                local _, rndENT = table.Random( list.Get( "SpawnableEntities" ) )
-                self:SpawnEntity( rndENT )
-            else
-                self:SpawnEntity( entTbl[ math.random( #entTbl ) ] )
-            end
-        else
-            local propTbl = GLAMBDA.SpawnlistProps
-            if #propTbl != 0 then self:SpawnProp( propTbl[ math.random( #propTbl ) ] ) end
-        end
-    end
-
-    return true
 end
 
 function GLAMBDA.Player:HealWithMedkit( ent )

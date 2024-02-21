@@ -168,7 +168,7 @@ KEYWORD:AddKeyWord( "Conditional", "|newyears|", function() return IsCurrentDate
 
 KEYWORD:AddKeyWord( "Conditional", "|birthday|", function()
     for _, birthDate in pairs( GLAMBDA.Birthdays ) do
-        if !IsCurrentDate( birthdaydata.month, birthdaydata.day ) then continue end 
+        if !IsCurrentDate( birthDate.month, birthDate.day ) then continue end 
         return true
     end
     return false

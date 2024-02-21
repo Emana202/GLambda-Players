@@ -15,7 +15,7 @@ local function InstallMPConVarHandling( PANEL, convar, panelType, isClientside )
             if isClientside then
                 RunConsoleCommand( convar, val and "1" or "0" )
             elseif LocalPlayer():IsSuperAdmin() then
-                net.Start( "lambdaplayers_updateconvar" )
+                net.Start( "glambda_updateconvar" )
                     net.WriteString( convar )
                     net.WriteString( val and "1" or "0" )
                 net.SendToServer()
@@ -30,7 +30,7 @@ local function InstallMPConVarHandling( PANEL, convar, panelType, isClientside )
             if isClientside then
                 RunConsoleCommand( convar, val )
             elseif LocalPlayer():IsSuperAdmin() then
-                net.Start( "lambdaplayers_updateconvar" )
+                net.Start( "glambda_updateconvar" )
                     net.WriteString( convar )
                     net.WriteString( val )
                 net.SendToServer()
@@ -43,7 +43,7 @@ local function InstallMPConVarHandling( PANEL, convar, panelType, isClientside )
             if isClientside then
                 RunConsoleCommand( convar, tostring( val ) )
             elseif LocalPlayer():IsSuperAdmin() then
-                net.Start( "lambdaplayers_updateconvar" )
+                net.Start( "glambda_updateconvar" )
                     net.WriteString( convar )
                     net.WriteString( tostring( val ) )
                 net.SendToServer()
@@ -62,17 +62,17 @@ local function InstallMPConVarHandling( PANEL, convar, panelType, isClientside )
                 RunConsoleCommand( gvar, tostring( col.g ) )
                 RunConsoleCommand( bvar, tostring( col.b ) )
             elseif LocalPlayer():IsSuperAdmin() then
-                net.Start( "lambdaplayers_updateconvar" )
+                net.Start( "glambda_updateconvar" )
                     net.WriteString( rvar )
                     net.WriteString( tostring( col.r ) )
                 net.SendToServer()
 
-                net.Start( "lambdaplayers_updateconvar" )
+                net.Start( "glambda_updateconvar" )
                     net.WriteString( gvar )
                     net.WriteString( tostring( col.g ) )
                 net.SendToServer()
 
-                net.Start( "lambdaplayers_updateconvar" )
+                net.Start( "glambda_updateconvar" )
                     net.WriteString( bvar )
                     net.WriteString( tostring( col.b ) )
                 net.SendToServer()
@@ -85,7 +85,7 @@ local function InstallMPConVarHandling( PANEL, convar, panelType, isClientside )
             if isClientside then
                 RunConsoleCommand( convar, tostring( data ) )
             elseif LocalPlayer():IsSuperAdmin() then
-                net.Start( "lambdaplayers_updateconvar" )
+                net.Start( "glambda_updateconvar" )
                     net.WriteString( convar )
                     net.WriteString( tostring( data ) )
                 net.SendToServer()
@@ -98,7 +98,7 @@ local function InstallMPConVarHandling( PANEL, convar, panelType, isClientside )
             if isClientside then
                 RunConsoleCommand( convar )
             elseif LocalPlayer():IsSuperAdmin() then
-                net.Start( "lambdaplayers_runconcommand" )
+                net.Start( "glambda_runconcommand" )
                     net.WriteString( convar )
                 net.SendToServer()
             else
@@ -116,7 +116,7 @@ local function AddGLambdaPlayersOptions()
     for _, tbl in pairs( cvarSettings ) do categories[ tbl.settings.category ] = true end
 
     for catName, _ in pairs( categories ) do
-        spawnmenu.AddToolMenuOption( "GLambda Players", "GLambda Players", "glambda_spawnmenucat_" .. catName , catName, "", "", function( panel )
+        spawnmenu.AddToolMenuOption( "GLambda Players", "Main", "glambda_spawnmenucat_" .. catName , catName, "", "", function( panel )
             for _, tbl in SortedPairsByMemberValue( cvarSettings, "index", false ) do
                 local cvarTbl = tbl.settings
                 if cvarTbl.category != catName then continue end

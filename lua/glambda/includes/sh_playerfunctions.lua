@@ -462,7 +462,7 @@ function GLAMBDA:ApplyPlayerFunctions( ply )
             pos = ( pos or self:GetPos() )
             local navareas = navmesh.Find( pos, ( dist or 1500 ), 100, self:GetStepSize() )
 
-            local area = navareas[ math.random( #navareas ) ] 
+            local area = navareas[ GLAMBDA:Random( #navareas ) ] 
             return ( IsValid( area ) and area:GetRandomPoint() or pos )
         end
 
@@ -480,7 +480,7 @@ function GLAMBDA:ApplyPlayerFunctions( ply )
             end
 
             
-            local area = GLAMBDA.NavAreaCache[ math.random( #GLAMBDA.NavAreaCache ) ] 
+            local area = GLAMBDA.NavAreaCache[ GLAMBDA:Random( #GLAMBDA.NavAreaCache ) ] 
             local pos = IsValid( area ) and area:GetRandomPoint() or self:GetPos()
             return pos
         end

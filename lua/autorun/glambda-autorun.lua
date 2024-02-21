@@ -78,6 +78,7 @@ function GLAMBDA:UpdateData( reload )
     self.SpawnlistENTs   = ( !reload and self.SpawnlistENTs or self.FILE:GetSpawnmenuENTs() )
     self.SpawnlistNPCs   = ( !reload and self.SpawnlistNPCs or self.FILE:GetSpawnmenuNPCs() )
     self.ToolMaterials   = ( !reload and self.ToolMaterials or self.FILE:GetMaterials() )
+    self.Sprays          = ( !reload and self.Sprays or self.FILE:GetSprays() )
 
     if ( SERVER ) then
         self:UpdatePlayerModels()

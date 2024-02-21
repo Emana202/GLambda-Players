@@ -201,7 +201,7 @@ end
 
 function FILE:GetSprays()
     local sprayTbl = {}
-    self:MergeDirectory( "materials/glambdaplayers/sprays/", sprayTbl )
+    self:MergeDirectory( "materials/glambdaplayers/data/sprays/", sprayTbl )
     if GLAMBDA:GetConVar( "util_mergelambdafiles" ) then self:MergeDirectory( "materials/lambdaplayers/sprays/", sprayTbl ) end
     return sprayTbl
 end

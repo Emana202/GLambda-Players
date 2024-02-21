@@ -14,16 +14,19 @@ local months = {
 }
 
 local function OpenBirthdayPanel( ply )
-    local frame = GLAMBDA.PANEL:Frame( "Birthday Date Setup", 350, 100 )
-    GLAMBDA.PANEL:Label( "Changes are saved when you close the panel!", frame, TOP )
+    local PANEL = GLAMBDA.PANEL
+    local changedSomething = false
 
-    local box = GLAMBDA.PANEL:ComboBox( frame, LEFT, months, true )
+    local frame = PANEL:Frame( "Birthday Date Setup", 350, 100 )
+    PANEL:Label( "Changes are saved when you close the panel!", frame, TOP )
+
+    local box = PANEL:ComboBox( frame, LEFT, months, true )
     box:SetSize( 120, 5 )
     box:Dock( LEFT )
     box:SetSortItems( false )
     box:SetValue( "Select a Month" )
 
-    local day = GLAMBDA.PANEL:NumSlider( frame, LEFT, 0, "Week Day", 1, 31, 0 )
+    local day = PANEL:NumSlider( frame, LEFT, 0, "Week Day", 1, 31, 0 )
     day:SetSize( 200, 5 )
     day:Dock( RIGHT )
 
@@ -33,7 +36,16 @@ local function OpenBirthdayPanel( ply )
         day:SetValue( birthdayData.day )
     end
 
+    function box:OnSelect()
+        changedSomething = true
+    end
+    function day:OnValueChanged()
+        changedSomething = true
+    end
+
     function frame:OnClose() 
+        if !changedSomething then return end
+
         local _, month = box:GetSelected()
         if !month or #month == 0 then return end
 

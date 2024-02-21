@@ -83,7 +83,7 @@ hook.Add( "SetupMove", "Glacebase-MovementProcessing", function( ply,  mv, cmd )
         end
         if approachPos then
             if !lookPos and !isApproaching then 
-                ply:SetEyeAngles( LerpAngle( 0.2, ply:EyeAngles(), ( ( approachPos + vector_up * 70 ) - eyePos ):Angle() ) ) 
+                ply:SetEyeAngles( LerpAngle( 0.066, ply:EyeAngles(), ( ( approachPos + vector_up * 70 ) - eyePos ):Angle() ) ) 
             end
 
             mv:SetMoveAngles( ( approachPos - ply:GetPos() ):Angle() )

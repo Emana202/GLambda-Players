@@ -21,10 +21,31 @@ end
 function ENT:InitializePlayer( creator )
     self.gb_PlyInitialized = true
     local ply = self:GetOwner()
+    local GLACE = ply:GetGlaceObject()
 
     local presetCvar = creator:GetInfo( "glambda_player_personalitypreset" )
-    ply:GetGlaceObject():BuildPersonalityTable( GLAMBDA.PersonalityPresets[ presetCvar ] )
-    PrintTable( ply:GetGlaceObject().Personality )
+    if presetCvar == "custom" then
+        local personaTbl = {}
+        for persName, persData in pairs( GLAMBDA.Personalities ) do
+            local infoNum = creator:GetInfoNum( persData[ 2 ], 30 )
+            personaTbl[ persName ] = infoNum
+        end
+        GLACE:BuildPersonalityTable( personaTbl )
+    elseif presetCvar == "customrng" then
+        local personaTbl = {}
+        for persName, persData in pairs( GLAMBDA.Personalities ) do
+            local infoNum = creator:GetInfoNum( persData[ 2 ], 30 )
+            personaTbl[ persName ] = GLAMBDA:Random( infoNum )
+        end
+        GLACE:BuildPersonalityTable( personaTbl )
+    else
+        GLACE:BuildPersonalityTable( GLAMBDA.PersonalityPresets[ presetCvar ] )
+    end
+
+    local spawnVP = creator:GetInfo( "glambda_player_spawn_vp" )
+    if GLAMBDA.VoiceProfiles[ spawnVP ] then
+        GLACE.VoiceProfile = spawnVP
+    end
 
     local undoName = "GLambda Player ( " .. ply:Nick() .. " )"
     undo.Create( undoName )

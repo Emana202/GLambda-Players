@@ -109,7 +109,6 @@ if ( SERVER ) then
                 local isBlocked = false
                 for k, blockedMdl in ipairs( blockList ) do
                     if mdl != blockedMdl then continue end
-                    print( blockedMdl )
                     table.remove( blockList, k )
                     isBlocked = true; break
                 end
@@ -129,13 +128,13 @@ if ( SERVER ) then
         if self:GetConVar( "player_addonplymdls" ) then
             if self:GetConVar( "player_onlyaddonpms" ) then
                 mdlList = mdlTbl.Addons
-                return mdlList[ math.random( #mdlList ) ]
+                return mdlList[ GLAMBDA:Random( #mdlList ) ]
             end
             
             mdlCount = ( mdlCount + #mdlTbl.Addons )
         end
     
-        local mdlIndex = math.random( mdlCount )
+        local mdlIndex = GLAMBDA:Random( mdlCount )
         if mdlIndex > defCount then
             mdlIndex = ( mdlIndex - defCount )
             mdlList = mdlTbl.Addons
@@ -158,12 +157,12 @@ if ( CLIENT ) then
             pfp = Material( pfp )
         else
             pfp = CreateMaterial( "GLambda_PfpMaterial_" .. pfp, "UnlitGeneric", {
-                [ "$basetexture" ] = pfp,
+                [ "$baseTexture" ] = pfp,
                 [ "$translucent" ] = 1,
 
                 [ "Proxies" ] = {
                     [ "AnimatedTexture" ] = {
-                        [ "animatedTextureVar" ] = "$basetexture",
+                        [ "animatedTextureVar" ] = "$baseTexture",
                         [ "animatedTextureFrameNumVar" ] = "$frame",
                         [ "animatedTextureFrameRate" ] = 10
                     }
@@ -195,6 +194,16 @@ function GLAMBDA:SendNotification( ply, text, notifyType, length, snd )
             net.WriteString( snd or "" )
         net.Send( ply )
     end
+end
+
+local rngCalled = 0
+function GLAMBDA:Random( min, max, float )
+    rngCalled = ( rngCalled + 1 )
+    if rngCalled > 32768 then rngCalled = 0 end
+    math.randomseed( os.time() + SysTime() + rngCalled )
+
+    if !min and !max then return math.random() end
+    return ( float and math.Rand( min, max ) or ( max and math.random( min, max ) or math.random( min ) ) )
 end
 
 --

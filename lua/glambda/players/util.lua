@@ -184,6 +184,8 @@ function GLAMBDA.Player:StopSpeaking()
 end
 
 function GLAMBDA.Player:PlayVoiceLine( voiceType, delay )
+    if !self:Alive() and voiceType != "death" then return end
+
     local voiceProfile, voiceTbl = self.VoiceProfile
     local vpTbl = GLAMBDA.VoiceProfiles
     if voiceProfile and vpTbl[ voiceProfile ] then
@@ -196,13 +198,13 @@ function GLAMBDA.Player:PlayVoiceLine( voiceType, delay )
 
     self:SetLastVoiceType( voiceType )
     if !isnumber( delay ) then
-        delay = ( delay == nil and math.Rand( 0.1, 0.66 ) or 0 )
+        delay = ( delay == nil and GLAMBDA:Random( 0.1, 0.66, true ) or 0 )
     end
     self:SetSpeechEndTime( RealTime() + 4 )
 
     net.Start( "glambda_playvoicesnd" )
         net.WritePlayer( self:GetPlayer() )
-        net.WriteString( voiceTbl[ math.random( #voiceTbl ) ] )
+        net.WriteString( voiceTbl[ GLAMBDA:Random( #voiceTbl ) ] )
         net.WriteUInt( self:GetVoicePitch(), 8 )
         net.WriteVector( self:GetPos() )
         net.WriteFloat( delay )
@@ -222,6 +224,7 @@ function GLAMBDA.Player:UndoCommand( undoAll )
     if !undoTbl then return end
 
     if !undoAll then
+        self:EmitSound( "buttons/button15.wav.wav", 60 )
         undo.Do_Undo( undoTbl[ #undoTbl ] )
         return
     end
@@ -248,7 +251,30 @@ end
 --
 
 function GLAMBDA.Player:CanTarget( ent )
-    return ( ent != self:GetPlayer() and ( ent:IsPlayer() and ent:Alive() and ( ent:IsGLambdaPlayer() or !ignorePlys:GetBool() and GLAMBDA:GetConVar( "combat_targetplys" ) ) or ( ent:IsNPC() or ent:IsNextBot() and !ent.gb_IsGlaceNavigator ) and ent:GetInternalVariable( "m_lifeState" ) == 0 ) )
+    if ent == self:GetPlayer() then return false end
+    if ent.gb_IsGlaceNavigator then return false end
+    if ent.IsDrGNextbot and ent:IsDown() then return false end
+
+    if ent:IsPlayer() then
+        if !ent:Alive() then return false end
+        if ent:IsFlagSet( FL_NOTARGET ) then return false end
+        
+        if !ent:IsGLambdaPlayer() then 
+            if ignorePlys:GetBool() then return false end
+            if !GLAMBDA:GetConVar( "combat_targetplys" ) then return false end
+        end
+    elseif ent:IsNPC() or ent:IsNextBot() then
+        if ent:IsFlagSet( FL_NOTARGET ) then return false end
+        if ent:GetInternalVariable( "m_lifeState" ) != 0 then return false end
+
+        local class = ent:GetClass()
+        if class == "rd_target" then return false end
+        if string.match( class, "bullseye" ) then return false end
+    else
+        return false
+    end
+
+    return true
 end
 
 function GLAMBDA.Player:AttackTarget( ent )
@@ -268,12 +294,12 @@ function GLAMBDA.Player:RetreatFrom( target, timeout, speakLine )
         self:CancelMovement()
         self:SetState( "Retreat" )
         
-        if ( speakLine == nil or speakLine == true ) and self:GetSpeechChance() > 0 then
+        if ( speakLine == nil or speakLine == true ) and self:GetSpeechChance( 50 ) then
             self:PlayVoiceLine( "panic" )
         end
     end
     
-    local retreatTime = ( CurTime() + ( timeout or math.random( 10, 15 ) ) )
+    local retreatTime = ( CurTime() + ( timeout or GLAMBDA:Random( 10, 15 ) ) )
     if retreatTime > self.RetreatEndTime then self.RetreatEndTime = retreatTime end
     
     local ene = self:GetEnemy()
@@ -311,6 +337,47 @@ function GLAMBDA.Player:ApplySpawnBehavior()
     self:AttackTarget( closeTarget )
 end
 
+function GLAMBDA.Player:SetPlayerModel( mdl )
+    mdl = ( mdl or self.SpawnPlayerModel )
+    self:SetModel( mdl )
+    
+    if mdl != self.SpawnPlayerModel then
+        local pmSkin = self:GetSkin()
+        local pmBodygroups = nil
+
+        if GLAMBDA:GetConVar( "player_rngbodygroups" ) then
+            local skinCount = self:SkinCount()
+            if skinCount > 0 then 
+                pmSkin = GLAMBDA:Random( 0, ( skinCount - 1 ) )
+                self:SetSkin( pmSkin ) 
+            end
+
+            pmBodygroups = {}
+            for _, bg in ipairs( self:GetBodyGroups() ) do
+                local subMdls = #bg.submodels
+                if subMdls == 0 then continue end
+                
+                local rndBg = GLAMBDA:Random( 0, subMdls )
+                pmBodygroups[ bg.id ] = rndBg
+                self:SetBodygroup( bg.id, rndBg )
+            end
+        end
+
+        self.PlySkin = pmSkin
+        self.PlyBodygroups = pmBodygroups
+        self.SpawnPlayerModel = mdl
+    else
+        self:SetSkin( self.PlySkin )
+
+        local pmBodygroups = self.PlyBodygroups
+        if pmBodygroups then
+            for id, bg in pairs( pmBodygroups ) do
+                self:SetBodygroup( id, bg )
+            end
+        end
+    end
+end
+
 --
 
 function GLAMBDA.Player:Hook( hookName, uniqueName, func )
@@ -343,8 +410,8 @@ function GLAMBDA.Player:InitializeHooks()
 
         -- To make sure models are set
         self:SimpleTimer( 0, function()
-            if !ply.SpawnPlayerModel then return end 
-            ply:SetModel( ply.SpawnPlayerModel )
+            if !self.SpawnPlayerModel then return end 
+            self:SetPlayerModel( self.SpawnPlayerModel )
         end )
     end )
 
@@ -394,7 +461,7 @@ function GLAMBDA.Player:InitializeHooks()
         local replyChan = ( string.match( text, self:Nick() ) and 100 or 200 )
         if !self:GetTextingChance( replyChan ) then return end
 
-        local replyTime = ( math.random( 5, 20 ) / 10 )
+        local replyTime = ( GLAMBDA:Random( 5, 20 ) / 10 )
         self:SimpleTimer( replyTime, function()
             if !IsValid( player ) or self:IsTyping() or self:IsSpeaking() or self:IsDisabled() or !self:CanType() then return end
             if self:InCombat() or self:IsPanicking() then return end
@@ -474,21 +541,19 @@ function GLAMBDA.Player:BuildPersonalityTable( overrideTbl )
         personaTbl = {}
     end
 
-    local index = 0
-    for persName, persFunc in pairs( GLAMBDA.Personalities ) do
-        index = ( #personaTbl + 1 )
-
+    for persName, persData in pairs( GLAMBDA.Personalities ) do
         local personaChance = ( overrideTbl and overrideTbl[ persName ] )
-        personaTbl[ index ] = { persName, ( personaChance or math.random( 0, 100 ) ), persFunc }
+        personaTbl[ persName ] = { ( personaChance or GLAMBDA:Random( 0, 100 ) ), persData[ 1 ] }
 
         self[ "Get" .. persName .. "Chance" ] = function( self, rndNum ) 
-            local chance = self.Personality[ index ][ 2 ] 
-            return ( rndNum == nil and chance or ( math.random( rndNum ) <= chance ) )
+            local chance = self.Personality[ 1 ][ persName ][ 1 ] 
+            return ( rndNum == nil and chance or ( GLAMBDA:Random( rndNum ) <= chance ) )
         end
-        self[ "Set" .. persName .. "Chance" ] = function( self, value ) self.Personality[ index ][ 2 ] = value end
+        self[ "Set" .. persName .. "Chance" ] = function( self, value ) self.Personality[ 1 ][ persName ][ 1 ] = value end
     end
+    
+    local sortedTbl = table.ClearKeys( personaTbl, true )
+    table.sort( sortedTbl, function( a, b ) return ( a[ 1 ] > b[ 1 ] ) end )
 
-    table.sort( personaTbl, function( a, b ) return a[ 2 ] > b[ 2 ] end )
-    -- PrintTable( personaTbl )
-    self.Personality = personaTbl
+    self.Personality = { personaTbl, sortedTbl }
 end

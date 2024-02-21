@@ -1,6 +1,6 @@
 local function OpenPMBlacklistPanel( ply )
     if IsValid( ply ) and !ply:IsSuperAdmin() then 
-        GLAMBDA:SendNotification( ply, "You must be a Super Admin in order to use this!", NOTIFY_ERROR, nil, "buttons/button10.wav" )
+        GLAMBDA:SendNotification( ply, "You must be a super admin in order to use this!", NOTIFY_ERROR, nil, "buttons/button10.wav" )
         return
     end
     local PANEL = GLAMBDA.PANEL
@@ -8,10 +8,10 @@ local function OpenPMBlacklistPanel( ply )
     local frame = PANEL:Frame( "Playermodel Blacklisting", 600, 500 )
     PANEL:Label( "Click on playermodels to the left to block them. Right click a row on the right to unblock a model", frame, TOP )
 
-    local leftPanel = PANEL:Panel( frame, LEFT )
+    local leftPanel = PANEL:BasicPanel( frame, LEFT )
     leftPanel:SetSize( 290, 1 )
 
-    local rightPanel = PANEL:Panel( frame, LEFT )
+    local rightPanel = PANEL:BasicPanel( frame, LEFT )
     rightPanel:SetSize( 300, 1 )
     rightPanel:DockMargin( 10, 0, 0, 0 )
 
@@ -74,7 +74,7 @@ local function OpenPMBlacklistPanel( ply )
     end )
 end
 
-GLAMBDA:CreateConCommand( "panel_pmblacklist", OpenPMBlacklistPanel, true, "Allows to put playermodels into a blacklist to never be used the players.", {
+GLAMBDA:CreateConCommand( "panel_pmblacklist", OpenPMBlacklistPanel, true, "Allows you to put playermodels into a blacklist to never be used by the players. You must be a super admin to use this panel.", {
     name = "Playermodel Blacklist", 
     category = "Panels" 
 } )

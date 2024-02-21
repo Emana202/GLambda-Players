@@ -41,7 +41,10 @@ if ( CLIENT ) then
             end
 
             local srcEnt = ply
-            if !ply:Alive() then
+            local observeEnt = ply:GetObserverTarget()
+            if IsValid( observeEnt ) then 
+                srcEnt = observeEnt
+            elseif !ply:Alive() then
                 local ragdoll = ply:GetRagdollEntity()
                 if IsValid( ragdoll ) then srcEnt = ragdoll end
             end

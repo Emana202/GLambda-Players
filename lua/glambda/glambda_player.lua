@@ -23,18 +23,14 @@ function GLAMBDA:CreateLambdaPlayer()
 
     
     local names = self.Nicknames
-    local ply = player.CreateNextBot( #names != 0 and names[ math.random( #names ) ] or "GLambda Player" )
+    local ply = player.CreateNextBot( #names != 0 and names[ GLAMBDA:Random( #names ) ] or "GLambda Player" )
     ply.gb_IsLambdaPlayer = true
-
-    local rndPm = self:GetRandomPlayerModel()
-    ply.SpawnPlayerModel = rndPm
-    ply:SetModel( ply.SpawnPlayerModel )
     
     local pfps = GLAMBDA.ProfilePictures
     if #pfps == 0 then
         ply.gb_ProfilePicture = "spawnicons/" .. string.sub( rndPm, 1, #rndPm - 4 ) .. ".png"
     else
-        ply.gb_ProfilePicture = pfps[ math.random( #pfps ) ]
+        ply.gb_ProfilePicture = pfps[ GLAMBDA:Random( #pfps ) ]
     end
 
     --
@@ -82,11 +78,12 @@ function GLAMBDA:CreateLambdaPlayer()
     GLACE.NextAmmoCheckT = 0
     GLACE.NextWeaponAttackT = 0
     GLACE.NextWeaponThinkT = 0
-    GLACE.NextIdleLineT = ( CurTime() + math.random( 5, 10 ) )
-    GLACE.NextUniversalActionT = ( CurTime() + math.Rand( 10, 15 ) ) 
+    GLACE.NextIdleLineT = ( CurTime() + GLAMBDA:Random( 5, 10 ) )
+    GLACE.NextUniversalActionT = ( CurTime() + GLAMBDA:Random( 10, 15, true ) ) 
     GLACE.LastDeathTime = 0
     GLACE.RetreatEndTime = 0
     GLACE.NextNPCCheckT = CurTime()
+    GLACE.NextSprayUseT = 0
 
     GLACE.LookTo_Pos = nil
     GLACE.LookTo_Smooth = 1
@@ -95,8 +92,8 @@ function GLAMBDA:CreateLambdaPlayer()
 
     --
 
-    ply:SetNW2Vector( "glambda_plycolor", Vector( math.Rand( 0.0, 1.0 ), math.Rand( 0.0, 1.0 ), math.Rand( 0.0, 1.0 ) ) )
-    ply:SetNW2Vector( "glambda_wpncolor", Vector( math.Rand( 0.0, 1.0 ), math.Rand( 0.0, 1.0 ), math.Rand( 0.0, 1.0 ) ) )
+    ply:SetNW2Vector( "glambda_plycolor", Vector( GLAMBDA:Random( 0.0, 1.0, true ), GLAMBDA:Random( 0.0, 1.0, true ), GLAMBDA:Random( 0.0, 1.0, true ) ) )
+    ply:SetNW2Vector( "glambda_wpncolor", Vector( GLAMBDA:Random( 0.0, 1.0, true ), GLAMBDA:Random( 0.0, 1.0, true ), GLAMBDA:Random( 0.0, 1.0, true ) ) )
     
     ply:SetNW2String( "glambda_queuedtext", "" )
 
@@ -115,11 +112,12 @@ function GLAMBDA:CreateLambdaPlayer()
     --
 
     GLACE:SetSpeechEndTime( 0 )
-    GLACE:SetTextPerMinute( math.random( 3, 10 ) * 100 )
-    GLACE:SetVoicePitch( math.random( self:GetConVar( "voice_pitch_min" ), self:GetConVar( "voice_pitch_max" ) ) )
+    GLACE:SetTextPerMinute( GLAMBDA:Random( 3, 10 ) * 100 )
+    GLACE:SetVoicePitch( GLAMBDA:Random( self:GetConVar( "voice_pitch_min" ), self:GetConVar( "voice_pitch_max" ) ) )
 
     --
 
+    GLACE:SetPlayerModel( self:GetRandomPlayerModel() )
     GLACE:InitializeHooks( ply, GLACE )
     GLACE:BuildPersonalityTable()
 
@@ -137,9 +135,9 @@ function GLAMBDA:CreateLambdaPlayer()
     end )
 
     local voiceProfile
-    if math.random( 100 ) <= self:GetConVar( "player_vp_chance" ) then
+    if GLAMBDA:Random( 100 ) <= self:GetConVar( "player_vp_chance" ) then
         local profiles = table.GetKeys( self.VoiceProfiles )
-        voiceProfile = profiles[ math.random( #profiles ) ]
+        voiceProfile = profiles[ GLAMBDA:Random( #profiles ) ]
     end
     GLACE.VoiceProfile = voiceProfile
 

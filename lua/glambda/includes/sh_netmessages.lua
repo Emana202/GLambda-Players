@@ -14,6 +14,9 @@ if ( SERVER ) then
     util.AddNetworkString( "glambda_getbirthday" )
     util.AddNetworkString( "glambda_sendbirthday" )
     util.AddNetworkString( "glambda_setupbirthday" )
+    util.AddNetworkString( "glambda_updateconvar" )
+    util.AddNetworkString( "glambda_runconcommand" )
+    util.AddNetworkString( "glambda_spray" )
 
     --
 
@@ -25,6 +28,19 @@ if ( SERVER ) then
         if glace then glace:SetSpeechEndTime( RealTime() + net.ReadFloat() ) end
     end )
 
+    --
+
+    net.Receive( "glambda_updateconvar", function( len, ply )
+        if !ply:IsSuperAdmin() then return end
+        local cvar = GetConVar( net.ReadString() )
+        if cvar and cvar:IsFlagSet( FCVAR_LUA_SERVER ) then cvar:SetString( net.ReadString() ) end
+    end )
+    
+    net.Receive( "glambda_runconcommand", function( len, ply )
+        if !ply:IsSuperAdmin() then return end
+        concommand.Run( ply, net.ReadString() )
+    end )
+    
     --
 
     GLAMBDA.Birthdays = ( GLAMBDA.Birthdays or {} )
@@ -115,6 +131,58 @@ if ( CLIENT ) then
         local act = net.ReadFloat()
         ply:AnimRestartGesture( GESTURE_SLOT_VCD, act, true )
     end )
+    
+    GLAMBDA.SprayDecals = ( GLAMBDA.SprayDecals or 1 )
+    net.Receive( "glambda_spray", function()
+        local material
+        local sprayPath = net.ReadString()
+
+        if string.EndsWith( sprayPath, ".vtf" ) then
+            material = CreateMaterial( "GLambda_SprayMaterial#" .. GLAMBDA.SprayDecals, "LightmappedGeneric", {
+                [ "$basetexture" ] = sprayPath,
+                [ "$translucent" ] = 1,
+
+                [ "Proxies" ] = {
+                    [ "AnimatedTexture" ] = {
+                        [ "animatedTextureVar" ] = "$basetexture",
+                        [ "animatedTextureFrameNumVar" ] = "$frame",
+                        [ "animatedTextureFrameRate" ] = 10
+                    }
+                }
+            })
+            GLAMBDA.SprayDecals = ( GLAMBDA.SprayDecals + 1 )
+        else
+            material = Material( sprayPath )
+        end
+        if !material or material:IsError() then return end
+
+        local texWidth = material:Width()
+        local texHeight = material:Height()
+    
+        -- Sizing the Spray
+        local widthPower = 256
+        local heightPower = 256
+        if texWidth > texHeight then
+            heightPower = 128
+        elseif texHeight > texWidth then
+            widthPower = 128
+        end
+        if texWidth < 256 then
+            texWidth = ( texWidth / 256 )
+        else
+            texWidth = ( widthPower / ( texWidth * 4 ) )
+        end
+        if texHeight < 256 then
+            texHeight = ( texHeight / 256 )
+        else
+            texHeight = ( heightPower / ( texHeight * 4 ) )
+        end
+    
+        -- Place the spray
+        util.DecalEx( material, Entity( 0 ), net.ReadVector(), net.ReadVector(), color_white, texWidth, texHeight )
+    end )
+
+    --
 
     local function StopCurrentVoice( ply )
         GAMEMODE:PlayerEndVoice( ply )

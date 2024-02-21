@@ -19,12 +19,6 @@ if ( CLIENT ) then
         return panel
     end
 
-    function PANEL:Panel( parent, dock )
-        local editablepanel = vgui.Create( "DPanel", parent )
-        if dock then editablepanel:Dock( dock ) end
-        return editablepanel
-    end
-
     function PANEL:BasicPanel( parent, dock )
         local editablepanel = vgui.Create( "EditablePanel", parent )
         if dock then editablepanel:Dock( dock ) end
@@ -189,7 +183,7 @@ if ( CLIENT ) then
 
         function panel:OnEnter( value )
             listview:Clear()
-            if value == "" then 
+            if #value == 0 then 
                 for k, v in SortedPairs( panel.l_searchtable ) do
                     local line = listview:AddLine( ( searchkeys and k or v ) .. linetextprefix ) 
                     line:SetSortValue( 1, v )
@@ -209,6 +203,131 @@ if ( CLIENT ) then
     end
 
     --
+
+    file.CreateDir( "glambda/presets" )
+    
+    function PANEL:ConVarPresetPanel( name, cvars, presetCat, isClient )
+        if !isClient and !LocalPlayer():IsSuperAdmin() then 
+            chat.AddText( "This panel requires you to be a super admin due to this handling server data!" ) 
+            surface.PlaySound( "buttons/button10.wav" )
+            return
+        end
+
+        local frame = PANEL:Frame( name, 300, 200 )
+        PANEL:Label( "Right Click on a line for options", frame, TOP )
+
+        local presetList = vgui.Create( "DListView", frame )
+        presetList:Dock( FILL )
+        presetList:AddColumn( "Presets", 1 )
+
+        local line = presetList:AddLine( "[ Default ]" )
+        line:SetSortValue( 1, cvars )
+
+        local presetFile = GLAMBDA.FILE:ReadFile( "glambda/presets/" .. presetCat .. ".json", "json" )
+        if presetFile then
+            for k, v in SortedPairs( presetFile ) do
+                local line = presetList:AddLine( k )
+                line:SetSortValue( 1, v )
+            end
+        end
+
+        function presetList:OnRowRightClick( id, line )
+            local menu = DermaMenu( false, presetList )
+
+            if line:GetColumnText( 1 ) != "[ Default ]" then 
+                menu:AddOption( "Delete " .. line:GetColumnText( 1 ), function()
+                    GLAMBDA.FILE:RemoveVarFromKVFile( "glambda/presets/" .. presetCat .. ".json", line:GetColumnText( 1 ), "json" )
+                    presetList:RemoveLine( id )
+
+                    surface.PlaySound( "buttons/button15.wav" )
+                    chat.AddText( "Deleted Preset " .. line:GetColumnText( 1 ) )
+                end )
+            end
+
+            menu:AddOption( "Apply " .. line:GetColumnText( 1 ) .. " Preset", function()
+                if isClient then
+                    for k, v in pairs( line:GetSortValue( 1 ) ) do
+                        GetConVar( k ):SetString( v )
+                    end
+                end
+
+                local json = util.TableToJSON( line:GetSortValue( 1 ) )
+                local compressed = util.Compress( json )
+
+                surface.PlaySound( "buttons/button15.wav" )
+                chat.AddText( "Applied Preset " .. line:GetColumnText( 1 ) )
+
+                if !isClient and LocalPlayer():IsSuperAdmin() then
+                    net.Start( "glambda_setconvarpreset" )
+                        net.WriteUInt( #compressed, 32 )
+                        net.WriteData( compressed )
+                    net.SendToServer()
+                end
+            end )
+
+            menu:AddOption( "View " .. line:GetColumnText( 1 ) .. " Preset", function()
+                local viewframe = PANEL:Frame( line:GetColumnText( 1 ) .. " ConVar List", 300, 200 )
+
+                local convarlist = vgui.Create( "DListView", viewframe )
+                convarlist:Dock( FILL )
+                convarlist:AddColumn( "ConVar", 1 )
+                convarlist:AddColumn( "Value", 2 )
+
+                for k, v in SortedPairs( line:GetSortValue( 1 ) ) do
+                    convarlist:AddLine( k, v )
+                end
+            end )
+        end
+
+        PANEL:Button( frame, BOTTOM, "Save Current Settings", function()
+            Derma_StringRequest( "Save Preset", "Enter the name of this preset", "", function( str )
+                if str == "[ Default ]" then
+                    chat.AddText( "You can not name a preset named the same as the default!" )
+                    return 
+                end
+                if #str == 0 then 
+                    chat.AddText( "No text was inputted!" ) 
+                    return 
+                end
+
+                for k, v in ipairs( presetList:GetLines() ) do
+                    if v:GetColumnText( 1 ) != str then continue end
+                        
+                    Derma_Query( str .. " already exists! Would you like to overwrite it with the new settings?", "File Overwrite", "Overwrite", function()
+                    
+                        local newpreset = {}
+                        for name, _ in pairs( cvars ) do
+                            newpreset[ name ] = GetConVar( name ):GetString()
+                        end
+        
+                        surface.PlaySound( "buttons/button15.wav" )
+                        chat.AddText( "Saved to Preset " .. str )
+        
+                        v:SetSortValue( 1, newpreset )
+        
+                        GLAMBDA.FILE:UpdateKeyValueFile( "glambda/presets/" .. presetCat .. ".json", { [ str ] = newpreset }, "json" ) 
+                    end, "Cancel", function() end )
+
+                    return
+                end
+
+                local newpreset = {}
+                for name, _ in pairs( cvars ) do
+                    newpreset[ name ] = GetConVar( name ):GetString()
+                end
+
+                surface.PlaySound( "buttons/button15.wav" )
+                chat.AddText( "Saved Preset " .. str )
+
+                local line = presetList:AddLine( str )
+                line:SetSortValue( 1, newpreset )
+
+                GLAMBDA.FILE:UpdateKeyValueFile( "glambda/presets/" .. presetCat .. ".json", { [ str ] = newpreset }, "json" ) 
+            end, nil, "Confirm", "Cancel" )
+        end )
+    end
+
+    --
     
     function PANEL:SortStrings( tbl )
         local sortTbl = {}
@@ -219,7 +338,7 @@ if ( CLIENT ) then
     end
 
     function PANEL:RequestDataFromServer( filepath, type, callback )
-        net.Start( "glambda_panel_requestdata" )
+        net.Start( "glambda_requestdata" )
             net.WriteString( filepath )
             net.WriteString( type )
         net.SendToServer()
@@ -227,7 +346,7 @@ if ( CLIENT ) then
         local dataStr = ""
         local bytes = 0
 
-        net.Receive( "glambda_panel_returndata", function()
+        net.Receive( "glambda_returndata", function()
             local chunkData = net.ReadString()
             dataStr = dataStr .. chunkData
             bytes = ( bytes + #chunkData )
@@ -239,14 +358,14 @@ if ( CLIENT ) then
     end
 
     function PANEL:RequestVariableFromServer( var, callback )
-        net.Start( "glambda_panel_requestvariable" )
+        net.Start( "glambda_requestvariable" )
             net.WriteString( var )
         net.SendToServer()
 
         local datastring = ""
         local bytes = 0
 
-        net.Receive( "glambda_panel_returnvariable", function() 
+        net.Receive( "glambda_returnvariable", function() 
             local chunkdata = net.ReadString()
             local isdone = net.ReadBool()
         
@@ -263,7 +382,7 @@ if ( CLIENT ) then
     --
 
     function PANEL:UpdateSequentialFile( filename, addcontent, type ) 
-        net.Start( "glambda_panel_updatesequentialfile" )
+        net.Start( "glambda_updatesequentialfile" )
             net.WriteString( filename )
             net.WriteType( addcontent )
             net.WriteString( type )
@@ -271,7 +390,7 @@ if ( CLIENT ) then
     end
 
     function PANEL:UpdateKeyValueFile( filename, addcontent, type ) 
-        net.Start( "glambda_panel_updatekvfile" )
+        net.Start( "glambda_updatekvfile" )
             net.WriteString( filename )
             net.WriteString( util.TableToJSON( addcontent ) )
             net.WriteString( type )
@@ -279,7 +398,7 @@ if ( CLIENT ) then
     end
 
     function PANEL:RemoveVarFromSQFile( filename, var, type ) 
-        net.Start( "glambda_panel_removevarfromsqfile" )
+        net.Start( "glambda_removevarfromsqfile" )
             net.WriteString( filename )
             net.WriteType( var )
             net.WriteString( type )
@@ -287,7 +406,7 @@ if ( CLIENT ) then
     end
 
     function PANEL:RemoveVarFromKVFile( filename, key, type ) 
-        net.Start( "glambda_panel_removevarfromkvfile" )
+        net.Start( "glambda_removevarfromkvfile" )
             net.WriteString( filename )
             net.WriteString( key )
             net.WriteString( type )
@@ -295,7 +414,7 @@ if ( CLIENT ) then
     end
 
     function PANEL:WriteServerFile( filename, content, type ) 
-        net.Start( "glambda_panel_writeserverfile" )
+        net.Start( "glambda_writeserverfile" )
             net.WriteString( filename )
             net.WriteString( util.TableToJSON( { content } ) )
             net.WriteString( type )
@@ -308,15 +427,39 @@ end
 
 if ( SERVER ) then
 
-    util.AddNetworkString( "glambda_panel_writeserverfile" )
-    util.AddNetworkString( "glambda_panel_requestdata" )
-    util.AddNetworkString( "glambda_panel_returndata" )
+    util.AddNetworkString( "glambda_writeserverfile" )
+    util.AddNetworkString( "glambda_removevarfromkvfile" )
+    util.AddNetworkString( "glambda_removevarfromsqfile" )
+    util.AddNetworkString( "glambda_updatekvfile" )
+    util.AddNetworkString( "glambda_updatesequentialfile" )
+    util.AddNetworkString( "glambda_requestdata" )
+    util.AddNetworkString( "glambda_returndata" )
 
     --
 
-    net.Receive( "glambda_panel_writeserverfile", function( len, ply )
+    net.Receive( "glambda_writeserverfile", function( len, ply )
         if !ply:IsSuperAdmin() then return end
         GLAMBDA.FILE:WriteFile( net.ReadString(), util.JSONToTable( net.ReadString() )[ 1 ], net.ReadString() )
+    end )
+
+    net.Receive( "glambda_removevarfromkvfile", function( len, ply )
+        if !ply:IsSuperAdmin() then return end
+        GLAMBDA.FILE:RemoveVarFromKVFile( net.ReadString(), net.ReadString(), net.ReadString() )
+    end )
+
+    net.Receive( "glambda_removevarfromsqfile", function( len, ply )
+        if !ply:IsSuperAdmin() then return end
+        GLAMBDA.FILE:RemoveVarFromSQFile( net.ReadString(), net.ReadType(), net.ReadString() ) 
+    end )
+    
+    net.Receive( "glambda_updatekvfile", function( len, ply )
+        if !ply:IsSuperAdmin() then return end
+        GLAMBDA.FILE:UpdateKeyValueFile( net.ReadString(), util.JSONToTable( net.ReadString() ), net.ReadString() ) 
+    end )
+
+    net.Receive( "glambda_updatesequentialfile", function( len, ply )
+        if !ply:IsSuperAdmin() then return end
+        GLAMBDA.FILE:UpdateSequentialFile( net.ReadString(), net.ReadType(), net.ReadString() ) 
     end )
 
     --
@@ -335,7 +478,7 @@ if ( SERVER ) then
         return result
     end
 
-    net.Receive( "glambda_panel_requestdata", function( len, ply )
+    net.Receive( "glambda_requestdata", function( len, ply )
         if !ply:IsSuperAdmin() then return end
 
         local filepath = net.ReadString()
@@ -347,7 +490,7 @@ if ( SERVER ) then
             print( "GLambda Players Net: Preparing to send data from " .. filepath .. " to " .. ply:Name() .. " | " .. ply:SteamID() )
 
             if !content or table.IsEmpty( content ) then
-                net.Start( "glambda_panel_returndata" )
+                net.Start( "glambda_returndata" )
                     net.WriteString( "!!NIL" ) -- JSON chunk
                     net.WriteBool( true ) -- Is done
                 net.Send( ply )
@@ -357,7 +500,7 @@ if ( SERVER ) then
                 for key, chunk in ipairs( DataSplit( content ) ) do
                     index = ( index + 1 )
 
-                    net.Start( "glambda_panel_returndata" )
+                    net.Start( "glambda_returndata" )
                         net.WriteString( chunk )
                         net.WriteBool( index == key )
                     net.Send( ply )
@@ -367,8 +510,17 @@ if ( SERVER ) then
                 end
             end
 
-            print( "Lambda Players Net: Sent " .. string.NiceSize( bytes ) .. " to " .. ply:Name() .. " | " .. ply:SteamID() )
+            print( "GLambda Players Net: Sent " .. string.NiceSize( bytes ) .. " to " .. ply:Name() .. " | " .. ply:SteamID() )
         end )
+    end )
+
+    net.Receive( "glambda_setconvarpreset", function( len, ply )
+        if !ply:IsSuperAdmin() then return end
+        local bytes = net.ReadUInt( 32 )
+        local convars = util.JSONToTable( util.Decompress( net.ReadData( bytes ) ))
+
+        for k, v in pairs( convars ) do GetConVar( k ):SetString( v ) end
+        print( "GLambda Players: " .. ply:Name() .. " | " .. ply:SteamID() .. " Applied a preset on the server ")
     end )
 
 end

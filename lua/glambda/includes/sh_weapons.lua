@@ -25,7 +25,7 @@ GLAMBDA.WeaponList = {
         AltFireAmmo = "item_ammo_smg1_grenade",
 
         SpecialAttack = function( self, weapon, target )
-            if math.random( 150 ) != 1 or weapon:Clip2() == 0 then return end
+            if GLAMBDA:Random( 150 ) != 1 or weapon:Clip2() == 0 then return end
             self:PressKey( IN_ATTACK2 )
             return true
         end
@@ -37,7 +37,7 @@ GLAMBDA.WeaponList = {
         AmmoEntity = "item_box_buckshot",
 
         SpecialAttack = function( self, weapon, target )
-            if math.random( 8 ) != 1 or weapon:Clip1() < 2 or !self:InRange( target, 300 ) then return end
+            if GLAMBDA:Random( 8 ) != 1 or weapon:Clip1() < 2 or !self:InRange( target, 300 ) then return end
             self:PressKey( IN_ATTACK2 )
             return true
         end
@@ -49,7 +49,7 @@ GLAMBDA.WeaponList = {
         AltFireAmmo = "item_ammo_ar2_altfire",
 
         SpecialAttack = function( self, weapon, target )
-            if math.random( 150 ) != 1 or weapon:Clip2() == 0 then return end
+            if GLAMBDA:Random( 150 ) != 1 or weapon:Clip2() == 0 then return end
             self:PressKey( IN_ATTACK2 )
             return true
         end
@@ -57,6 +57,7 @@ GLAMBDA.WeaponList = {
     weapon_crossbow = {
         Name = "Crossbow",
         KeepDistance = 700,
+        AttackDistance = 1500,
         AttackDelay = { 2, 4 },
         AmmoEntity = "item_ammo_crossbow",
 
@@ -66,7 +67,6 @@ GLAMBDA.WeaponList = {
     },
     weapon_frag = {
         Name = "Frag Grenade",
-        AttackDistance = 1000,
         AmmoEntity = "weapon_frag",
 
         OverrideAim = function( self, weapon, target )
@@ -75,13 +75,14 @@ GLAMBDA.WeaponList = {
         end,
 
         SpecialAttack = function( self, weapon, target )
-            if !self:InRange( target, 350 ) or math.random( 4 ) == 1 then return end
+            if !self:InRange( target, 350 ) or GLAMBDA:Random( 4 ) == 1 then return end
             self:PressKey( IN_ATTACK2 )
             return true
         end
     },
     weapon_rpg = {
         Name = "RPG Launcher",
+        AttackDistance = 1500,
         KeepDistance = 600,
         AmmoEntity = "item_rpg_round",
 
@@ -104,7 +105,7 @@ GLAMBDA.WeaponList = {
         IsMeleeWeapon = true,
 
         SpecialAttack = function( self, weapon, target )
-            if math.random( 2 ) == 1 then self:PressKey( IN_ATTACK2 ) return true end
+            if GLAMBDA:Random( 2 ) == 1 then self:PressKey( IN_ATTACK2 ) return true end
         end
     },
     weapon_medkit = {
@@ -118,12 +119,12 @@ GLAMBDA.WeaponList = {
                 self:PressKey( IN_ATTACK2 )
             end
 
-            if self:GetState( "Idle" ) and !self:GetCombatChance( 100 ) and math.random( 2 ) == 1 then
+            if self:GetState( "Idle" ) and !self:GetCombatChance( 100 ) and GLAMBDA:Random( 2 ) == 1 then
                 local healEnts = self:FindInSphere( nil, 1000, function( ent )
                     return ( self:CanTarget( ent ) and ent:Health() < ent:GetMaxHealth() )
                 end )
                 if #healEnts != 0 then
-                    self:SetState( "HealWithMedkit", healEnts[ math.random( #healEnts ) ] )
+                    self:SetState( "HealWithMedkit", healEnts[ GLAMBDA:Random( #healEnts ) ] )
                     self:CancelMovement()
                 end
             end
@@ -138,10 +139,10 @@ GLAMBDA.WeaponList = {
         IsLethalWeapon = false,
         
         OnThink = function( self, wepent )
-            if self:GetState( "Idle" ) and math.random( 8 ) == 1 then
+            if self:GetState( "Idle" ) and GLAMBDA:Random( 8 ) == 1 then
                 self:LookTo( self:EyePos() + VectorRand( -500, 500 ), 0.33, 1.5, 3 )
 
-                self:SimpleTimer( math.Rand( 0.33, 1.0 ), function()
+                self:SimpleTimer( GLAMBDA:Random( 0.33, 1.0, true ), function()
                     if self:GetActiveWeapon() != wepent then return end
                     self:PressKey( IN_ATTACK )
                 end )
@@ -199,7 +200,7 @@ GLAMBDA:AddWeapon( {
         AltFireAmmo = "hl1_ammo_argrenades",
 
         SpecialAttack = function( self, weapon, target )
-            if math.random( 150 ) != 1 or weapon:Clip2() == 0 then return end
+            if GLAMBDA:Random( 150 ) != 1 or weapon:Clip2() == 0 then return end
             self:PressKey( IN_ATTACK2 )
             return true
         end
@@ -210,7 +211,7 @@ GLAMBDA:AddWeapon( {
         AmmoEntity = "hl1_ammo_buckshot",
 
         SpecialAttack = function( self, weapon, target )
-            if math.random( 8 ) != 1 or weapon:Clip1() < 2 or !self:InRange( target, 400 ) then return end
+            if GLAMBDA:Random( 8 ) != 1 or weapon:Clip1() < 2 or !self:InRange( target, 400 ) then return end
             self:PressKey( IN_ATTACK2 )
             return true
         end
@@ -226,7 +227,7 @@ GLAMBDA:AddWeapon( "tfa_cs_knife", {
     IsMeleeWeapon = true,
 
     SpecialAttack = function( self, weapon, target )
-        if math.random( 4 ) != 1 then return end
+        if GLAMBDA:Random( 4 ) != 1 then return end
         self:PressKey( IN_ATTACK2 )
         return true
     end
@@ -235,7 +236,7 @@ GLAMBDA:AddWeapon( "tfusion_combustible_lemon", {
     AttackDistance = 600,
 
     SpecialAttack = function( self, weapon, target )
-        if math.random( 2 ) != 1 then return end
+        if GLAMBDA:Random( 2 ) != 1 then return end
         self:PressKey( IN_ATTACK2 )
         return true
     end
