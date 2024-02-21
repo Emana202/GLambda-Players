@@ -154,10 +154,10 @@ function GLAMBDA.Player:Laughing( args )
         local ragdoll = target:GetRagdollEntity()
         if IsValid( ragdoll ) then target = ragdoll end
     end
-    self:LookTo( target, 0.5, 1, 4 )
+    self:LookTo( target, 0.75, 1, 4 )
 
     local laughDelay = ( GLAMBDA:Random( 2, 8 ) * 0.1 )
-    if self:GetSpeechChance( 100 ) then
+    if self:GetSpeechChance( 25 ) then
         self:PlayVoiceLine( "laugh", laughDelay )
     end
 
@@ -170,7 +170,7 @@ function GLAMBDA.Player:Laughing( args )
     end
 
     if self:GetState( "Laughing" ) then
-        if !self:IsSpeaking( "laugh" ) and self:GetSpeechChance( 100 ) then 
+        if !self:IsSpeaking( "laugh" ) and self:GetSpeechChance( 25 ) then 
             self:PlayVoiceLine( "laugh", false ) 
         end
 

@@ -509,6 +509,8 @@ function GLAMBDA:ApplyPlayerFunctions( ply )
 
         -- Fires 2 hull traces that will make the player try to move out of the way of whatever is blocking the way
         function GLACE:AvoidCheck()
+            if !self:OnGround() then return end
+
             local selfPos = self:GetPos()
             local selfRight = self:GetRight()
             local selfForward = self:GetForward()

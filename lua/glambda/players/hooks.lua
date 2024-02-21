@@ -90,7 +90,7 @@ function GLAMBDA.Player:Think()
             
             local isReloading = self:IsReloadingWeapon()
             local isPanicking = self:IsPanicking()
-            local attackRange = self:GetWeaponStat( "AttackDistance", ( isMelee and 80 or 1000 ) )
+            local attackRange = self:GetWeaponStat( "AttackDistance", ( isMelee and 100 or 1000 ) )
             if isPanicking and !isMelee then attackRange = ( attackRange * 0.8 ) end
             
             local canShoot = self:GetWeaponStat( "IsLethalWeapon", true )
@@ -102,8 +102,8 @@ function GLAMBDA.Player:Think()
             local aimFunc = self:GetWeaponStat( "OverrideAim" )
             local aimPos = ( aimFunc and aimFunc( self, weapon, enemy ) or enemy )
 
-            if canShoot and self:InRange( aimPos, attackRange ) then
-                self:LookTo( aimPos, 0.2, GLAMBDA:Random( 1, 3 ), 3 )
+            if canShoot and self:InRange( aimPos, attackRange, self:EyePos() ) then
+                self:LookTo( aimPos, 0.25, GLAMBDA:Random( 1, 3 ), 3 )
                 if aimPos == enemy then aimPos = aimPos:WorldSpaceCenter() end
 
                 local canSprint = true
@@ -360,8 +360,8 @@ function GLAMBDA.Player:OnDisconnect()
 end
 
 function GLAMBDA.Player:OnStuck()
+    self:PressKey( IN_JUMP )
     if !self:OnGround() then
         self:PressKey( IN_DUCK )
-        self:PressKey( IN_JUMP )
     end
 end
