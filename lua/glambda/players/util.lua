@@ -178,6 +178,8 @@ function GLAMBDA.Player:TypeMessage( msg, keyEnt )
 end
 
 function GLAMBDA.Player:StopSpeaking()
+    self:SetSpeechEndTime( 0 )
+
     net.Start( "glambda_stopspeech" )
         net.WritePlayer( self:GetPlayer() )
     net.Broadcast()
