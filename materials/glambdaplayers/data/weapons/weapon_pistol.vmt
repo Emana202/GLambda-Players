@@ -1,0 +1,8 @@
+{
+	"AttackDelay": [
+		0.1,
+		0.25
+	],
+	"Name": "9mm Pistol",
+	"AmmoEntity": "item_ammo_pistol"
+}

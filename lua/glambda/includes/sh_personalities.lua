@@ -14,7 +14,7 @@ end
 --
 
 GLAMBDA:CreatePersonalityType( "Combat", function( self )
-    local rndCombat = GLAMBDA:Random( 4 )
+    local rndCombat = GLAMBDA:Random( 5 )
 
     if self:GetWeaponAmmo() == 0 or rndCombat == 1 then
         self:SetState( "GiveSelfAmmo" )

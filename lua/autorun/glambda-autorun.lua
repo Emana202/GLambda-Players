@@ -67,6 +67,15 @@ function GLAMBDA:UpdateData( reload )
         if !file.Exists( "glambda/proplist.json", "DATA" ) then
             self.FILE:WriteFile( "glambda/proplist.json", self.FILE:ReadFile( "materials/glambdaplayers/data/props.vmt", nil, "GAME" ) )
         end
+
+        local defWpns = file.Find( "materials/glambdaplayers/data/weapons/*.vmt", "GAME", "nameasc" )
+        if defWpns and #defWpns != 0 then
+            for _, wpn in ipairs( defWpns ) do
+                local wpnPath = "glambda/weapons/" .. string.StripExtension( wpn ) .. ".dat"
+                if file.Exists( wpnPath, "DATA" ) then continue end
+                self.FILE:WriteFile( wpnPath, self.FILE:ReadFile( "materials/glambdaplayers/data/weapons/" .. wpn, nil, "GAME" ) )
+            end
+        end
     end
 
     self.Nicknames       = ( !reload and self.Nicknames or self.FILE:GetNicknames() )
@@ -79,6 +88,8 @@ function GLAMBDA:UpdateData( reload )
     self.SpawnlistNPCs   = ( !reload and self.SpawnlistNPCs or self.FILE:GetSpawnmenuNPCs() )
     self.ToolMaterials   = ( !reload and self.ToolMaterials or self.FILE:GetMaterials() )
     self.Sprays          = ( !reload and self.Sprays or self.FILE:GetSprays() )
+
+    self:GetCustomWeapons()
 
     if ( SERVER ) then
         self:UpdatePlayerModels()

@@ -26,6 +26,7 @@ function GLAMBDA:CreateLambdaPlayer()
     local ply = player.CreateNextBot( #names != 0 and names[ GLAMBDA:Random( #names ) ] or "GLambda Player" )
     ply.gb_IsLambdaPlayer = true
     
+    local rndPm = self:GetRandomPlayerModel()
     local pfps = GLAMBDA.ProfilePictures
     if #pfps == 0 then
         ply.gb_ProfilePicture = "spawnicons/" .. string.sub( rndPm, 1, #rndPm - 4 ) .. ".png"
@@ -117,7 +118,7 @@ function GLAMBDA:CreateLambdaPlayer()
 
     --
 
-    GLACE:SetPlayerModel( self:GetRandomPlayerModel() )
+    GLACE:SetPlayerModel( rndPm )
     GLACE:InitializeHooks( ply, GLACE )
     GLACE:BuildPersonalityTable()
 

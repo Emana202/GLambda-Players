@@ -1,0 +1,8 @@
+{
+	"AttackDistance": 1500.0,
+	"KeepDistance": 600.0,
+	"OverrideAim_PanelCode": "            return target:GetPos()\n        ",
+	"OverrideAim": "            local args = { ... }\n            local player = args[ 1 ]\n            local weapon = args[ 2 ]\n            local target = args[ 3 ]\n            \n            return target:GetPos()\n        ",
+	"Name": "RPG Launcher",
+	"AmmoEntity": "item_rpg_round"
+}

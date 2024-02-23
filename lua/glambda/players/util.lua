@@ -548,14 +548,11 @@ function GLAMBDA.Player:BuildPersonalityTable( overrideTbl )
         personaTbl[ persName ] = { ( personaChance or GLAMBDA:Random( 0, 100 ) ), persData[ 1 ] }
 
         self[ "Get" .. persName .. "Chance" ] = function( self, rndNum ) 
-            local chance = self.Personality[ 1 ][ persName ][ 1 ] 
+            local chance = self.Personality[ persName ][ 1 ] 
             return ( rndNum == nil and chance or ( GLAMBDA:Random( rndNum ) <= chance ) )
         end
-        self[ "Set" .. persName .. "Chance" ] = function( self, value ) self.Personality[ 1 ][ persName ][ 1 ] = value end
+        self[ "Set" .. persName .. "Chance" ] = function( self, value ) self.Personality[ persName ][ 1 ] = value end
     end
-    
-    local sortedTbl = table.ClearKeys( personaTbl, true )
-    table.sort( sortedTbl, function( a, b ) return ( a[ 1 ] > b[ 1 ] ) end )
 
-    self.Personality = { personaTbl, sortedTbl }
+    self.Personality = personaTbl
 end

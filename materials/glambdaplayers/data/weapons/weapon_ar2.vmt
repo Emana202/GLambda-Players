@@ -1,0 +1,8 @@
+{
+	"SpecialAttack_PanelCode": "            if GLAMBDA:Random( 150 ) != 1 or weapon:Clip2() == 0 then return end\n            player:PressKey( IN_ATTACK2 )\n            return true\n        ",
+	"SpecialAttack": "            local args = { ... }\n            local player = args[ 1 ]\n            local weapon = args[ 2 ]\n            local target = args[ 3 ]\n            \n            if GLAMBDA:Random( 150 ) != 1 or weapon:Clip2() == 0 then return end\n            player:PressKey( IN_ATTACK2 )\n            return true\n        ",
+	"Automatic": true,
+	"AltFireAmmo": "item_ammo_ar2_altfire",
+	"Name": "Pulse-Rifle",
+	"AmmoEntity": "item_ammo_ar2"
+}

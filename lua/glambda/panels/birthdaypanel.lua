@@ -23,7 +23,6 @@ local function OpenBirthdayPanel( ply )
     local box = PANEL:ComboBox( frame, LEFT, months, true )
     box:SetSize( 120, 5 )
     box:Dock( LEFT )
-    box:SetSortItems( false )
     box:SetValue( "Select a Month" )
 
     local day = PANEL:NumSlider( frame, LEFT, 0, "Week Day", 1, 31, 0 )

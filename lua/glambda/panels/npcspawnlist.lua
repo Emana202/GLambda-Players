@@ -43,7 +43,8 @@ local function OpenNPCPanel( ply )
         npcImg:SetSize( 1, 100 )
         npcImg:Dock( TOP )
         
-        local iconMat = Material( "entities/" .. class .. ".png" )
+        local npcData = gameList[ class ]
+        local iconMat = Material( npcData and npcData.IconOverride or "entities/" .. class .. ".png" )
         if iconMat:IsError() then 
             iconMat = Material( "entities/" .. class .. ".jpg" ) 
             if iconMat:IsError() then 
@@ -52,7 +53,7 @@ local function OpenNPCPanel( ply )
         end
         if !iconMat:IsError() then npcImg:SetMaterial( iconMat ) end
         
-        local npcName = ( gameList[ class ] and gameList[ class ].Name or class )
+        local npcName = ( npcData and npcData.Name or class )
         PANEL:Label( npcName, npcPanel, TOP )
         
         function npcImg:DoClick()
@@ -69,6 +70,7 @@ local function OpenNPCPanel( ply )
     end
 
     for _, v in SortedPairsByMemberValue( gameList, "Category" ) do
+        if v.AdminOnly then continue end
         if v.Class == "glambda_spawner" then continue end -- no
         AddNPCPanel( v.Class )
     end

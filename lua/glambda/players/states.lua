@@ -5,26 +5,26 @@ function GLAMBDA.Player:Idle()
     end
 
     local hundreds = 0
-    local personaTbl = self.Personality[ 2 ]
+    local personaTbl = self.Personality
 
     for _, persData in pairs( personaTbl ) do
         if persData[ 1 ] != 100 or !persData[ 2 ] then continue end
         hundreds = ( hundreds + 1 )
     end
 
-    for _, persData in ipairs( personaTbl ) do
+    for persName, persData in SortedPairsByMemberValue( personaTbl, 1, true ) do
         if !persData[ 2 ] then continue end
 
         local chance = persData[ 1 ]
         if hundreds != 0 and chance == 100 and GLAMBDA:Random( 2 ) == 1 then
-            self:DevMsg( persData[ "__key" ] .. " one of their hundred percent chances failed" )
+            self:DevMsg( persName .. " one of their hundred percent chances failed" )
             hundreds = ( hundreds - 1 )
             continue
         end
 
         local rnd = GLAMBDA:Random( 100 )
         if rnd <= chance then
-            self:DevMsg( persData[ "__key" ] .. " chance succeeded in its chance. ( " .. rnd .. " to " .. chance .. " )" )
+            self:DevMsg( persName .. " chance succeeded in its chance. ( " .. rnd .. " to " .. chance .. " )" )
             persData[ 2 ]( self )
             return
         end
@@ -41,7 +41,7 @@ end
 
 --
 
-function GLAMBDA.Player:SpawnPickup( classname, count, failCheck )
+function GLAMBDA.Player:SpawnPickup( classname, count, failCheck, isWpn )
     local rndVec = ( self:GetForward() * GLAMBDA:Random( 15, 20 ) + self:GetRight() * GLAMBDA:Random( -15, 20 ) - vector_up * 8 )
     if !self:Trace( nil, ( self:GetPos() + rndVec ) ).Hit then
         self:MoveToPos( self:GetRandomPos( 100 ) ) 
@@ -57,7 +57,11 @@ function GLAMBDA.Player:SpawnPickup( classname, count, failCheck )
         local lookPos = ( self:GetPos() + rndVec )
         self:LookTo( lookPos, 0.5, spawnRate * 2, 1 )
 
-        self:SpawnEntity( classname )    
+        if isWpn then
+            self:SpawnWeapon( classname )    
+        else
+            self:SpawnEntity( classname )    
+        end
         coroutine.wait( spawnRate )
     end
 
@@ -94,16 +98,22 @@ function GLAMBDA.Player:GiveSelfAmmo()
     local maxAmmo = game.GetAmmoMax( ammoType )
     if ammoCount >= maxAmmo then return true end
     
-    local spawnCount = GLAMBDA:Random( 3, 8 )
-    if istable( spawnEnt ) then
+    if istable( spawnEnt ) and #spawnEnt > 1 and !isbool( spawnEnt[ 2 ] ) then
         spawnEnt = spawnEnt[ GLAMBDA:Random( #spawnEnt ) ]
     end
 
+    local isWeapon = false
+    if istable( spawnEnt ) then
+        isWeapon = ( spawnEnt[ 2 ] or false )
+        spawnEnt = spawnEnt[ 1 ]
+    end
+
+    local spawnCount = GLAMBDA:Random( 3, 8 )
     return self:SpawnPickup( spawnEnt, spawnCount, function( self )
         if !self:GetState( "GiveSelfAmmo" ) then return true end
         local ammoCount, curType = self:GetWeaponAmmo()
         return ( !curType or curType != ammoType or ammoCount >= maxAmmo )
-    end )
+    end, isWeapon )
 end
 
 --

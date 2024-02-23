@@ -421,6 +421,12 @@ if ( CLIENT ) then
         net.SendToServer() 
     end
 
+    function PANEL:DeleteServerFile( filename, path ) 
+        net.Start( "glambda_deleteserverfile" )
+            net.WriteString( filename )
+        net.SendToServer() 
+    end
+
 end
 
 --
@@ -428,6 +434,7 @@ end
 if ( SERVER ) then
 
     util.AddNetworkString( "glambda_writeserverfile" )
+    util.AddNetworkString( "glambda_deleteserverfile" )
     util.AddNetworkString( "glambda_removevarfromkvfile" )
     util.AddNetworkString( "glambda_removevarfromsqfile" )
     util.AddNetworkString( "glambda_updatekvfile" )
@@ -440,6 +447,11 @@ if ( SERVER ) then
     net.Receive( "glambda_writeserverfile", function( len, ply )
         if !ply:IsSuperAdmin() then return end
         GLAMBDA.FILE:WriteFile( net.ReadString(), util.JSONToTable( net.ReadString() )[ 1 ], net.ReadString() )
+    end )
+
+    net.Receive( "glambda_deleteserverfile", function( len, ply )
+        if !ply:IsSuperAdmin() then return end
+        file.Delete( net.ReadString(), "DATA" )
     end )
 
     net.Receive( "glambda_removevarfromkvfile", function( len, ply )

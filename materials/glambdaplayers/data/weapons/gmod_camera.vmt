@@ -1,0 +1,8 @@
+{
+	"AttackDistance": 500.0,
+	"IsLethalWeapon": false,
+	"OnThink_PanelCode": "            local args = { ... }\n            local player = args[ 1 ]\n            local weapon = args[ 2 ]\n            \n            if player:GetState( \"Idle\" ) and GLAMBDA:Random( 8 ) == 1 then\n                player:LookTo( player:EyePos() + VectorRand( -500, 500 ), 0.33, 1.5, 3 )\n\n                player:SimpleTimer( GLAMBDA:Random( 0.33, 1.0, true ), function()\n                    if player:GetActiveWeapon() != weapon then return end\n                    player:PressKey( IN_ATTACK )\n                end )\n            end\n\n            return 1\n        ",
+	"OnThink": "            local args = { ... }\n            local player = args[ 1 ]\n            local weapon = args[ 2 ]\n            \n            if player:GetState( \"Idle\" ) and GLAMBDA:Random( 8 ) == 1 then\n                player:LookTo( player:EyePos() + VectorRand( -500, 500 ), 0.33, 1.5, 3 )\n\n                player:SimpleTimer( GLAMBDA:Random( 0.33, 1.0, true ), function()\n                    if player:GetActiveWeapon() != weapon then return end\n                    player:PressKey( IN_ATTACK )\n                end )\n            end\n\n            return 1\n        ",
+	"Name": "Camera",
+	"KeepDistance": 400.0
+}

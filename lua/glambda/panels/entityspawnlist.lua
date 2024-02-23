@@ -43,7 +43,8 @@ local function OpenEntityPanel( ply )
         entImg:SetSize( 1, 100 )
         entImg:Dock( TOP )
         
-        local iconMat = Material( "entities/" .. class .. ".png" )
+        local entData = gameList[ class ]
+        local iconMat = Material( entData and entData.IconOverride or "entities/" .. class .. ".png" )
         if iconMat:IsError() then 
             iconMat = Material( "entities/" .. class .. ".jpg" ) 
             if iconMat:IsError() then 
@@ -52,7 +53,7 @@ local function OpenEntityPanel( ply )
         end
         if !iconMat:IsError() then entImg:SetMaterial( iconMat ) end
         
-        local entName = ( gameList[ class ] and gameList[ class ].PrintName or class )
+        local entName = ( entData and entData.PrintName or class )
         PANEL:Label( entName, entPanel, TOP )
         
         function entImg:DoClick()
@@ -70,6 +71,7 @@ local function OpenEntityPanel( ply )
 
     local npcList = list.Get( "NPC" )
     for _, v in SortedPairsByMemberValue( gameList, "Category" ) do
+        if v.AdminOnly then continue end
         local class = v.ClassName
         local isNPC = false
         for _, npc in pairs( npcList ) do 

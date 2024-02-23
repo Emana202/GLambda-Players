@@ -1,0 +1,8 @@
+{
+	"AttackDistance": 700.0,
+	"SpecialAttack_PanelCode": "            if GLAMBDA:Random( 8 ) != 1 or weapon:Clip1() < 2 or !player:InRange( target, 300 ) then return end\n            player:PressKey( IN_ATTACK2 )\n            return true\n        ",
+	"KeepDistance": 450.0,
+	"SpecialAttack": "            local args = { ... }\n            local player = args[ 1 ]\n            local weapon = args[ 2 ]\n            local target = args[ 3 ]\n            \n            if GLAMBDA:Random( 8 ) != 1 or weapon:Clip1() < 2 or !player:InRange( target, 300 ) then return end\n            player:PressKey( IN_ATTACK2 )\n            return true\n        ",
+	"Name": "Shotgun",
+	"AmmoEntity": "item_box_buckshot"
+}

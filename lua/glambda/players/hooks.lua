@@ -14,7 +14,11 @@ function GLAMBDA.Player:Think()
         end
     end
 
-    if !self:Alive() or self:IsDisabled() then return end
+    if !self:Alive() or self:IsDisabled() then
+        self.NextIdleLineT = ( CurTime() + GLAMBDA:Random( 5, 10 ) )
+        self.NextUniversalActionT = ( CurTime() + GLAMBDA:Random( 10, 15, true ) )
+        return 
+    end
 
     if CurTime() >= self.NextUniversalActionT then
         local UAFunc = table.Random( GLAMBDA.UniversalActions )
@@ -116,8 +120,11 @@ function GLAMBDA.Player:Think()
 
                 local canFire = ( ( aimPos - self:EyePos() ):GetNormalized():Dot( self:GetAimVector() ) >= 0.95 )
                 if canFire then
-                    if !self:GetWeaponStat( "SpecialAttack" ) or !self:GetWeaponStat( "SpecialAttack" )( self, weapon, enemy ) then
-                        if self:GetWeaponStat( "Automatic", isMelee ) then
+                    local specialFire = self:GetWeaponStat( "SpecialAttack" )
+                    if !specialFire or !specialFire( self, weapon, enemy ) then
+                        if self:GetWeaponStat( "HasSecondaryFire" ) and GLAMBDA:Random() <= self:GetWeaponStat( "SecondaryFireChance" ) then
+                            self:PressKey( IN_ATTACK2 )
+                        elseif self:GetWeaponStat( "Automatic", isMelee ) then
                             if !isReloading then
                                 self:HoldKey( IN_ATTACK )
                             end
