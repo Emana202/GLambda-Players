@@ -55,7 +55,7 @@ function GLAMBDA.Player:SpawnPickup( classname, count, failCheck, isWpn )
         if failCheck and failCheck( self ) == true then break end
 
         local lookPos = ( self:GetPos() + rndVec )
-        self:LookTo( lookPos, 0.5, spawnRate * 2, 1 )
+        self:LookTo( lookPos, spawnRate * 2, 1 )
 
         if isWpn then
             self:SpawnWeapon( classname )    
@@ -164,7 +164,7 @@ function GLAMBDA.Player:Laughing( args )
         local ragdoll = target:GetRagdollEntity()
         if IsValid( ragdoll ) then target = ragdoll end
     end
-    self:LookTo( target, 0.75, 1, 4 )
+    self:LookTo( target, 1, 4 )
 
     local laughDelay = ( GLAMBDA:Random( 2, 8 ) * 0.1 )
     if self:GetSpeechChance( 25 ) then
@@ -208,7 +208,7 @@ function GLAMBDA.Player:HealWithMedkit( ent )
     end
 
     if self:InRange( ent, 70 ) then
-        self:LookTo( ent, 1, 1, 3 )
+        self:LookTo( ent, 1, 3 )
         self:PressKey( IN_ATTACK )
     else
         local path, cancelled = self:MoveToPos( ent, { sprint = !self:InRange( ent, 300 ), updatetime = 0.25, tol = 48, callback = function()

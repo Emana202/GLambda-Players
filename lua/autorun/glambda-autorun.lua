@@ -12,7 +12,7 @@ function GLAMBDA:LoadFiles( caller )
 
     -- Our main include files
     local dirPath = "glambda/includes/"
-    local files = file.Find( dirPath .. "*", "LUA", "nameasc" )
+    local files = file.Find( dirPath .. "*.lua", "LUA", "nameasc" )
 
     for _, luaFile in ipairs( files ) do
         if string.StartWith( luaFile, "sv_" ) then
@@ -54,7 +54,7 @@ GLAMBDA:LoadFiles()
 
 --
 
-function GLAMBDA:UpdateData( reload )
+function GLAMBDA:UpdateData()
     if ( SERVER ) then
         if !file.Exists( "glambda/npclist.json", "DATA" ) then
             self.FILE:WriteFile( "glambda/npclist.json", self.FILE:ReadFile( "materials/glambdaplayers/data/defaultnpcs.vmt", nil, "GAME" ) )
@@ -78,26 +78,12 @@ function GLAMBDA:UpdateData( reload )
         end
     end
 
-    self.Nicknames       = ( !reload and self.Nicknames or self.FILE:GetNicknames() )
-    self.ProfilePictures = ( !reload and self.ProfilePictures or self.FILE:GetProfilePictures() )
-    self.VoiceLines      = ( !reload and self.VoiceLines or self.FILE:GetVoiceLines() )
-    self.VoiceProfiles   = ( !reload and self.VoiceProfiles or self.FILE:GetVoiceProfiles() )
-    self.TextMessages    = ( !reload and self.TextMessages or self.FILE:GetTextMessages() )
-    self.SpawnlistProps  = ( !reload and self.SpawnlistProps or self.FILE:GetSpawnmenuProps() )
-    self.SpawnlistENTs   = ( !reload and self.SpawnlistENTs or self.FILE:GetSpawnmenuENTs() )
-    self.SpawnlistNPCs   = ( !reload and self.SpawnlistNPCs or self.FILE:GetSpawnmenuNPCs() )
-    self.ToolMaterials   = ( !reload and self.ToolMaterials or self.FILE:GetMaterials() )
-    self.Sprays          = ( !reload and self.Sprays or self.FILE:GetSprays() )
-
-    self:GetCustomWeapons()
+    for _, func in pairs( self.DataUpdateFuncs ) do
+        func()
+    end
 
     if ( SERVER ) then
         self:UpdatePlayerModels()
-
-        if reload then
-            net.Start( "glambda_updatedata" )
-            net.Broadcast()
-        end
     end
 end
 GLAMBDA:UpdateData()

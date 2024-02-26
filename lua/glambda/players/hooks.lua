@@ -1,16 +1,55 @@
+-- Called every think
 function GLAMBDA.Player:Think()
-    local queuedText = self:GetNW2String( "glambda_queuedtext", "" )
-    if #queuedText != 0 and CurTime() >= self.NextTextTypeT then
-        local typedText = self.TypedTextMsg
-        local typedLen = #typedText
-        if typedLen >= #queuedText then
-            self:Say( typedText )
-            self:SetNW2String( "glambda_queuedtext", "" )
-            self.TypedTextMsg = ""
-        else
-            local nextChar = queuedText[ typedLen + 1 ]
-            self.TypedTextMsg = typedText .. nextChar
-            self.NextTextTypeT = ( CurTime() + ( 1 / ( self:GetTextPerMinute() / 60 ) ) )
+    if !self:IsSpeaking() then
+        local queuedText = self:GetNW2String( "glambda_curtextmsg", "" )
+        if #queuedText == 0 then
+            local queuedMsgs = self.QueuedMessages
+            if #queuedMsgs != 0 then
+                local msgTbl = queuedMsgs[ 1 ]
+                local msg = msgTbl[ 1 ]
+                local keyEnt = msgTbl[ 2 ]
+
+                local canUseText = false
+                local textTbl = GLAMBDA.TextMessages[ msg ]
+                if textTbl then 
+                    for _, text in RandomPairs( textTbl ) do
+                        local condMet, modLine = GLAMBDA.KEYWORD:IsValidCondition( self, text, keyEnt )
+                        if condMet then 
+                            msg = modLine
+                            canUseText = true
+                            break 
+                        end
+                    end
+                else
+                    local condMet, modLine = GLAMBDA.KEYWORD:IsValidCondition( self, text, keyEnt )
+                    if !condMet then return end
+                    
+                    msg = modLine
+                    canUseText = true
+                end
+
+                if canUseText then
+                    queuedText = GLAMBDA.KEYWORD:ModifyTextKeyWords( self, msg, keyEnt )
+                    self:SetNW2String( "glambda_curtextmsg", queuedText )
+                    self.TextKeyEnt = keyEnt
+                    self.TypedTextMsg = ""
+                end
+                
+                table.remove( queuedMsgs, 1 )
+            end
+        end
+        if #queuedText != 0 and CurTime() >= self.NextTextTypeT then
+            local typedText = self.TypedTextMsg
+            local typedLen = #typedText
+            if typedLen >= #queuedText then
+                self:Say( typedText )
+                self:SetNW2String( "glambda_curtextmsg", "" )
+                self.TypedTextMsg = ""
+            else
+                local nextChar = queuedText[ typedLen + 1 ]
+                self.TypedTextMsg = typedText .. nextChar
+                self.NextTextTypeT = ( CurTime() + ( 1 / ( self:GetTextPerMinute() / 60 ) ) )
+            end
         end
     end
 
@@ -107,7 +146,7 @@ function GLAMBDA.Player:Think()
             local aimPos = ( aimFunc and aimFunc( self, weapon, enemy ) or enemy )
 
             if canShoot and self:InRange( aimPos, attackRange, self:EyePos() ) then
-                self:LookTo( aimPos, 0.25, GLAMBDA:Random( 1, 3 ), 3 )
+                self:LookTo( aimPos, GLAMBDA:Random( 3 ), 3 )
                 if aimPos == enemy then aimPos = aimPos:WorldSpaceCenter() end
 
                 local canSprint = true
@@ -173,8 +212,13 @@ function GLAMBDA.Player:Think()
             end
         end
     end
+
+    if !self:OnGround() and self:WaterLevel() == 0 and -self:GetVelocity().z > 526.5 and !self:IsSpeaking( "fall" ) then
+        self:PlayVoiceLine( "fall" )
+    end
 end
 
+-- Called every think however this think is within a Coroutine thread meaning you can pause executions and ect
 function GLAMBDA.Player:ThreadedThink()
     while ( true ) do
         if self:Alive() then
@@ -205,7 +249,7 @@ function GLAMBDA.Player:ThreadedThink()
         else
             if ( CurTime() - self.LastDeathTime ) >= GLAMBDA:GetConVar( "player_respawn_time" ) and ( !self:IsSpeaking() or !GLAMBDA:GetConVar( "voice_norespawn" ) ) and !self:IsTyping() then
                 if !GLAMBDA:GetConVar( "player_respawn" ) then
-                    self:Kick()
+                    self:Kick( "GLambda: Can't respawn" )
                     return
                 end
 
@@ -226,8 +270,9 @@ function GLAMBDA.Player:OnPlayerRespawn()
         local spawnPos = spawner:GetPos()
         self:SetPos( spawnPos )
 
-        spawnPos.z = self:EyePos().z
-        self:LookTowards( spawnPos + spawner:GetForward() * 1, 1 )
+        local spawnAng = spawner:GetAngles()
+        self:SetAngles( spawnAng )
+        self:SetEyeAngles( spawnAng )
     end
 
     self:SimpleTimer( 0, function()
@@ -244,6 +289,7 @@ function GLAMBDA.Player:OnPlayerRespawn()
     end )
 end
 
+-- Called when this player is hurt
 function GLAMBDA.Player:OnHurt( attacker, healthLeft, damage )
     if healthLeft <= 0 then return end
 
@@ -268,24 +314,25 @@ function GLAMBDA.Player:OnHurt( attacker, healthLeft, damage )
     end
 end
 
+-- Called when this player is killed
 function GLAMBDA.Player:OnKilled( attacker )
     if self:CanType() and self:GetTextingChance( 100 ) then
+        self:StopSpeaking()
         self:TypeMessage( "death" .. ( attacker:IsPlayer() and "byplayer" or "" ), attacker )
     elseif !self:IsTyping() then
         self:PlayVoiceLine( "death" )
     end
-
-    self:SetEnemy( nil )
-    self:SetState()
-    self:CancelMovement()
 
     if GLAMBDA:GetConVar( "building_undoondeath" ) then
         self:UndoCommand( true )
     end
 
     self.LastDeathTime = CurTime()
+    self:SetNoWeaponSwitch( false )
+    self:ResetAI()
 end
 
+-- Called when a NPC, Nextbot, or player is killed
 function GLAMBDA.Player:OnOtherKilled( victim, dmginfo )
     local enemy = self:GetEnemy()
     if victim == enemy then
@@ -300,7 +347,7 @@ function GLAMBDA.Player:OnOtherKilled( victim, dmginfo )
         if victim == enemy then 
             if self:GetSpeechChance( 100 ) and ( !self:IsSpeaking() or GLAMBDA:Random( 3 ) == 1 ) then
                 self:PlayVoiceLine( "kill" )
-            elseif self:GetTextingChance( 100 ) and !self:IsSpeaking() and !self:IsTyping() and self:CanType() then
+            elseif self:GetTextingChance( 100 ) and self:CanType() then
                 self:TypeMessage( "kill", victim )
             end
 
@@ -320,7 +367,7 @@ function GLAMBDA.Player:OnOtherKilled( victim, dmginfo )
         end
     elseif victim == enemy and self:GetSpeechChance( 100 ) and self:InRange( attacker, 1000 ) and ( attacker:IsPlayer() or attacker:IsNPC() or attacker:IsNextBot() ) then
         if self:IsVisible( attacker ) then
-            self:LookTo( attacker, 0.33, 2, 2 )
+            self:LookTo( attacker, 2, 2 )
         end
 
         self:PlayVoiceLine( "assist" )
@@ -334,18 +381,18 @@ function GLAMBDA.Player:OnOtherKilled( victim, dmginfo )
             self:DevMsg( "I killed or saw someone die. Laugh at this person!" )
         elseif victim != enemy then
             if witnessChance == 2 then
-                self:LookTo( victim:WorldSpaceCenter(), 0.33, GLAMBDA:Random( 2, 4 ), 2 )
+                self:LookTo( victim:WorldSpaceCenter(), GLAMBDA:Random( 2, 4 ), 2 )
 
                 if self:GetSpeechChance( 100 ) then
                     self:PlayVoiceLine( "witness" )
-                elseif self:GetTextingChance( 100 ) and !self:IsSpeaking() and !self:IsTyping() and self:CanType() then
+                elseif self:GetTextingChance( 100 ) and self:CanType() then
                     self:TypeMessage( "witness", victim )
                 end
             end
             
             if !self:InCombat() and self:GetCowardnessChance( 200 ) then
                 local targ = ( ( self:CanTarget( attacker ) and self:IsVisible( attacker ) and GLAMBDA:Random( 3 ) == 1 ) and attacker or nil )
-                self:LookTo( targ or victim:WorldSpaceCenter(), 0.33, GLAMBDA:Random( 3 ), 2 )
+                self:LookTo( targ or victim:WorldSpaceCenter(), GLAMBDA:Random( 3 ), 2 )
                 
                 self:RetreatFrom( targ, nil, !self:IsSpeaking( "witness" ) )
                 self:CancelMovement()
@@ -356,6 +403,7 @@ function GLAMBDA.Player:OnOtherKilled( victim, dmginfo )
     end
 end
 
+-- Called when the Player gets disconnected/removed from the server
 function GLAMBDA.Player:OnDisconnect()
     self:UndoCommand( true )
     
@@ -366,9 +414,13 @@ function GLAMBDA.Player:OnDisconnect()
     end
 end
 
+-- Called when the Player thinks it is stuck
 function GLAMBDA.Player:OnStuck()
     self:PressKey( IN_JUMP )
     if !self:OnGround() then
         self:PressKey( IN_DUCK )
     end
 end
+
+-- Called when the Player isn't stuck anymore
+function GLAMBDA.Player:OnUnStuck() end

@@ -65,8 +65,8 @@ function ENT:PathToPos()
             self.gb_CurrentSeg = 1
             self.gb_forcerecompute = false
         end
-        
-        if GetConVar( "developer" ):GetBool() then self._PATH:Draw() end
+
+        if GLAMBDA:GetConVar( "developer" ) then self._PATH:Draw() end
         self._PATH:MoveCursorToClosestPosition( GLACE:GetPos() )
         
         coroutine.yield()

@@ -109,28 +109,21 @@ function GLAMBDA:GetConVar( name, returnCvar )
     return convar:GetString()
 end
 
-----------------------
--- Console Commands --
-----------------------
+--
 
-function GLAMBDA:CreateConCommand( name, func, isClient, desc, settingsTbl )
-    if isClient and SERVER then return end
+function GLAMBDA:AddConVarWrapper( cvarName, type )
+    local cvar = GetConVar( cvarName )
+    if !cvar then return end
 
-    local cmdName = "glambda_" .. name
-    if isClient or SERVER then concommand.Add( cmdName, func, nil, desc ) end
-
-    if CLIENT and settingsTbl then
-        self.ConVars.Settings[ name ] = {
-            index = ( table.Count( self.ConVars.Settings ) + 1 ),
-            settings = settingsTbl
-        }
-
-        settingsTbl.conCmd = cmdName
-        settingsTbl.isClient = isClient
-        settingsTbl.cvarType = "Button"
-        settingsTbl.desc = ( isClient and "Client-Side | " or "Server-Side | " ) .. desc .. "\nConsole Command: " .. cmdName
-    end
+    self.ConVars[ cvarName ] = {
+        convar = cvar,
+        cvarType = type
+    }
 end
+
+GLAMBDA:AddConVarWrapper( "developer", "Bool" )
+GLAMBDA:AddConVarWrapper( "ai_ignoreplayers", "Bool" )
+GLAMBDA:AddConVarWrapper( "ai_disabled", "Bool" )
 
 --
 
@@ -276,7 +269,7 @@ GLAMBDA:CreateConVar( "textchat_enabled", true, "If the players are allowed to u
     name = "Enable Text Chat",
     category = "Text Chat Options",
 } )
-GLAMBDA:CreateConVar( "textchat_limit", 0, "How many total players are allowed to use text chat at once.", nil, nil, nil, 0, 128, {
+GLAMBDA:CreateConVar( "textchat_limit", 2, "How many total players are allowed to use text chat at once.", nil, nil, nil, 0, 128, {
     name = "Chat Limit",
     category = "Text Chat Options",
 } )
@@ -287,107 +280,8 @@ GLAMBDA:CreateConVar( "building_undoondeath", true, "If the player's spawned stu
     category = "Building",
 } )
 
--- Utilities --
+-- Data Updating --
 GLAMBDA:CreateConVar( "util_mergelambdafiles", true, "When updating the data, should it also merge the files from Lambda Players, such as voice profiles, sprays, profile pictures, and ect.\nWon't load the ones from the 'data' folder, use 'Transfer Lambda Data' for that instead!\nMake sure to update the data once you change this to actually load in the files!", {
     name = "Merge Lambda Players Files",
-    category = "Utilities"
-} )
-
---
-
-local dataUpdCooldown = 0
-GLAMBDA:CreateConCommand( "cmd_update_data", function( ply )
-
-    local plyValid = IsValid( ply )
-    if plyValid and !ply:IsSuperAdmin() then
-        GLAMBDA:SendNotification( ply, "You must be a super admin in order to use this!", 1, nil, "buttons/button10.wav" )
-        return 
-    end
-
-    if CurTime() < dataUpdCooldown then 
-        if plyValid then 
-            GLAMBDA:SendNotification( ply, "Command is on cooldown! Please wait 3 seconds before trying again", 1, nil, "buttons/button10.wav" )
-        end
-        return
-    end
-
-    dataUpdCooldown = ( CurTime() + 3 )
-    print( "GLambda Players: Updated data via console command. Ran by ", ( plyValid and ply:Name() .. " | " .. ply:SteamID() or "Console" ) )
-    
-    GLAMBDA:UpdateData( true )
-    if plyValid then GLAMBDA:SendNotification( ply, "Updated GLambda Data", 3, nil, "buttons/button15.wav" ) end
-
-end, false, "Updates data such as voicelines, names, ect. You must use this after any changes to custom content for changes to take effect!", { 
-    name = "Update Data", 
-    category = "Utilities" 
-} )
-
-local userData = {
-    [ "lambdaplayers/playerbirthday.json" ] = "glambda/plybirthday.json",
-    [ "lambdaplayers/presets/" ] = "glambda/presets/",
-}
-GLAMBDA:CreateConCommand( "cmd_transferlambda_clientdata", function( ply )
-
-    for toCopy, newCopy in pairs( userData ) do
-        if toCopy[ #toCopy ] == "/" then
-            local files = file.Find( toCopy .. "*", "DATA", "nameasc" )
-            if !files then continue end
-
-            for _, fileName in ipairs( files ) do
-                GLAMBDA.FILE:WriteFile( newCopy .. fileName, GLAMBDA.FILE:ReadFile( toCopy .. fileName, "json" ), "json" )
-            end
-        end
-
-        if !file.Exists( toCopy, "DATA" ) then continue end
-        GLAMBDA.FILE:WriteFile( newCopy, GLAMBDA.FILE:ReadFile( toCopy, "json" ), "json" )
-    end
-
-    GLAMBDA:SendNotification( ply, "Transfered Lambda Data", 3, nil, "buttons/button15.wav" )
-    print( "GLambda Players: Transfered Lambda client data files via console command." )
-
-end, true, "Transfers and copies the client data files from Lambda Players to GLambda Players, such as personality presets, birthday date, and etc.", { 
-    name = "Transfer Lambda Client Data", 
-    category = "Utilities" 
-} )
-
-local transferFiles = {
-    [ "lambdaplayers/npclist.json" ]        = "glambda/npclist.json",
-    [ "lambdaplayers/entitylist.json" ]     = "glambda/entitylist.json",
-    [ "lambdaplayers/proplist.json" ]       = "glambda/proplist.json",
-    [ "lambdaplayers/customnames.json" ]    = "glambda/customnames.json",
-    [ "lambdaplayers/profiles.json" ]       = "glambda/profiles.json",
-    [ "lambdaplayers/pmblockdata.json" ]    = "glambda/pmblocklist.json",
-    [ "lambdaplayers/presets/" ]            = "glambda/presets/",
-    [ "lambdaplayers/nameimport/" ]         = "glambda/nameimport/",
-    [ "lambdaplayers/exportednames/" ]      = "glambda/exportednames/",
-}
-GLAMBDA:CreateConCommand( "cmd_transferlambda_serverdata", function( ply )
-
-    local plyValid = IsValid( ply )
-    if plyValid and !ply:IsSuperAdmin() then 
-        GLAMBDA:SendNotification( ply, "You must be a super admin in order to use this!", 1, nil, "buttons/button10.wav" )
-        return 
-    end
-
-    for toCopy, newCopy in pairs( transferFiles ) do
-        if toCopy[ #toCopy ] == "/" then
-            local files = file.Find( toCopy .. "*", "DATA", "nameasc" )
-            if !files then continue end
-
-            for _, fileName in ipairs( files ) do
-                GLAMBDA.FILE:WriteFile( newCopy .. fileName, GLAMBDA.FILE:ReadFile( toCopy .. fileName, "json" ), "json" )
-            end
-        end
-
-        if !file.Exists( toCopy, "DATA" ) then continue end
-        GLAMBDA.FILE:WriteFile( newCopy, GLAMBDA.FILE:ReadFile( toCopy, "json" ), "json" )
-    end
-
-    GLAMBDA:UpdateData( true )
-    if plyValid then GLAMBDA:SendNotification( ply, "Transfered Lambda Data", 3, nil, "buttons/button15.wav" ) end
-    print( "GLambda Players: Transfered Lambda server data files via console command. Ran by ", ( plyValid and ply:Name() .. " | " .. ply:SteamID() or "Console" ) )
-
-end, false, "Transfers and copies the server data files from Lambda Players to GLambda Players, such as names, NPCs, props and etc. You must be a super admin to use this panel.", { 
-    name = "Transfer Lambda Server Data", 
-    category = "Utilities" 
+    category = "Data Updating"
 } )

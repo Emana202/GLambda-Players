@@ -61,12 +61,47 @@ end
 
 --
 
-function FILE:GetNicknames()
-    local defaultNames = self:ReadFile( "materials/glambdaplayers/data/names.vmt", "json", "GAME" )
-    local customNames = self:ReadFile( "glambda/customnames.json", "json" )
+GLAMBDA.DataUpdateFuncs = ( GLAMBDA.DataUpdateFuncs or {} )
+
+function FILE:CreateUpdateCommand( name, func, isClient, desc, settingName, reloadMenu )
+    local dataUpdCooldown = 0
+    local function cmdFunc( ply )
+        if !isClient and IsValid( ply ) then 
+            if !ply:IsSuperAdmin() then 
+                GLAMBDA:SendNotification( ply, "You must be a super admin in order to use this!", 1, nil, "buttons/button10.wav" )
+                return 
+            end
+            if CurTime() < dataUpdCooldown then 
+                GLAMBDA:SendNotification( ply, "Command is on cooldown! Please wait 3 seconds before trying again", 1, nil, "buttons/button10.wav" )
+                return
+            end
+
+            dataUpdCooldown = ( CurTime() + 3 )
+            GLAMBDA:SendNotification( ply, "Updated Data for " .. settingName .. "!", 3, nil, "buttons/button15.wav" )
+        end
+
+        func()
+
+        if !isClient and ( SERVER ) then
+            net.Start( "glambda_updatedata" )
+                net.WriteString( name )
+                net.WriteBool( reloadMenu )
+            net.Broadcast()
+        end
+    end
+
+    GLAMBDA:CreateConCommand( "cmd_updatedata_" .. name, cmdFunc, isClient, desc, { name = "Update " .. settingName, category = "Data Updating" } )
+    GLAMBDA.DataUpdateFuncs[ name ] = cmdFunc
+end
+
+--
+
+FILE:CreateUpdateCommand( "names", function()
+    local defaultNames = FILE:ReadFile( "materials/glambdaplayers/data/names.vmt", "json", "GAME" )
+    local customNames = FILE:ReadFile( "glambda/customnames.json", "json" )
     
     local mergeTbl = table.Add( defaultNames, customNames )
-    return self:MergeDirectory( "materials/glambdaplayers/data/customnames/", mergeTbl, nil, nil, function( fileName, fileDir, tbl )
+    GLAMBDA.Nicknames = FILE:MergeDirectory( "materials/glambdaplayers/data/customnames/", mergeTbl, nil, nil, function( fileName, fileDir, tbl )
         local nameTbl = {}
         local filePath = fileDir .. fileName
         if string.EndsWith( filePath, ".json" ) then
@@ -86,23 +121,23 @@ function FILE:GetNicknames()
         end
         tbl[ #tbl + 1 ] = nameTbl
     end )
-end
+end, false, "Updates the list of nicknames the players will use as names.", "Nicknames" )
 
-function FILE:GetProfilePictures()
-    local pfpTbl = {}
-    self:MergeDirectory( "materials/glambdaplayers/data/custompfps/", pfpTbl )
-    if GLAMBDA:GetConVar( "util_mergelambdafiles" ) then self:MergeDirectory( "materials/lambdaplayers/custom_profilepictures/", pfpTbl ) end
-    return pfpTbl
-end
+FILE:CreateUpdateCommand( "pfps", function()
+    local pfps = {}
+    FILE:MergeDirectory( "materials/glambdaplayers/data/custompfps/", pfps )
+    if GLAMBDA:GetConVar( "util_mergelambdafiles" ) then FILE:MergeDirectory( "materials/lambdaplayers/custom_profilepictures/", pfps ) end
+    GLAMBDA.ProfilePictures = pfps
+end, false, "Updates the list of profile pictures the players will spawn with.", "Profile Pictures" )
 
-function FILE:GetVoiceLines()
+FILE:CreateUpdateCommand( "voicelines", function()
     local voiceLines = {}
     for _, data in ipairs( GLAMBDA.VoiceTypes ) do
-        local lineTbl = self:MergeDirectory( "sound/" .. data.pathCvar:GetString() )
+        local lineTbl = FILE:MergeDirectory( "sound/" .. data.pathCvar:GetString() )
         voiceLines[ data.name ] = lineTbl
     end
-    return voiceLines
-end
+    GLAMBDA.VoiceLines = voiceLines
+end, false, "Updates the list of voicelines the players will use to speak in voice chat.", "Voicelines" )
 
 local function MergeVoiceProfiles( tbl, path )
     local fullPath = "sound/" .. path
@@ -125,7 +160,7 @@ local function MergeVoiceProfiles( tbl, path )
         tbl[ profile ] = profileTbl
     end
 end
-function FILE:GetVoiceProfiles()
+FILE:CreateUpdateCommand( "voiceprofiles", function()
     local voiceProfiles = {}
     MergeVoiceProfiles( voiceProfiles, "glambdaplayers/voiceprofiles/" )
 
@@ -143,7 +178,7 @@ function FILE:GetVoiceProfiles()
                 local voicelines = file.Find( typePath .. "*", "GAME", "nameasc" )
                 if !voicelines or #voicelines == 0 then continue end
         
-                local lineTbl = self:MergeDirectory( typePath )
+                local lineTbl = FILE:MergeDirectory( typePath )
                 profileTbl[ typeName ] = lineTbl
             end
         
@@ -151,8 +186,8 @@ function FILE:GetVoiceProfiles()
         end
     end
 
-    return voiceProfiles
-end
+    GLAMBDA.VoiceProfiles = voiceProfiles
+end, false, "Updates the list of voice profiles the players will use to speak as.", "Voice Profiles" )
 
 local function MergeTextMessages( fileName, fileDir, tbl )
     local content = FILE:ReadFile( fileDir .. fileName, "json", "GAME" )
@@ -169,12 +204,18 @@ local function MergeTextMessages( fileName, fileDir, tbl )
     table.Add( typeTbl, content )
     tbl[ textType ] = typeTbl
 end
-function FILE:GetTextMessages()
+FILE:CreateUpdateCommand( "textmsgs", function()
     local textTbl = {}
-    self:MergeDirectory( "materials/glambdaplayers/data/texttypes/", textTbl, nil, nil, MergeTextMessages )
-    self:MergeDirectory( "data/glambdaplayers/texttypes/", textTbl, nil, nil, MergeTextMessages )
-    return textTbl
-end
+    FILE:MergeDirectory( "materials/glambdaplayers/data/texttypes/", textTbl, nil, nil, MergeTextMessages )
+    FILE:MergeDirectory( "data/glambdaplayers/texttypes/", textTbl, nil, nil, MergeTextMessages )
+    
+    if GLAMBDA:GetConVar( "util_mergelambdafiles" ) then 
+        FILE:MergeDirectory( "lambdaplayers/data/texttypes/", textTbl, nil, nil, MergeTextMessages )
+        FILE:MergeDirectory( "lambdaplayers/texttypes/", textTbl, nil, nil, MergeTextMessages )
+    end
+
+    GLAMBDA.TextMessages = textTbl
+end, false, "Updates the list of text messages the players will use to speak in text chat.", "Text Messages" )
 
 -- function FILE:GetTextProfiles()
 --     local textProfiles = {}
@@ -199,40 +240,49 @@ end
 --     return textProfiles
 -- end
 
-function FILE:GetSprays()
+FILE:CreateUpdateCommand( "sprays", function()
     local sprayTbl = {}
-    self:MergeDirectory( "materials/glambdaplayers/data/sprays/", sprayTbl )
-    if GLAMBDA:GetConVar( "util_mergelambdafiles" ) then self:MergeDirectory( "materials/lambdaplayers/sprays/", sprayTbl ) end
-    return sprayTbl
-end
+    FILE:MergeDirectory( "materials/glambdaplayers/data/sprays/", sprayTbl )
+    if GLAMBDA:GetConVar( "util_mergelambdafiles" ) then FILE:MergeDirectory( "materials/lambdaplayers/sprays/", sprayTbl ) end
+    GLAMBDA.Sprays = sprayTbl
+end, false, "Updates the list of images and materials the players will use as their spray.", "Sprays" )
 
 --
 
-function FILE:GetSpawnmenuProps()
-    local content = self:ReadFile( "glambda/proplist.json", "json" )
+FILE:CreateUpdateCommand( "proplist", function()
+    local content = FILE:ReadFile( "glambda/proplist.json", "json" )
     if !content or #content == 0 then ErrorNoHalt( "GLambda Players: You have no props registered to spawn!" ) end
-    return ( content or {} )
-end
+    GLAMBDA.SpawnlistProps = ( content or {} )
+end, false, "Updates the spawnlist of props the players can spawn from their spawnmenu.", "Spawnmenu Props" )
 
-function FILE:GetSpawnmenuENTs()
-    local content = self:ReadFile( "glambda/entitylist.json", "json" )
+FILE:CreateUpdateCommand( "entitylist", function()
+    local content = FILE:ReadFile( "glambda/entitylist.json", "json" )
     if !content or #content == 0 then ErrorNoHalt( "GLambda Players: You have no entities registered to spawn!" ) end
-    return ( content or {} )
-end
+    GLAMBDA.SpawnlistENTs = ( content or {} )
+end, false, "Updates the spawnlist of entities the players can spawn from their spawnmenu.", "Spawnmenu Entities" )
 
-function FILE:GetSpawnmenuNPCs()
-    local content = self:ReadFile( "glambda/npclist.json", "json" )
+FILE:CreateUpdateCommand( "npclist", function()
+    local content = FILE:ReadFile( "glambda/npclist.json", "json" )
     if !content or #content == 0 then ErrorNoHalt( "GLambda Players: You have no NPCs registered to spawn!" ) end
-    return ( content or {} )
-end
+    GLAMBDA.SpawnlistNPCs = ( content or {} )
+end, false, "Updates the spawnlist of NPCs the players can spawn from their spawnmenu.", "Spawnmenu NPCs" )
 
-function FILE:GetMaterials()
-    local defaultMats = self:ReadFile( "materials/glambdaplayers/data/materials.vmt", "json", "GAME" )
-    local customMats = self:ReadFile( "glambda/custommaterials.json", "json" )
+-- function FILE:GetMaterials()
+--     if IsValid( ply ) and !ply:IsSuperAdmin() then 
+--         GLAMBDA:SendNotification( ply, "You must be a super admin in order to use this!", 1, nil, "buttons/button10.wav" )
+--         return 
+--     end
+
+--     local defaultMats = self:ReadFile( "materials/glambdaplayers/data/materials.vmt", "json", "GAME" )
+--     local customMats = self:ReadFile( "glambda/custommaterials.json", "json" )
     
-    local mergeTbl = table.Add( defaultMats, customMats )
-    for _, mat in ipairs( list.Get( "OverrideMaterials" ) ) do
-        if !table.HasValue( mergeTbl, mat ) then mergeTbl[ #mergeTbl + 1 ] = mat end
-    end
-    return mergeTbl
-end
+--     local mergeTbl = table.Add( defaultMats, customMats )
+--     for _, mat in ipairs( list.Get( "OverrideMaterials" ) ) do
+--         if !table.HasValue( mergeTbl, mat ) then mergeTbl[ #mergeTbl + 1 ] = mat end
+--     end
+--     GLAMBDA.ToolMaterials = mergeTbl
+-- end
+-- GLAMBDA:CreateConCommand( "cmd_updatedata_materiallist", FILE.GetMaterials, false, "", {
+--     name = "Update Toolgun Materials",
+--     category = "Data Updating"
+-- } )

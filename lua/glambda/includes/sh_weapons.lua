@@ -36,15 +36,15 @@ GLAMBDA.WeaponCallbacks = {
         InfoText = "Runs whenever the player is holding this weapon. Returning a number will result in the next call being delayed to said number."
     },
 }
-function GLAMBDA:GetCustomWeapons()
-    local customWpns = file.Find( "glambda/weapons/*.dat", "DATA", "nameasc" )
-    if !customWpns then return end
+GLAMBDA.FILE:CreateUpdateCommand( "weapons", function()
+    local wpns = file.Find( "glambda/weapons/*.dat", "DATA", "nameasc" )
+    if !wpns then return end
 
-    for _, wpn in ipairs( customWpns ) do
-        local wpnData = self.FILE:ReadFile( "glambda/weapons/" .. wpn, "json" )
+    for _, wpn in ipairs( wpns ) do
+        local wpnData = GLAMBDA.FILE:ReadFile( "glambda/weapons/" .. wpn, "json" )
         if !wpnData then continue end
         
-        for callFunc, _ in pairs( self.WeaponCallbacks ) do
+        for callFunc, _ in pairs( GLAMBDA.WeaponCallbacks ) do
             local funcString = wpnData[ callFunc ]
             if !funcString or !isstring( funcString ) then continue end
             
@@ -55,6 +55,6 @@ function GLAMBDA:GetCustomWeapons()
         end
 
         local wepName = string.StripExtension( wpn )
-        self.WeaponList[ wepName ] = wpnData
+        GLAMBDA.WeaponList[ wepName ] = wpnData
     end
-end
+end, false, "Updates the list of weapons the players can use and equip.", "Weapon List" )

@@ -539,7 +539,7 @@ end
 
 --
 
-local panels = file.Find( "glambda/panels/*", "LUA", "nameasc" )
+local panels = file.Find( "glambda/panels/*.lua", "LUA", "nameasc" )
 for _, luaFile in ipairs( panels ) do
     if ( SERVER ) then
         AddCSLuaFile( "glambda/panels/" .. luaFile )

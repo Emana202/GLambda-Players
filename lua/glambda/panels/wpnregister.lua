@@ -6,6 +6,7 @@ local function OpenWeaponRegister( ply )
     local PANEL = GLAMBDA.PANEL
 
     local frame = PANEL:Frame( "Weapon Registration List", 800, 500 )
+    PANEL:Label( "Click on the weapons to the left to open a register menu. Right click a row on the right to remove the weapon, double click to edit.", frame, TOP )
 
     local leftPanel = PANEL:BasicPanel( frame, LEFT )
     leftPanel:SetSize( 430, 1 )

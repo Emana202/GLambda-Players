@@ -10,7 +10,7 @@ function KEYWORD:AddKeyWord( type, keyWord, func )
     self[ type ][ keyWord ] = func
 end
 
-function KEYWORD:ModifyTextKeyWords( ply, text ) 
+function KEYWORD:ModifyTextKeyWords( ply, text, keyEnt ) 
     if !text then return "" end
 
     for keyWord, func in pairs( self.Normal ) do
@@ -19,7 +19,7 @@ function KEYWORD:ModifyTextKeyWords( ply, text )
         text = string.gsub( text, keyWord, function( ... )  
             local count = table.Count( { ... } )
             local packed = {}
-            for i = 1, count do  packed[ #packed + 1 ] = ( func( ply ) or keyWord ) end
+            for i = 1, count do packed[ #packed + 1 ] = ( func( ply, keyEnt ) or keyWord ) end
             return unpack( packed )
         end )
     end
@@ -27,12 +27,12 @@ function KEYWORD:ModifyTextKeyWords( ply, text )
     return text
 end
 
-function KEYWORD:IsValidCondition( ply, text ) 
+function KEYWORD:IsValidCondition( ply, text, keyEnt ) 
     if text then
         for keyWord, func in pairs( self.Conditional ) do
             if !string.match( text, keyWord ) then continue end
             text = string.Replace( text, keyWord, "" )
-            return func( ply ), text
+            return func( ply, keyEnt ), text
         end
     end
 
@@ -62,14 +62,12 @@ KEYWORD:AddKeyWord( "Normal", "/rndmap/", function()
     return string.StripExtension( maps[ LambdaRNG( #maps ) ] )
 end )
 
-KEYWORD:AddKeyWord( "Normal", "/keyent/", function( ply )
-    local keyEnt = ply.TextKeyEnt
+KEYWORD:AddKeyWord( "Normal", "/keyent/", function( ply, keyEnt )
     if !IsValid( keyEnt ) then return "someone" end
     return ( keyEnt:IsPlayer() and keyEnt:Nick() or keyEnt:GetClass() )
 end )
 
-KEYWORD:AddKeyWord( "Normal", "/keyweapon/", function( ply )
-    local keyEnt = ply.TextKeyEnt
+KEYWORD:AddKeyWord( "Normal", "/keyweapon/", function( ply, keyEnt )
     if !IsValid( keyEnt ) then return "weapon" end
     return ( keyEnt.GetPrintName and keyEnt:GetPrintName() or keyEnt:GetClass() ) 
 end )
@@ -146,8 +144,7 @@ KEYWORD:AddKeyWord( "Conditional", "|alone|", function( ply )
     return ( #nearPlys == 0 )
 end )
 
-KEYWORD:AddKeyWord( "Conditional", "|keyentishost|", function( ply )
-    local keyEnt = ply.TextKeyEnt
+KEYWORD:AddKeyWord( "Conditional", "|keyentishost|", function( ply, keyEnt )
     return ( IsValid( keyEnt ) and keyEnt:IsPlayer() and keyEnt:IsListenServerHost() )
 end )
 

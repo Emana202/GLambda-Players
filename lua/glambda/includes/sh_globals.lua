@@ -230,3 +230,4 @@ GLAMBDA:AddVoiceType( "kill",       "lambdaplayers/vo/kill/",       "Played when
 GLAMBDA:AddVoiceType( "witness",    "lambdaplayers/vo/witness/",    "Played when the player saw someone get killed." )
 GLAMBDA:AddVoiceType( "assist",     "lambdaplayers/vo/assist/",     "Played when the player's enemy is killed by someone else." )
 GLAMBDA:AddVoiceType( "laugh",      "lambdaplayers/vo/laugh/",      "Played when the player saw someone get killed and plays a laugh taunt." )
+GLAMBDA:AddVoiceType( "fall",       "lambdaplayers/vo/fall/",       "Played when the player is falling." )

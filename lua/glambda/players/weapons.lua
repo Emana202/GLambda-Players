@@ -1,4 +1,7 @@
+-- Makes us select the given weapon by its classname
 function GLAMBDA.Player:SelectWeapon( weapon )
+    if self:GetNoWeaponSwitch() then return end
+
     local curWep = self:GetActiveWeapon()
     if IsValid( curWep ) and curWep:GetClass() == weapon then return end
 
@@ -21,10 +24,12 @@ function GLAMBDA.Player:SelectWeapon( weapon )
 
     self.CmdSelectWeapon = wepEnt
     self.NextWeaponThinkT = 0
+    self.NextWeaponAttackT = ( CurTime() + 0.5 )
 
     return true
 end
 
+-- Makes us select a random weapon
 function GLAMBDA.Player:SelectRandomWeapon( filter )
     local curWep = self:GetActiveWeapon()
     curWep = ( IsValid( curWep ) and curWep:GetClass() or nil )
@@ -49,6 +54,7 @@ function GLAMBDA.Player:SelectRandomWeapon( filter )
     return false
 end
 
+-- Makes us select a random lethal weapon
 function GLAMBDA.Player:SelectLethalWeapon()
     return self:SelectRandomWeapon( function( name, data )
         local isLethal = data.IsLethalWeapon
@@ -56,11 +62,13 @@ function GLAMBDA.Player:SelectLethalWeapon()
     end )
 end
 
+-- Returns the classname of our current weapon
 function GLAMBDA.Player:GetCurrentWeapon()
     local curWep = self:GetActiveWeapon()
     return ( IsValid( curWep ) and curWep:GetClass() or "" )
 end
 
+-- Returns the amount of current ammo in our weapon, excluding the clip
 function GLAMBDA.Player:GetWeaponAmmo()
     local curWep = self:GetActiveWeapon()
     if !IsValid( curWep ) then return -1 end
@@ -69,11 +77,13 @@ function GLAMBDA.Player:GetWeaponAmmo()
     return self:GetAmmoCount( ammoType ), ammoType
 end
 
+-- Returns the max amount of ammo our weapon can have
 function GLAMBDA.Player:GetWeaponMaxAmmo()
     local _, ammoType = self:GetWeaponAmmo()
     return ( !ammoType and -1 or game.GetAmmoMax( ammoType ) )
 end
 
+-- Returns if we are currently reloading our weapon
 function GLAMBDA.Player:IsReloadingWeapon()
     local curWep = self:GetActiveWeapon()
     if !IsValid( curWep ) then return false end
@@ -120,6 +130,7 @@ local fallbackDefaults = {
     end
 }
 
+-- Returns the given stat of our current weapon
 function GLAMBDA.Player:GetWeaponStat( name, fallback )
     local stat
     local curWep = self:GetActiveWeapon()

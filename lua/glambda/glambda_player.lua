@@ -1,11 +1,16 @@
 GLAMBDA.Player = {}
 
 local includePath = "glambda/players/"
-local includeFiles = file.Find( includePath .. "*", "LUA", "nameasc" )
+local includeFiles = file.Find( includePath .. "*.lua", "LUA", "nameasc" )
 
 for _, lua in ipairs( includeFiles ) do
     include( includePath .. lua )
 end
+
+--
+
+local ENT = FindMetaTable( "Entity" )
+local PLAYER = FindMetaTable( "Player" )
 
 --
 
@@ -34,9 +39,46 @@ function GLAMBDA:CreateLambdaPlayer()
         ply.gb_ProfilePicture = pfps[ GLAMBDA:Random( #pfps ) ]
     end
 
+    -- Creates a GLACE object for the specified player
+
+    local GLACE = { _PLY = ply }
+
+    -- We copy these meta tables so we can run them on the GLACE table and it will be detoured to the player itself
+    for name, func in pairs( table.Merge( table.Copy( ENT ), table.Copy( PLAYER ), true ) ) do
+        GLACE[ name ] = function( tblself, ... )
+            local ply = GLACE._PLY
+            if !ply:IsValid() then 
+                ErrorNoHaltWithStack( "Attempt to call " .. name .. " function on a GLambda Player that no longer exists!" ) 
+                return 
+            end
+
+            return func( ply, ... )
+        end
+    end
+
+    -- Sometimes you may want to use this for non meta method functions
+    function GLACE:GetPlayer() return self._PLY end -- Returns this Glace object's Player
+    function GLACE:IsValid() return IsValid( self._PLY ) end -- Returns if this Glace object's Player is valid
+    function GLACE:IsStuck() return self._ISSTUCK end -- Returns if the Player is stuck
+    function GLACE:GetNavigator() return self._NAVIGATOR end -- Returns this Glace object's Navigating nextbot
+    function GLACE:GetThread() return self._THREAD end -- Gets the current running thread
+    function GLACE:SetThread( thread ) self._THREAD = thread end -- Sets the current running thread. You should never have to use this
+    function GLACE:SetNavigator( nextbot ) self._NAVIGATOR = nextbot end -- Sets this Glace object's Navigating nextbot. You should never have to use this
+
+    ply._GLACETABLE = GLACE
+    
     --
 
-    local GLACE = GLAMBDA:ApplyPlayerFunctions( ply )
+    for name, func in pairs( self.Player ) do
+        if !isfunction( func ) then continue end
+
+        GLACE[ name ] = function( glace, ... ) 
+            return self.Player[ name ]( glace, ... ) 
+        end
+    end
+    
+    --
+    
     GLACE:SetThread( coroutine.create( function() 
         GLACE:ThreadedThink() 
         print( "GLambda Players: " .. ply:Name() .. "'s Threaded Think has stopped executing!" ) 
@@ -56,23 +98,18 @@ function GLAMBDA:CreateLambdaPlayer()
     net.Broadcast()
 
     --
-
-    for name, func in pairs( self.Player ) do
-        if !isfunction( func ) then continue end
-
-        GLACE[ name ] = function( glace, ... ) 
-            return self.Player[ name ]( glace, ... ) 
-        end
-    end
-
-    --
     
     GLACE.State = "Idle"
+    
     GLACE.TypedTextMsg = ""
-
     GLACE.TextKeyEnt = nil
+    GLACE.QueuedMessages = {}
     
     GLACE.CombatPathPosition = vector_origin
+
+    GLACE.DoorOpenCooldown = 0
+    GLACE.CmdButtonQueue = 0 -- The key presses we've done this tick
+    GLACE.KeyPressCooldown = {} -- Table for keeping cooldowns for each inkey
 
     GLACE.NextTextTypeT = 0
     GLACE.NextCombatPathUpdateT = 0
@@ -96,7 +133,7 @@ function GLAMBDA:CreateLambdaPlayer()
     ply:SetNW2Vector( "glambda_plycolor", Vector( GLAMBDA:Random( 0.0, 1.0, true ), GLAMBDA:Random( 0.0, 1.0, true ), GLAMBDA:Random( 0.0, 1.0, true ) ) )
     ply:SetNW2Vector( "glambda_wpncolor", Vector( GLAMBDA:Random( 0.0, 1.0, true ), GLAMBDA:Random( 0.0, 1.0, true ), GLAMBDA:Random( 0.0, 1.0, true ) ) )
     
-    ply:SetNW2String( "glambda_queuedtext", "" )
+    ply:SetNW2String( "glambda_curtextmsg", "" )
 
     --
 
@@ -109,6 +146,7 @@ function GLAMBDA:CreateLambdaPlayer()
     GLACE:CreateGetSetFuncs( "SpeechEndTime" )
     GLACE:CreateGetSetFuncs( "VoicePitch" )
     GLACE:CreateGetSetFuncs( "TextPerMinute" )
+    GLACE:CreateGetSetFuncs( "NoWeaponSwitch" )
 
     --
 

@@ -8,11 +8,13 @@ function ENT:Initialize()
 
     local collBounds = ply:GetCollisionBounds()
     local spawnPos = ply:TraceHull( self:GetPos(), ( self:GetPos() - vector_up * 36 ), collBounds.mins, collBounds.maxs, COLLISION_GROUP_PLAYER, MASK_PLAYERSOLID ).HitPos
-    
     ply:SetPos( spawnPos )
-    ply:SetEyeAngles( self:GetAngles() )
-    ply.Spawner = self
-    
+
+    local spawnAng = self:GetAngles()
+    ply:SetAngles( spawnAng )
+    ply:SetEyeAngles( spawnAng )
+
+    ply.Spawner = self    
     self:SetPos( spawnPos )
     self:SetOwner( ply:GetPlayer() )
     self.gb_PlyInitialized = false
@@ -73,5 +75,6 @@ function ENT:OnRemove()
         net.WritePlayer( ply )
     net.Broadcast()
 
-    timer.Simple( 0, function() if IsValid( ply ) then ply:Kick() end end )
+    local plyNick = self:GetCreator():Nick()
+    timer.Simple( 0, function() if IsValid( ply ) then ply:Kick( "GLambda: Removed by " .. plyNick ) end end )
 end

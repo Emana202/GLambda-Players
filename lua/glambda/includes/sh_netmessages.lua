@@ -99,9 +99,16 @@ if ( CLIENT ) then
     end )
 
     net.Receive( "glambda_updatedata", function()
-        GLAMBDA:UpdateData( true )
-        chat.AddText( "GLambda Data was updated by the Server" )
-        RunConsoleCommand( "spawnmenu_reload" )
+        local dataName = net.ReadString()
+        local updFunc = GLAMBDA.DataUpdateFuncs[ dataName ]
+        if !updFunc then return end
+
+        updFunc()
+        chat.AddText( 'GLambda: "' .. dataName .. '" data was updated by the Server' )
+
+        if net.ReadBool() then
+            RunConsoleCommand( "spawnmenu_reload" )
+        end
     end )
 
     net.Receive( "glambda_syncweapons", function()
