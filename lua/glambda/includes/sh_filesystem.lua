@@ -187,7 +187,7 @@ FILE:CreateUpdateCommand( "voiceprofiles", function()
     end
 
     GLAMBDA.VoiceProfiles = voiceProfiles
-end, false, "Updates the list of voice profiles the players will use to speak as.", "Voice Profiles" )
+end, false, "Updates the list of voice profiles the players will use to speak as.", "Voice Profiles", true )
 
 local function MergeTextMessages( fileName, fileDir, tbl )
     local content = FILE:ReadFile( fileDir .. fileName, "json", "GAME" )

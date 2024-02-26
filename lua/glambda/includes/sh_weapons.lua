@@ -57,4 +57,4 @@ GLAMBDA.FILE:CreateUpdateCommand( "weapons", function()
         local wepName = string.StripExtension( wpn )
         GLAMBDA.WeaponList[ wepName ] = wpnData
     end
-end, false, "Updates the list of weapons the players can use and equip.", "Weapon List" )
+end, false, "Updates the list of weapons the players can use and equip.", "Weapon List", true )

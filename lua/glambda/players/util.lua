@@ -398,9 +398,11 @@ function GLAMBDA.Player:PlayGestureAndWait( index )
 
     local seqDur = self:SequenceDuration( seqID )
     self:Freeze( true )
+    self:SetNW2Bool( "glambda_playingtaunt", true )
 
     coroutine.wait( seqDur )
     self:Freeze( false )
+    self:SetNW2Bool( "glambda_playingtaunt", false )
 end
 
 -- Resets our AI by creating a new thread coroutine and setting state to idle, and etc.

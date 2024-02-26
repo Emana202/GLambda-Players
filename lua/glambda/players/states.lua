@@ -55,7 +55,7 @@ function GLAMBDA.Player:SpawnPickup( classname, count, failCheck, isWpn )
         if failCheck and failCheck( self ) == true then break end
 
         local lookPos = ( self:GetPos() + rndVec )
-        self:LookTo( lookPos, spawnRate * 2, 1 )
+        self:LookTo( lookPos, spawnRate * 2, 4 )
 
         if isWpn then
             self:SpawnWeapon( classname )    

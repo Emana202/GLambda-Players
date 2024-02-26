@@ -99,6 +99,15 @@ function plyMeta:IsTyping()
     return metaTbl.IsTyping( self )
 end
 
+metaTbl.IsPlayingTaunt = ( metaTbl.IsPlayingTaunt or plyMeta.IsPlayingTaunt )
+function plyMeta:IsPlayingTaunt()
+    local realOne = metaTbl.IsPlayingTaunt( self )
+    if self:IsGLambdaPlayer() then 
+        return self:GetNW2Bool( "glambda_playingtaunt", realOne )
+    end
+    return realOne
+end
+
 function plyMeta:IsGLambdaPlayer()
     return self.gb_IsLambdaPlayer
 end

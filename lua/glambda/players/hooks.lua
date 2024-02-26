@@ -66,11 +66,12 @@ function GLAMBDA.Player:Think()
     end
     
     if CurTime() >= self.NextIdleLineT and !self:IsSpeaking() and !self:IsTyping() then 
+        local onFire = self:IsOnFire()
         if self:GetSpeechChance( 100 ) then
-            if self:InCombat() then
-                self:PlayVoiceLine( "taunt" )
-            elseif self:IsPanicking() then
+            if onFire or self:IsPanicking() then
                 self:PlayVoiceLine( "panic" )
+            elseif self:InCombat() then
+                self:PlayVoiceLine( "taunt" )
             else
                 self:PlayVoiceLine( "idle" )
             end
@@ -79,6 +80,7 @@ function GLAMBDA.Player:Think()
         end
 
         self.NextIdleLineT = ( CurTime() + GLAMBDA:Random( 5, 10 ) )
+        if onFire and self:IsSpeaking() then self.NextIdleLineT = ( self.NextIdleLineT - 5 ) end
     end
 
     if ( CurTime() - self.NextNPCCheckT ) >= 1 then
@@ -330,6 +332,7 @@ function GLAMBDA.Player:OnKilled( attacker )
     self.LastDeathTime = CurTime()
     self:SetNoWeaponSwitch( false )
     self:ResetAI()
+    self:SetNW2Bool( "glambda_playingtaunt", false )
 end
 
 -- Called when a NPC, Nextbot, or player is killed

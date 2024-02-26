@@ -16,7 +16,11 @@ GLAMBDA:AddToolgunTool( "Balloon", function( self )
     if !self:CheckLimit( "balloons" ) then return end
 
     local targetEnt = ( GLAMBDA:Random( 2 ) == 1 )
-    if targetEnt then targetEnt = self:FindToolTarget() end
+    if targetEnt then 
+        targetEnt = self:FindToolTarget( nil, function( ent )
+            return ( !ent:IsNPC() and !ent:IsNextBot() and !ent:IsPlayer() and IsValid( ent:GetPhysicsObject() ) )
+        end ) 
+    end
 
     self:LookTo( ( targetEnt or self:GetPos() + VectorRand( -500, 500 ) ), 1, 1, 0.66 )
     coroutine.wait( GLAMBDA:Random( 3, 10 ) * 0.1 )
@@ -89,8 +93,8 @@ end )
 
 GLAMBDA:AddToolgunTool( "Colour", function( self )
     local targetEnt = self:FindToolTarget( nil, function( ent )
-        return ( !ent:IsPlayer() )
-    end, true )
+        return ( ent:IsNPC() or ent:IsNextBot() or !ent:IsPlayer() and IsValid( ent:GetPhysicsObject() ) )
+    end )
     if !IsValid( targetEnt ) then return true end
 
     self:LookTo( targetEnt, 1, 1, 0.66 )
@@ -154,8 +158,8 @@ end )
 
 GLAMBDA:AddToolgunTool( "Remover", function( self )
     local targetEnt = self:FindToolTarget( nil, function( ent )
-        return ( !ent:IsPlayer() )
-    end, true )
+        return ( ent:IsNPC() or ent:IsNextBot() or !ent:IsPlayer() and IsValid( ent:GetPhysicsObject() ) )
+    end )
     if !IsValid( targetEnt ) then return true end
 
     self:LookTo( targetEnt, 1, 1, 0.66 )
@@ -189,7 +193,11 @@ end )
 local ropeMaterials = { "cable/redlaser", "cable/cable2", "cable/rope", "cable/blue_elec", "cable/xbeam", "cable/physbeam", "cable/hydra" }
 GLAMBDA:AddToolgunTool( "Rope", function( self )
     local firstTarg = ( GLAMBDA:Random( 3 ) != 1 )
-    if firstTarg then firstTarg = self:FindToolTarget() end
+    if firstTarg then 
+        firstTarg = self:FindToolTarget( nil, function( ent )
+            return ( !ent:IsNPC() and !ent:IsNextBot() and !ent:IsPlayer() and IsValid( ent:GetPhysicsObject() ) )
+        end ) 
+    end
 
     self:LookTo( ( firstTarg or VectorRand( -500, 500 ) ), 1, 1, 0.66 )
     coroutine.wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
@@ -205,8 +213,8 @@ GLAMBDA:AddToolgunTool( "Rope", function( self )
         local secondTarg = ( GLAMBDA:Random( 3 ) != 1 )
         if secondTarg then 
             secondTarg = self:FindToolTarget( nil, function( ent )
-                return ( ent != firstTarg )
-            end)
+                return ( ent != firstTarg and !ent:IsNPC() and !ent:IsNextBot() and !ent:IsPlayer() and IsValid( ent:GetPhysicsObject() ) )
+            end )
         end
     
         self:LookTo( ( secondTarg or VectorRand( -500, 500 ) ), 1, 1, 0.66 )
@@ -250,8 +258,8 @@ end )
 
 GLAMBDA:AddToolgunTool( "Trails", function( self )
     local targetEnt = self:FindToolTarget( nil, function( ent )
-        return ( ent:IsPlayer() or ent:IsNPC() or ent:IsNextBot() or IsValid( ent:GetPhysicsObject() ) )
-    end, true )
+        return ( ent:IsNPC() or ent:IsNextBot() or !ent:IsPlayer() and IsValid( ent:GetPhysicsObject() ) )
+    end )
     if !IsValid( targetEnt ) then return true end
 
     self:LookTo( targetEnt, 1, 1, 0.66 )
@@ -294,9 +302,9 @@ GLAMBDA:AddToolgunTool( "Trails", function( self )
 end )
 
 GLAMBDA:AddToolgunTool( "Material", function( self )
-    local targetEnt = self:FindToolTarget( nil, function( ent )
-        return ( !ent:IsPlayer() )
-    end, true )
+    local targetEnt = self:FindToolTarget( function( ent )
+        return ( !ent:IsNPC() and !ent:IsNextBot() and !ent:IsPlayer() and IsValid( ent:GetPhysicsObject() ) )
+    end ) 
     if !IsValid( targetEnt ) then return true end
 
     self:LookTo( targetEnt, 1, 1, 0.66 )

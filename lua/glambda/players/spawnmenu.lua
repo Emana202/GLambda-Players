@@ -62,9 +62,8 @@ function GLAMBDA.Player:EmitToolgunFire()
 	util.Effect( "ToolTracer", effectData )
 end
 
-function GLAMBDA.Player:FindToolTarget( dist, filter, overrideDefFilter )
+function GLAMBDA.Player:FindToolTarget( dist, filter )
     local findEnts = self:FindInSphere( nil, ( dist or 400 ), function( ent )
-        if !overrideDefFilter and !( !ent:IsNPC() and !ent:IsPlayer() and !ent:IsNextBot() and IsValid( ent:GetPhysicsObject() ) ) then return end
         if filter and !filter( ent ) then return end
         if ent:IsPlayer() and !self:CanTarget( ent ) then return end
         return ( self:IsVisible( ent ) )

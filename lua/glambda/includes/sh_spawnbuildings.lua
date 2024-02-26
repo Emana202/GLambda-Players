@@ -13,7 +13,6 @@ end
 --
 
 GLAMBDA:AddBuildFunction( "props", "Allow Prop Spawning", "If the players are allowed to spawn props.", function( self )
-    print( self, self.CheckLimit )
     if !self:CheckLimit( "props" ) then return end
 
     local propTbl = GLAMBDA.SpawnlistProps
