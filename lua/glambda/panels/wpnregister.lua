@@ -66,10 +66,10 @@ local function OpenWeaponRegister( ply )
         --
 
         PANEL:Label( "How close should the target be in order to be able to fire?", mainPnl, TOP )
-        local attackDist = PANEL:NumSlider( mainPnl, TOP, ( wpnData.AttackDistance or 1000 ), "Attack Distance", 0, 10000 )
+        local attackDist = PANEL:NumSlider( mainPnl, TOP, ( wpnData.AttackDistance or 1000 ), "Attack Distance", 0, 5000 )
 
         PANEL:Label( "If the player is this close to the target, they will start to back off, keeping the distance", mainPnl, TOP )
-        local keepDist = PANEL:NumSlider( mainPnl, TOP, ( wpnData.KeepDistance or 500 ), "Keep Distance", 0, 10000 )
+        local keepDist = PANEL:NumSlider( mainPnl, TOP, ( wpnData.KeepDistance or 500 ), "Keep Distance", 0, 5000 )
 
         --
 
@@ -83,10 +83,22 @@ local function OpenWeaponRegister( ply )
         local fullAuto = PANEL:CheckBox( mainPnl, TOP, ( wpnData.Automatic == nil and false or wpnData.Automatic ), "Is Full-Auto" )
 
         PANEL:Label( "Does this weapon have a secondary fire on a right click?", mainPnl, TOP )
-        local secondFire = PANEL:CheckBox( mainPnl, TOP, ( wpnData.HasSecondaryFire == nil and false or wpnData.HasSecondaryFire ), "Has Secondary Fire" )
+        local hadSecks = ( wpnData.HasSecondaryFire == nil and false or wpnData.HasSecondaryFire )
+        local secondFire = PANEL:CheckBox( mainPnl, TOP, hadSecks, "Has Secondary Fire" )
 
-        PANEL:Label( "If the weapon has a secondary fire, what's the chance of the player using it?", mainPnl, TOP )
-        local secFireChan = PANEL:NumSlider( mainPnl, TOP, ( wpnData.SecondaryFireChance or 25 ), "Secondary Fire Chance", 1, 100 )
+        local secFireChan = PANEL:Label( "If the weapon has a secondary fire, what's the chance of the player using it?", mainPnl, TOP )
+        local secFireChan2 = PANEL:NumSlider( mainPnl, TOP, ( wpnData.SecondaryFireChance or 25 ), "Secondary Fire Chance", 1, 100 )
+
+        function secondFire:OnChange( value )
+            if value then
+                secFireChan:Show()
+                secFireChan2:Show()
+            else
+                secFireChan:Hide()
+                secFireChan2:Hide()
+            end
+        end
+        secondFire:OnChange( hadSecks )
 
         function isMelee:OnChange( value )
             attackDist:SetValue( value and 100 or 1000 )
