@@ -273,6 +273,7 @@ if ( CLIENT ) then
             local originpanel = vgui.Create( "DPanel", mainscroll )
             originpanel:Dock( LEFT )
             originpanel:SetSize( 200, 400 )
+            originpanel:SetBackgroundColor( color_white )
             weporiginlist[ #weporiginlist + 1 ] = originpanel
     
             PANEL:Button( originpanel, TOP, wepCat, function()
@@ -299,7 +300,7 @@ if ( CLIENT ) then
                 
                 local checkbox, checkpanel, lbl = PANEL:CheckBox( originscroll, TOP, true, wepData.Name )
                 checkpanel:DockMargin( 2, 2, 0, 2 )
-                lbl:SetTextColor( color_black )
+                lbl:SetTextColor( color_white )
 
                 wepcheckboxlist[ wepCat ][ wepClass ] = checkbox
             end
