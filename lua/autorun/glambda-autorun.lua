@@ -68,22 +68,23 @@ function GLAMBDA:UpdateData()
             self.FILE:WriteFile( "glambda/proplist.json", self.FILE:ReadFile( "materials/glambdaplayers/data/props.vmt", nil, "GAME" ) )
         end
 
-        local defWpns = file.Find( "materials/glambdaplayers/data/weapons/*.vmt", "GAME", "nameasc" )
-        if defWpns and #defWpns != 0 then
-            for _, wpn in ipairs( defWpns ) do
-                local wpnPath = "glambda/weapons/" .. string.StripExtension( wpn ) .. ".dat"
-                if file.Exists( wpnPath, "DATA" ) then continue end
-                self.FILE:WriteFile( wpnPath, self.FILE:ReadFile( "materials/glambdaplayers/data/weapons/" .. wpn, nil, "GAME" ) )
-            end
-        end
+        self:ReadDefaultWeapons()
     end
 
     for _, func in pairs( self.DataUpdateFuncs ) do
         func()
     end
-
+    
     if ( SERVER ) then
         self:UpdatePlayerModels()
+        
+        if !file.Exists( "glambda/weaponpermissions.json", "DATA" ) then
+            local permTbl = {}
+            for wepClass, _ in pairs( self.WeaponList ) do
+                permTbl[ wepClass ] = true
+            end
+            self.FILE:WriteFile( "glambda/weaponpermissions.json", permTbl, "json" ) 
+        end
     end
 end
 GLAMBDA:UpdateData()

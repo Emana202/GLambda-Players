@@ -111,6 +111,27 @@ end
 
 --
 
+function GLAMBDA:CreateConCommand( name, func, isClient, desc, settingsTbl )
+    if isClient and SERVER then return end
+
+    local cmdName = "glambda_" .. name
+    if isClient or SERVER then concommand.Add( cmdName, func, nil, desc ) end
+
+    if CLIENT and settingsTbl then
+        self.ConVars.Settings[ name ] = {
+            index = ( table.Count( self.ConVars.Settings ) + 1 ),
+            settings = settingsTbl
+        }
+
+        settingsTbl.conCmd = cmdName
+        settingsTbl.isClient = isClient
+        settingsTbl.cvarType = "Button"
+        settingsTbl.desc = ( isClient and "Client-Side | " or "Server-Side | " ) .. desc .. "\nConsole Command: " .. cmdName
+    end
+end
+
+--
+
 function GLAMBDA:AddConVarWrapper( cvarName, type )
     local cvar = GetConVar( cvarName )
     if !cvar then return end
@@ -124,6 +145,7 @@ end
 GLAMBDA:AddConVarWrapper( "developer", "Bool" )
 GLAMBDA:AddConVarWrapper( "ai_ignoreplayers", "Bool" )
 GLAMBDA:AddConVarWrapper( "ai_disabled", "Bool" )
+GLAMBDA:AddConVarWrapper( "sv_gravity", "Float" )
 
 --
 
@@ -134,22 +156,51 @@ GLAMBDA:CreateConVar( "debug_glace", false, "Enables debug mode.", false, {
 } )
 
 -- Combat Settings --
-GLAMBDA:CreateConVar( "combat_spawnweapon", "random", "The weapon the player should (re)spawn with. Setting to 'random' will make them select random weapons.", {
-    name = "Spawn Weapon",
-    type = "Combo",
-    options = function( panel, comboBox )
-        comboBox:SetSortItems( false )
-        comboBox:AddChoice( "Random", "random" )
-
-        for wepName, wepData in SortedPairs( GLAMBDA.WeaponList ) do
-            comboBox:AddChoice( ( wepData.Name or wepName ), wepName )
-        end
-        return false
-    end,
+local forceWep = GLAMBDA:CreateConVar( "combat_forcespawnwpn", "", "The weapon the player will forced to (re)spawn with. Setting to 'random' will make them select random weapons.", {
+    name = "Force Weapon",
     category = "Combat Settings"
 } )
-GLAMBDA:CreateConVar( "combat_targetplys", true, "If the player bots are allowed to target and attack real players.", {
-    name = "Target Real Players",
+GLAMBDA:CreateConCommand( "combat_selectforcewpn", function( ply )
+    
+    if IsValid( ply ) and !ply:IsSuperAdmin() then
+        GLAMBDA:SendNotification( ply, "You must be a super admin in order to use this!", 1, nil, "buttons/button10.wav" )
+        return 
+    end
+
+    GLAMBDA:WeaponSelectPanel( forceWep, true )
+
+end, true, "Opens a menu that allows you to select the force spawn weapon for the players.\nYou must be a super admin in order to use this!", {
+    name = "Weapon Selection Menu",
+    category = "Combat Settings",
+} )
+GLAMBDA:CreateConCommand( "combat_weaponpermsmenu", function( ply )
+
+    if IsValid( ply ) and !ply:IsSuperAdmin() then
+        GLAMBDA:SendNotification( ply, "You must be a super admin in order to use this!", 1, nil, "buttons/button10.wav" )
+        return 
+    end
+
+    GLAMBDA:WeaponPermissionPanel()
+
+end, true, "Opens a menu that allows you to allow and disallow certain weapons to be used by the players.\nYou must be a super admin in order to use this!", {
+    name = "Weapon Permission Menu",
+    category = "Combat Settings",
+} )
+
+GLAMBDA:CreateConVar( "combat_keepforcewep", false, "If the player' forced (re)spawn weapon should always be the one they were initially created with.\nWhen disabled, they'll use the one currenly set in the spawn weapon setting.", {
+    name = "Keep Force Weapon",
+    category = "Combat Settings",
+} )
+GLAMBDA:CreateConVar( "combat_noplyrdming", false, "If the players shouldn't randomly start attacking other players when searching for targets to attack.\nThey'll still attack them if they get hit or damaged by them.", {
+    name = "No Player RDM'ing",
+    category = "Combat Settings",
+} )
+GLAMBDA:CreateConVar( "combat_ignorefriendnpcs", false, "If the players shouldn't target and attack NPCs that are friendly to them.", {
+    name = "Ignore Friendly NPCs",
+    category = "Combat Settings",
+} )
+GLAMBDA:CreateConVar( "combat_attackhostilenpcs", true, "If the players should always target and attack NPCs that are hostile to them when they see them.", {
+    name = "Target Hostile NPCs On Sight",
     category = "Combat Settings",
 } )
 GLAMBDA:CreateConVar( "combat_spawnbehavior", 0, "The combat behavior the player should perform after (re)spawning.\n1 - Attack a random player.\n2 - Attack a random NPC or Nextbot.\n3 - Attack anyone that can be targetted.", nil, nil, nil, 0, 3, {
@@ -166,6 +217,19 @@ GLAMBDA:CreateConVar( "combat_spawnbehavior_getclosest", true, "If the combat sp
 } )
 
 -- Client Settings --
+local spawnWep = GLAMBDA:CreateConVar( "player_spawnweapon", "weapon_physgun", "The weapon your spawned players should (re)spawn with. Setting to 'random' will make them select random weapons.", nil, true, true, {
+    name = "Spawn Weapon",
+    category = "Client Settings"
+} )
+GLAMBDA:CreateConCommand( "player_selectspawnwpn", function()
+
+    GLAMBDA:WeaponSelectPanel( spawnWep )
+
+end, true, "Opens a menu that allows you to select the spawn weapon for the players from the weapon list.", {
+    name = "Weapon Selection Menu",
+    category = "Client Settings",
+} )
+
 GLAMBDA:CreateConVar( "player_personalitypreset", "random", "The personality preset the player should spawn with.", nil, true, true, {
     name = "Personality Preset",
     category = "Client Settings",
@@ -182,7 +246,6 @@ GLAMBDA:CreateConVar( "player_personalitypreset", "random", "The personality pre
         return false
     end
 } )
-
 GLAMBDA:CreateConCommand( "panel_custompersonalitypresets", function( ply )
 
     local tbl = {}
@@ -195,7 +258,6 @@ end, true, "Allow you to create custom personality presets and load them.", {
     name = "Custom Personality Presets",
     category = "Client Settings"
 } )
-
 GLAMBDA:CreateConVar( "player_spawn_vp", "", "The voice profile your newly spawned player will have upon creation.", nil, true, true, {
     name = "Voice Profile",
     category = "Client Settings",

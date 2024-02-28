@@ -41,6 +41,54 @@ end
 
 --
 
+function FILE:UpdateSequentialFile( filename, addcontent, type )
+    local contents = FILE:ReadFile( filename, type, "DATA" )
+    if contents then
+        table.insert( contents, addcontent )
+        FILE:WriteFile( filename, contents, type )
+    else
+        FILE:WriteFile( filename, { addcontent }, type )
+    end
+end
+
+function FILE:UpdateKeyValueFile( filename, addcontent, type )
+    local contents = FILE:ReadFile( filename, type, "DATA" )
+    if contents then
+        for k, v in pairs( addcontent ) do contents[ k ] = v end
+        FILE:WriteFile( filename, contents, type )
+    else
+        local tbl = {}
+        for k, v in pairs( addcontent ) do tbl[ k ] = v end
+        FILE:WriteFile( filename, tbl, type )
+    end
+end
+
+function FILE:FileHasValue( filename, value, type )
+    if !file.Exists( filename, "DATA" ) then return false end
+    local contents = FILE:ReadFile( filename, type, "DATA" )
+    return table.HasValue( contents, value )
+end
+
+function FILE:FileKeyIsValid( filename, key, type )
+    if !file.Exists( filename, "DATA" ) then return false end
+    local contents = FILE:ReadFile( filename, type, "DATA" )
+    return contents[ key ] != nil
+end
+
+function FILE:RemoveVarFromSQFile( filename, var, type )
+    local contents = FILE:ReadFile( filename, type, "DATA" )
+    table.RemoveByValue( contents, var )
+    FILE:WriteFile( filename, contents, type )
+end
+
+function FILE:RemoveVarFromKVFile( filename, key, type )
+    local contents = FILE:ReadFile( filename, type, "DATA" )
+    contents[ key ] = nil
+    FILE:WriteFile( filename, contents, type )
+end
+
+--
+
 function FILE:MergeDirectory( dir, tbl, path, addDirs, addFunc )
     if dir[ #dir ] != "/" then dir = dir .. "/" end
     tbl = ( tbl or {} )

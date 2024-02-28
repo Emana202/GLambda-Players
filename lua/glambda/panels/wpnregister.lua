@@ -1,3 +1,6 @@
+local imageBgClr = Color( 72, 72, 72 )
+local cachedMats = {}
+
 local function OpenWeaponRegister( ply )
     if !ply:IsSuperAdmin() then  
         GLAMBDA:SendNotification( ply, "You must be a super admin in order to use this!", NOTIFY_ERROR, nil, "buttons/button10.wav" )
@@ -8,8 +11,11 @@ local function OpenWeaponRegister( ply )
     local frame = PANEL:Frame( "Weapon Registration List", 800, 500 )
     PANEL:Label( "Click on the weapons to the left to open a register menu. Right click a row on the right to remove the weapon, double click to edit.", frame, TOP )
 
+    
     local leftPanel = PANEL:BasicPanel( frame, LEFT )
     leftPanel:SetSize( 430, 1 )
+    
+    local resetDefault = PANEL:Button( frame, BOTTOM, "Reset to Default" )
 
     local scrollPnl = PANEL:ScrollPanel( leftPanel, false, FILL )
     local wpnLayout = vgui.Create( "DIconLayout", scrollPnl )
@@ -21,18 +27,23 @@ local function OpenWeaponRegister( ply )
     wpnList:SetSize( 350, 1 )
     wpnList:DockMargin( 10, 0, 0, 0 )
     wpnList:Dock( LEFT )
-    wpnList:AddColumn( "Weapons [Print Name]", 1 )
-    wpnList:AddColumn( "Weapons [Class Name]", 2 )
+    wpnList:AddColumn( "Name", 1 )
+    wpnList:AddColumn( "Class Name", 2 )
+    wpnList:AddColumn( "Category", 3 )
 
     local gameList = list.Get( "Weapon" )
 
     local function OpenRegFrame( wpnName, wpnClass, wpnData )
-        local regFrame = PANEL:Frame( ( wpnData and "Editing" or "Registering" ) .. " Weapon: " .. wpnName .. " (" .. wpnClass .. ")", 560, 600 )
+        surface.PlaySound( "buttons/lightswitch2.wav" )
+
+        local wpnFullName = wpnName .. " (" .. wpnClass .. ")"
+        local regFrame = PANEL:Frame( ( wpnData and "Editing" or "Registering" ) .. " Weapon: " .. wpnFullName, 560, 600 )
         regFrame:SetBackgroundBlur( true )
 
         local mainPnl = PANEL:BasicPanel( regFrame, LEFT )
         mainPnl:SetSize( 550, 1 )
 
+        local hadData = ( wpnData != nil )
         wpnData = ( wpnData or {} )
 
         --
@@ -72,7 +83,14 @@ local function OpenWeaponRegister( ply )
             local codeButton = PANEL:Button( mainPnl, TOP, 'Write Code For The "' .. callback .. '" Callback', function()
                 local codeFrame = PANEL:Frame( "Coding Window", 750, 600 )
                 codeFrame:SetBackgroundBlur( true )
-                PANEL:Label( cbData.InfoText, codeFrame, TOP )
+                
+                local infoText = cbData.InfoText
+                if !istable( infoText ) then
+                    PANEL:Label( infoText, codeFrame, TOP )
+                else
+                    for i = 1, #infoText do PANEL:Label( infoText[ i ], codeFrame, TOP ) end
+                end
+
                 PANEL:Label( "Accepted arguments: " .. table.concat( cbData.Arguments, ", " ), codeFrame, TOP )
 
                 local codeEntry = PANEL:TextEntry( codeFrame, FILL )
@@ -99,9 +117,13 @@ local function OpenWeaponRegister( ply )
                     end
                     
                     argsCode = argsCode .. entryText
-                    local compileCheck = CompileString( argsCode, "Weapon Register Error: " .. callback )
-                    if !compileCheck then return end
-                    
+                    local compileCheck = CompileString( argsCode, wpnClass .. " " .. callback .. " Callback Error" )
+                    if !compileCheck then 
+                        surface.PlaySound( "buttons/button11.wav" )
+                        return 
+                    end
+                    surface.PlaySound( "buttons/button1.wav" )
+
                     codeFrame:Close()
                     callbackCodes[ callback ] = { argsCode, entryText }
                 end )
@@ -110,9 +132,12 @@ local function OpenWeaponRegister( ply )
 
         --
 
-        local registerButton = PANEL:Button( mainPnl, BOTTOM, ( wpnData and "Apply Changes" or "Register Weapon" ), function()
+        local registerButton = PANEL:Button( mainPnl, BOTTOM, ( hadData and "Apply Changes" or "Register Weapon" ), function()
+            local category = ( wpnData.Category or ( gameList[ wpnClass ] and gameList[ wpnClass ].Category ) )
+
             local compileTbl = {
                 Name = wpnName,
+                Category = category,
 
                 IsLethalWeapon = isLethal:GetChecked(),
                 IsMeleeWeapon = isMelee:GetChecked(),
@@ -131,7 +156,7 @@ local function OpenWeaponRegister( ply )
             end
 
             local inList = false
-            if wpnData then
+            if hadData then
                 for _, line in ipairs( wpnList:GetLines() ) do
                     if line:GetColumnText( 2 ) == wpnClass then 
                         table.Merge( wpnData, compileTbl, true )
@@ -143,7 +168,7 @@ local function OpenWeaponRegister( ply )
                 end
             end
             if !inList then
-                local line = wpnList:AddLine( wpnName, wpnClass )
+                local line = wpnList:AddLine( wpnName, wpnClass, category )
                 line:SetSortValue( 1, compileTbl )
             end
 
@@ -155,18 +180,18 @@ local function OpenWeaponRegister( ply )
             end
             regFrame:Close()
 
-            GLAMBDA:SendNotification( nil, ( wpnData and "Applied changes to the weapon data" or "Registered new weapon" ), NOTIFY_HINT, nil, "buttons/button15.wav" )
+            GLAMBDA:SendNotification( nil, ( hadData and "Applied changes to the weapon data: " .. wpnFullName or "Registered new weapon: " .. wpnFullName ), NOTIFY_HINT, nil, "buttons/button6.wav" )
             GLAMBDA:AddWeapon( wpnClass, compileTbl )
             PANEL:WriteServerFile( "glambda/weapons/" .. wpnClass .. ".dat", compileTbl, "json" ) 
         end )
-
+        
     end
-
+    
     local function AddWeaponPanel( class )
         for _, v in ipairs( wpnLayout:GetChildren() ) do
             if v:GetWeapon() == class then return end 
         end
-
+        
         local wpnPanel = wpnLayout:Add( "DPanel" )
         wpnPanel:SetSize( 100, 120 )
         wpnPanel:SetBackgroundColor( imageBgClr )
@@ -176,46 +201,97 @@ local function OpenWeaponRegister( ply )
         wpnImg:Dock( TOP )
         
         local swepData = gameList[ class ]
-        local iconMat = Material( swepData and swepData.IconOverride or "entities/" .. class .. ".png" )
-        if iconMat:IsError() then 
-            iconMat = Material( "entities/" .. class .. ".jpg" ) 
+        local iconMat = cachedMats[ class ]
+        if !iconMat then
+            iconMat = Material( swepData and swepData.IconOverride or "entities/" .. class .. ".png" )
             if iconMat:IsError() then 
-                iconMat = Material( "vgui/entities/" .. class ) 
+                iconMat = Material( "entities/" .. class .. ".jpg" ) 
+                if iconMat:IsError() then 
+                    iconMat = Material( "vgui/entities/" .. class ) 
+                end
             end
+            if !iconMat:IsError() then
+                wpnImg:SetMaterial( iconMat )
+                cachedMats[ class ] = iconMat
+            else
+                cachedMats[ class ] = false
+            end
+        else
+            wpnImg:SetMaterial( iconMat )
         end
-        if !iconMat:IsError() then wpnImg:SetMaterial( iconMat ) end
-        
+
         local wpnName = ( swepData and swepData.PrintName or class )
         PANEL:Label( wpnName, wpnPanel, TOP )
-
+        
         function wpnImg:DoClick()
             OpenRegFrame( wpnName, class )
         end
-
+        
         function wpnPanel:GetWeapon() return class end
     end
-
+    
     function wpnList:DoDoubleClick( id, line )
         OpenRegFrame( line:GetColumnText( 1 ), line:GetColumnText( 2 ), line:GetSortValue( 1 ) )
     end
-
+    
     function wpnList:OnRowRightClick( id, line )
         local wepClass = line:GetColumnText( 2 )
         GLAMBDA.WeaponList[ wepClass ] = nil
         PANEL:DeleteServerFile( "glambda/weapons/" .. wepClass .. ".dat" )
-
+        
         surface.PlaySound( "buttons/button15.wav" )
         self:RemoveLine( id )
+        AddWeaponPanel( wepClass )
     end
-
+    
     for _, v in SortedPairsByMemberValue( gameList, "Category" ) do
         if !v.Spawnable or v.AdminOnly then continue end
         AddWeaponPanel( v.ClassName )
     end
+    
+    function resetDefault:DoClick()
+        local preClearList = {}
+        for _, line in ipairs( wpnList:GetLines() ) do
+            preClearList[ line:GetColumnText( 2 ) ] = true
+        end
+        wpnList:Clear()
 
-    for wepClass, wepData in SortedPairs( GLAMBDA.WeaponList ) do
+        local defWpns = file.Find( "materials/glambdaplayers/data/defaultwpns/*.vmt", "GAME", "nameasc" )
+        if !defWpns or #defWpns == 0 then return end -- bruh
+
+        for _, wpn in ipairs( defWpns ) do
+            local wepData = GLAMBDA.FILE:ReadFile( "materials/glambdaplayers/data/defaultwpns/" .. wpn, "json", "GAME" )
+            if !wepData then continue end -- :(
+
+            local wepClass = string.StripExtension( wpn )
+            local wepName = ( wepData.Name or ( gameList[ wepClass ] and gameList[ wepClass ].PrintName or wepClass ) )
+            local category = ( wepData.Category or ( gameList[ wepClass ] and gameList[ wepClass ].Category ) )
+
+            local line = wpnList:AddLine( wepName, wepClass, category )
+            line:SetSortValue( 1, wepData )
+
+            for _, pnl in ipairs( wpnLayout:GetChildren() ) do
+                if pnl:GetWeapon() == wepClass then
+                    pnl:Remove()
+                    break
+                end 
+            end
+            preClearList[ wepClass ] = false
+        end
+
+        for wepClass, inList in pairs( preClearList ) do
+            if inList then AddWeaponPanel( wepClass ) end
+        end
+
+        net.Start( "glambda_resetweaponlist" )
+        net.SendToServer()
+        GLAMBDA:SendNotification( nil, "Reset the weapon list to default!", NOTIFY_HINT, nil, "buttons/button5.wav" )
+    end
+
+    for wepClass, wepData in SortedPairsByMemberValue( GLAMBDA.WeaponList, "Category" ) do
         local wepName = ( wepData.Name or ( gameList[ wepClass ] and gameList[ wepClass ].PrintName or wepClass ) )
-        local line = wpnList:AddLine( wepName, wepClass )
+        local category = ( wepData.Category or ( gameList[ wepClass ] and gameList[ wepClass ].Category ) )
+        local line = wpnList:AddLine( wepName, wepClass, category )
         line:SetSortValue( 1, wepData )
 
         for _, pnl in ipairs( wpnLayout:GetChildren() ) do

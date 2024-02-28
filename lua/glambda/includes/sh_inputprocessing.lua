@@ -20,14 +20,18 @@ hook.Add( "StartCommand", "GlaceBase-InputProcessing", function( ply, cmd )
 
     local selectWep = GLACE.CmdSelectWeapon
     if selectWep then
+        if bit.band( buttonQueue, IN_ATTACK ) == IN_ATTACK then buttonQueue = ( buttonQueue - IN_ATTACK ) end
+        if bit.band( buttonQueue, IN_ATTACK2 ) == IN_ATTACK2 then buttonQueue = ( buttonQueue - IN_ATTACK2 ) end
+
         if isentity( selectWep ) and IsValid( selectWep ) then
             cmd:SelectWeapon( selectWep )
         elseif isstring( selectWep ) and ply:HasWeapon( selectWep ) then
             cmd:SelectWeapon( ply:GetWeapon( selectWep ) )
         end
 
-        if bit.band( buttonQueue, IN_ATTACK ) == IN_ATTACK then buttonQueue = ( buttonQueue - IN_ATTACK ) end
-        if bit.band( buttonQueue, IN_ATTACK2 ) == IN_ATTACK2 then buttonQueue = ( buttonQueue - IN_ATTACK2 ) end
+        local equipFunc = GLACE:GetWeaponStat( "OnEquip" )
+        if equipFunc then equipFunc( self, weapon ) end
+        
         GLACE.CmdSelectWeapon = nil
     end
 

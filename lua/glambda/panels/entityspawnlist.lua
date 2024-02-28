@@ -1,4 +1,5 @@
 local imageBgClr = Color( 72, 72, 72 )
+local cachedMats = {}
 
 local function OpenEntityPanel( ply )
     if !ply:IsSuperAdmin() then  
@@ -44,14 +45,24 @@ local function OpenEntityPanel( ply )
         entImg:Dock( TOP )
         
         local entData = gameList[ class ]
-        local iconMat = Material( entData and entData.IconOverride or "entities/" .. class .. ".png" )
-        if iconMat:IsError() then 
-            iconMat = Material( "entities/" .. class .. ".jpg" ) 
+        local iconMat = cachedMats[ class ]
+        if !iconMat then
+            iconMat = Material( entData and entData.IconOverride or "entities/" .. class .. ".png" )
             if iconMat:IsError() then 
-                iconMat = Material( "vgui/entities/" .. class ) 
+                iconMat = Material( "entities/" .. class .. ".jpg" ) 
+                if iconMat:IsError() then 
+                    iconMat = Material( "vgui/entities/" .. class ) 
+                end
             end
+            if !iconMat:IsError() then 
+                entImg:SetMaterial( iconMat ) 
+                cachedMats[ class ] = iconMat
+            else
+                cachedMats[ class ] = false
+            end
+        else
+            entImg:SetMaterial( iconMat ) 
         end
-        if !iconMat:IsError() then entImg:SetMaterial( iconMat ) end
         
         local entName = ( entData and entData.PrintName or class )
         PANEL:Label( entName, entPanel, TOP )

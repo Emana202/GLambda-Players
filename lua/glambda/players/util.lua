@@ -34,7 +34,7 @@ end
 
 -- Returns if we can use and type in the text chat
 function GLAMBDA.Player:CanType()
-    if !GLAMBDA:GetConVar( "textchat_enabled" ) then return end
+    if self:IsDisabled() or !GLAMBDA:GetConVar( "textchat_enabled" ) then return end
 
     local chatLimit = GLAMBDA:GetConVar( "textchat_limit" )
     if chatLimit <= 0 then return true end
@@ -285,34 +285,6 @@ function GLAMBDA.Player:CreateGetSetFuncs( name, func )
     end
 end
 
--- Gets a random position within the distance.
-function GLAMBDA.Player:GetRandomPos( dist, pos )
-    pos = ( pos or self:GetPos() )
-    local navareas = navmesh.Find( pos, ( dist or 1500 ), 100, self:GetStepSize() )
-
-    local area = navareas[ GLAMBDA:Random( #navareas ) ] 
-    return ( IsValid( area ) and area:GetRandomPoint() or pos )
-end
-
--- Gets a random position. This caches the nav area result for faster runs
-function GLAMBDA.Player:GetRandomPosCache()
-    if !GLAMBDA.NavAreaCache then
-        local navareas = navmesh.GetAllNavAreas()
-        GLAMBDA.NavAreaCache = {}
-
-        for k, nav in ipairs( navareas ) do
-            if IsValid( nav ) and nav:GetSizeX() > 60 and nav:GetSizeY() > 60 then
-                GLAMBDA.NavAreaCache[ #GLAMBDA.NavAreaCache + 1 ] = nav
-            end
-        end
-    end
-
-    
-    local area = GLAMBDA.NavAreaCache[ GLAMBDA:Random( #GLAMBDA.NavAreaCache ) ] 
-    local pos = IsValid( area ) and area:GetRandomPoint() or self:GetPos()
-    return pos
-end
-
 --
 
 -- Puts the given text message or text type and key entity into our text chat queue
@@ -433,21 +405,27 @@ end
 
 -- Returns if we can target the given entity
 function GLAMBDA.Player:CanTarget( ent )
-    if ent == self:GetPlayer() then return false end
     if ent.gb_IsGlaceNavigator then return false end
     if ent.IsDrGNextbot and ent:IsDown() then return false end
+    if ent == self:GetPlayer() then return false end
+    if ent:IsFlagSet( FL_NOTARGET ) then return false end
+
+    local wepTargetFunc = self:GetWeaponStat( "OnCanTarget" )
+    if wepTargetFunc and !wepTargetFunc( self, self:GetActiveWeapon(), ent ) then return false end
 
     if ent:IsPlayer() then
         if !ent:Alive() then return false end
-        if ent:IsFlagSet( FL_NOTARGET ) then return false end
         
         if !ent:IsGLambdaPlayer() then 
             if GLAMBDA:GetConVar( "ai_ignoreplayers" ) then return false end
             if !GLAMBDA:GetConVar( "combat_targetplys" ) then return false end
         end
     elseif ent:IsNPC() or ent:IsNextBot() then
-        if ent:IsFlagSet( FL_NOTARGET ) then return false end
         if ent:GetInternalVariable( "m_lifeState" ) != 0 then return false end
+        if GLAMBDA:GetConVar( "combat_ignorefriendnpcs" ) then
+            local dispFunc = ent.Disposition
+            if dispFunc and dispFunc( ent, self:GetPlayer() ) != D_HT then return false end
+        end
 
         local class = ent:GetClass()
         if class == "rd_target" then return false end
@@ -644,18 +622,16 @@ function GLAMBDA.Player:InitializeHooks()
 
     -- On someone's text message
     self:Hook( "PlayerSay", "PlayerSay", function( player, text )
-        if player == ply or self:IsDisabled() or !self:CanType() then return end
-        if self:InCombat() or self:IsPanicking() then return end
+        if player == ply or !self:CanType() then return end
 
         local replyChan = 200
-        if string.match( text, self:Nick() ) then replyChan = ( replyChan * 0.4 ) end
-        replyChan = ( replyChan + ( #self.QueuedMessages * 100 ) )
+        replyChan = ( replyChan + ( #self.QueuedMessages * 200 ) )
+        if string.match( text, self:Nick() ) then replyChan = ( replyChan * 0.33 ) end
         if !self:GetTextingChance( replyChan ) then return end
 
         local replyTime = ( GLAMBDA:Random( 5, 20 ) / 10 )
         self:SimpleTimer( replyTime, function()
-            if !IsValid( player ) or self:IsDisabled() or !self:CanType() then return end
-            if self:InCombat() or self:IsPanicking() then return end
+            if !IsValid( player ) or !self:CanType() then return end
             self:TypeMessage( "response", player )
         end )
     end )
@@ -682,7 +658,7 @@ function GLAMBDA.Player:InitializeHooks()
 
         -- STUCK MONITOR --
         -- The following stuck monitoring system is a recreation of Source Engine's Stuck Monitoring for Nextbots
-        if IsValid( self:GetPath() ) and self:Alive() and !self:IsDisabled() and ( !self.GoalPathStuckChecl or CurTime() < self.GoalPathStuckChecl ) then
+        if IsValid( self:GetPath() ) and self:Alive() and !self:IsDisabled() and !self:IsTyping() and ( !self.GoalPathStuckChecl or CurTime() < self.GoalPathStuckChecl ) then
             if self:IsStuck() then
                 -- we are/were stuck - have we moved enough to consider ourselves "dislodged"
                 if !self:InRange( self.StuckPosition, STUCK_RADIUS ) then

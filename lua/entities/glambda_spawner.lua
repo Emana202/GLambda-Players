@@ -49,6 +49,22 @@ function ENT:InitializePlayer( creator )
         GLACE.VoiceProfile = spawnVP
     end
 
+    local spawnWep = GLACE.ForceWeapon
+    if !GLAMBDA:GetConVar( "combat_keepforcewep" ) then
+        spawnWep = GLAMBDA:GetConVar( "combat_forcespawnwpn" )
+    end
+    if !spawnWep or #spawnWep == 0 then
+        spawnWep = creator:GetInfo( "glambda_player_spawnweapon" )
+        if spawnWep and #spawnWep != 0 then
+            if spawnWep == "random" then
+                GLACE:SelectRandomWeapon()
+            else
+                GLACE:SelectWeapon( spawnWep )
+            end
+            GLACE.SpawnWeapon = spawnWep
+        end
+    end
+
     local undoName = "GLambda Player ( " .. ply:Nick() .. " )"
     undo.Create( undoName )
         undo.SetPlayer( creator )

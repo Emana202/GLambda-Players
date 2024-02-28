@@ -48,11 +48,13 @@ function ENT:PathToPos()
     self._PATH = Path( "Follow" )
     self._PATH:SetMinLookAheadDistance( 10 )
 	self._PATH:SetGoalTolerance( GLACE.GoalPathTolerance or 20 )
-	self._PATH:Compute( self, self:TranslateGoal(), GLACE:PathfindingGenerator() )
-    
-    self.gb_CurrentSeg = 1
+
+    local costFunctor = GLACE:PathGenerator()
+	self._PATH:Compute( self, self:TranslateGoal(), costFunctor )
     GLACE.IsPathGenerating = false
-    if !self._PATH:IsValid() then GLACE.IsPathGenerating = false return end
+
+    if !self._PATH:IsValid() then return end
+    self.gb_CurrentSeg = 1
 
     while self._PATH:IsValid() do
         if !GLACE:IsValid() then break end
@@ -61,12 +63,12 @@ function ENT:PathToPos()
         if !goalPos or ( isentity( goalPos ) and !IsValid( goalPos ) ) then break end
 
         if self.gb_forcerecompute then 
-            self._PATH:Compute( self, self:TranslateGoal(), GLACE:PathfindingGenerator() )
+            self._PATH:Compute( self, self:TranslateGoal(), costFunctor )
             self.gb_CurrentSeg = 1
             self.gb_forcerecompute = false
         end
 
-        if GLAMBDA:GetConVar( "developer" ) then self._PATH:Draw() end
+        if GLAMBDA:GetConVar( "debug_glace" ) then self._PATH:Draw() end
         self._PATH:MoveCursorToClosestPosition( GLACE:GetPos() )
         
         coroutine.yield()

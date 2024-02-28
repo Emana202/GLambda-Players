@@ -7,7 +7,7 @@ function GLAMBDA.Player:SpawnEntity( classname, tr )
     Spawn_SENT( self:GetPlayer(), classname, tr )
 end
 
-function GLAMBDA.Player:SpawnWeapon( classname, tr )
+function GLAMBDA.Player:SpawnSWEP( classname, tr )
     self:EmitSound( "ui/buttonclickrelease.wav", 60 )
     Spawn_Weapon( self:GetPlayer(), classname, tr )
 end
@@ -33,7 +33,6 @@ function GLAMBDA.Player:GetToolTrace()
     return ( util.TraceHull( table.Merge( util.GetPlayerTrace( self:GetPlayer() ), toolTr, true ) ) )
 end
 
-local drawToolEffects = GetConVar( "gmod_drawtooleffects" )
 function GLAMBDA.Player:EmitToolgunFire()
     local curWep = self:GetActiveWeapon()
     if !IsValid( curWep ) or curWep:GetClass() != "gmod_tool" then return end
@@ -42,7 +41,7 @@ function GLAMBDA.Player:EmitToolgunFire()
 	curWep:SendWeaponAnim( ACT_VM_PRIMARYATTACK )
     
 	self:SetAnimation( PLAYER_ATTACK1 )
-	if !IsFirstTimePredicted() or !drawToolEffects:GetBool() then return end
+	if !IsFirstTimePredicted() or !GetConVar( "gmod_drawtooleffects" ):GetBool() then return end
 
     local eyeTrace = self:GetEyeTrace()
     local hitPos = eyeTrace.HitPos

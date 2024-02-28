@@ -4,5 +4,6 @@
 	"OverrideAim_PanelCode": "            return target:GetPos()\n        ",
 	"OverrideAim": "            local args = { ... }\n            local player = args[ 1 ]\n            local weapon = args[ 2 ]\n            local target = args[ 3 ]\n            \n            return target:GetPos()\n        ",
 	"Name": "RPG Launcher",
+	"Category": "Half-Life 2",
 	"AmmoEntity": "item_rpg_round"
 }

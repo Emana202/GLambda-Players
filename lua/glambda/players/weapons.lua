@@ -36,17 +36,6 @@ function GLAMBDA.Player:SelectRandomWeapon( filter )
 
     for name, data in RandomPairs( GLAMBDA.WeaponList ) do
         if filter and filter( name, data, curWep ) == false then continue end
-
-        local mountsNeed = data.MountsRequired
-        if mountsNeed then
-            local hasMounts = true
-            for _, mount in ipairs( mountsNeed ) do
-                hasMounts = IsMounted( mount )
-                if !hasMounts then break end
-            end
-            if !hasMounts then continue end
-        end
-
         if !self:SelectWeapon( name ) then continue end
         return true
     end
@@ -62,10 +51,20 @@ function GLAMBDA.Player:SelectLethalWeapon()
     end )
 end
 
+--
+
 -- Returns the classname of our current weapon
 function GLAMBDA.Player:GetCurrentWeapon()
     local curWep = self:GetActiveWeapon()
     return ( IsValid( curWep ) and curWep:GetClass() or "" )
+end
+
+-- Returns the amount of ammo in our weapon's clip
+-- If secondary is true, returns the secondary ammo clip instead, like AR2 balls and SMG grenades
+function GLAMBDA.Player:GetWeaponClip( secondary )
+    local curWep = self:GetActiveWeapon()
+    if !IsValid( curWep ) then return -1 end
+    return ( secondary and curWep:Clip2() or curWep:Clip1() )
 end
 
 -- Returns the amount of current ammo in our weapon, excluding the clip
@@ -141,7 +140,7 @@ function GLAMBDA.Player:GetWeaponStat( name, fallback )
 
     if stat == nil then
         local defFunc = fallbackDefaults[ name ]
-        if defFunc then stat = defFunc( curWep )  end
+        if defFunc then stat = defFunc( curWep ) end
         if !stat then stat = fallback end
     end
     return stat

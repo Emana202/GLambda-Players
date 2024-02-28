@@ -17,6 +17,8 @@ if ( SERVER ) then
     util.AddNetworkString( "glambda_updateconvar" )
     util.AddNetworkString( "glambda_runconcommand" )
     util.AddNetworkString( "glambda_spray" )
+    util.AddNetworkString( "glambda_resetweaponlist" )
+    util.AddNetworkString( "glambda_updatewepperms" )
 
     --
 
@@ -29,6 +31,25 @@ if ( SERVER ) then
     end )
 
     --
+
+    net.Receive( "glambda_updatewepperms", function( len, ply )
+        if !ply:IsSuperAdmin() then return end
+        table.Merge( GLAMBDA.WeaponPermissions, net.ReadTable() )
+    end )
+
+    net.Receive( "glambda_resetweaponlist", function( len, ply )
+        if !ply:IsSuperAdmin() then return end
+
+        local files = file.Find( "glambda/weapons/*.dat", "DATA", "nameasc" )
+        if !files then return end
+
+        for _, fileName in ipairs( files ) do
+            file.Delete( "glambda/weapons/" .. fileName, "DATA" )
+        end
+
+        GLAMBDA:ReadDefaultWeapons( true )
+        GLAMBDA.DataUpdateFuncs[ "weapons" ]()
+    end )
 
     net.Receive( "glambda_updateconvar", function( len, ply )
         if !ply:IsSuperAdmin() then return end
@@ -114,9 +135,10 @@ if ( CLIENT ) then
     net.Receive( "glambda_syncweapons", function()
         local wepClass = net.ReadString()
         local wepName = net.ReadString()
-
         if wepName[ 1 ] == "#" then wepName = wepClass end
-        GLAMBDA.WeaponList[ wepClass ] = { Name = wepName }
+
+        local wepCat = net.ReadString()
+        GLAMBDA.WeaponList[ wepClass ] = { Name = wepName, Category = wepCat }
     end )
 
     net.Receive( "glambda_playerinit", function()

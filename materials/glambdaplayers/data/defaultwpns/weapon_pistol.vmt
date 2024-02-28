@@ -4,5 +4,6 @@
 		0.25
 	],
 	"Name": "9mm Pistol",
+	"Category": "Half-Life 2",
 	"AmmoEntity": "item_ammo_pistol"
 }

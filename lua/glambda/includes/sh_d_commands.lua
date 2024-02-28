@@ -1,25 +1,3 @@
-function GLAMBDA:CreateConCommand( name, func, isClient, desc, settingsTbl )
-    if isClient and SERVER then return end
-
-    local cmdName = "glambda_" .. name
-    if isClient or SERVER then concommand.Add( cmdName, func, nil, desc ) end
-
-    if CLIENT and settingsTbl then
-        self.ConVars.Settings[ name ] = {
-            index = ( table.Count( self.ConVars.Settings ) + 1 ),
-            settings = settingsTbl
-        }
-
-        settingsTbl.conCmd = cmdName
-        settingsTbl.isClient = isClient
-        settingsTbl.cvarType = "Button"
-        settingsTbl.desc = ( isClient and "Client-Side | " or "Server-Side | " ) .. desc .. "\nConsole Command: " .. cmdName
-    end
-end
-
---
-
-
 GLAMBDA:CreateConCommand( "debug_resetallai", function( ply )
 
     local plyValid = IsValid( ply )
@@ -33,7 +11,7 @@ GLAMBDA:CreateConCommand( "debug_resetallai", function( ply )
         ply:GetGlaceObject():ResetAI()
     end
 
-end, false, "Reset the AI of all spawned players. Useful is an error occurs that makes them stop entirely.", {
+end, false, "Reset the AI of all spawned players. Useful is an error occurs that makes them stop entirely.\nYou must be a super admin in order to use this!", {
     name = "Reset All Players' AI", 
     category = "Debugging" 
 } )
@@ -47,10 +25,12 @@ GLAMBDA:CreateConCommand( "debug_kickallbots", function()
     for _, ply in ipairs( player.GetBots() ) do
         ply:Kick()
     end
-end, false, "Kicks all player bots from the server, including the non-GLambda ones.\nUse this if an error occurs upon a player's spawn and they become un-removable by normal means.", {
+end, false, "Kicks all player bots from the server, including the non-GLambda ones.\nUse this if an error occurs upon a player's spawn and they become un-removable by normal means.\nYou must be a super admin in order to use this!", {
     name = "Kick All Player Bots", 
     category = "Debugging" 
 } )
+
+--
 
 local userData = {
     [ "lambdaplayers/playerbirthday.json" ] = "glambda/plybirthday.json",
@@ -116,7 +96,7 @@ GLAMBDA:CreateConCommand( "cmd_transferlambda_serverdata", function( ply )
     if plyValid then GLAMBDA:SendNotification( ply, "Transfered Lambda Data", 3, nil, "buttons/button15.wav" ) end
     print( "GLambda Players: Transfered Lambda server data files via console command. Ran by ", ( plyValid and ply:Name() .. " | " .. ply:SteamID() or "Console" ) )
 
-end, false, "Transfers and copies the server data files from Lambda Players to GLambda Players, such as names, NPCs, props and etc. You must be a super admin to use this panel. Make sure to update the affected data!", { 
+end, false, "Transfers and copies the server data files from Lambda Players to GLambda Players, such as names, NPCs, props and etc.\nYou must be a super admin in order to use this! Make sure to update the affected data once done!", { 
     name = "Transfer Lambda Server Data", 
     category = "Utilities" 
 } )

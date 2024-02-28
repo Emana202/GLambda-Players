@@ -58,7 +58,7 @@ function GLAMBDA.Player:SpawnPickup( classname, count, failCheck, isWpn )
         self:LookTo( lookPos, spawnRate * 2, 4 )
 
         if isWpn then
-            self:SpawnWeapon( classname )    
+            self:SpawnSWEP( classname )    
         else
             self:SpawnEntity( classname )    
         end
@@ -69,51 +69,57 @@ function GLAMBDA.Player:SpawnPickup( classname, count, failCheck, isWpn )
 end
 
 function GLAMBDA.Player:HealUp()
-    if self:Health() >= self:GetMaxHealth() then return true end
+    if self:Health() < self:GetMaxHealth() then
+        local spawnCount = math.ceil( ( self:GetMaxHealth() - self:Health() ) / 25 )
+        spawnCount = GLAMBDA:Random( ( spawnCount / 2 ), spawnCount )
+        
+        self:SpawnPickup( "item_healthkit", spawnCount, function( self )
+            return ( !self:GetState( "HealUp" ) or self:Health() >= self:GetMaxHealth() )
+        end )
+    end
 
-    local spawnCount = math.ceil( ( self:GetMaxHealth() - self:Health() ) / 25 )
-    spawnCount = GLAMBDA:Random( ( spawnCount / 2 ), spawnCount )
-
-    return self:SpawnPickup( "item_healthkit", spawnCount, function( self )
-        return ( !self:GetState( "HealUp" ) or self:Health() >= self:GetMaxHealth() )
-    end )
+    return ( self:GetCombatChance( 100 ) and "FindTarget" or true )
 end
 
 function GLAMBDA.Player:ArmorUp()
-    if self:Armor() >= self:GetMaxArmor() then return true end
+    if self:Armor() < self:GetMaxArmor() then
+        local spawnCount = math.ceil( ( self:GetMaxArmor() - self:Armor() ) / 15 )
+        spawnCount = GLAMBDA:Random( ( spawnCount / 3 ), spawnCount )
+    
+        self:SpawnPickup( "item_battery", spawnCount, function( self )
+            return ( !self:GetState( "ArmorUp" ) or self:Armor() >= self:GetMaxArmor() )
+        end )
+    end
 
-    local spawnCount = math.ceil( ( self:GetMaxArmor() - self:Armor() ) / 15 )
-    spawnCount = GLAMBDA:Random( ( spawnCount / 3 ), spawnCount )
-
-    return self:SpawnPickup( "item_battery", spawnCount, function( self )
-        return ( !self:GetState( "ArmorUp" ) or self:Armor() >= self:GetMaxArmor() )
-    end )
+    return ( self:GetCombatChance( 100 ) and "FindTarget" or true )
 end
 
 function GLAMBDA.Player:GiveSelfAmmo()
     local spawnEnt = self:GetWeaponStat( "AmmoEntity" )
-    if !spawnEnt then return true end
+    if spawnEnt then
+        local ammoCount, ammoType = self:GetWeaponAmmo()
+        local maxAmmo = game.GetAmmoMax( ammoType )
+        if ammoCount < maxAmmo then
+            if istable( spawnEnt ) and #spawnEnt > 1 and !isbool( spawnEnt[ 2 ] ) then
+                spawnEnt = spawnEnt[ GLAMBDA:Random( #spawnEnt ) ]
+            end
 
-    local ammoCount, ammoType = self:GetWeaponAmmo()
-    local maxAmmo = game.GetAmmoMax( ammoType )
-    if ammoCount >= maxAmmo then return true end
-    
-    if istable( spawnEnt ) and #spawnEnt > 1 and !isbool( spawnEnt[ 2 ] ) then
-        spawnEnt = spawnEnt[ GLAMBDA:Random( #spawnEnt ) ]
+            local isWeapon = false
+            if istable( spawnEnt ) then
+                isWeapon = ( spawnEnt[ 2 ] or false )
+                spawnEnt = spawnEnt[ 1 ]
+            end
+
+            local spawnCount = GLAMBDA:Random( 3, 8 )
+            self:SpawnPickup( spawnEnt, spawnCount, function( self )
+                if !self:GetState( "GiveSelfAmmo" ) then return true end
+                local ammoCount, curType = self:GetWeaponAmmo()
+                return ( !curType or curType != ammoType or ammoCount >= maxAmmo )
+            end, isWeapon )
+        end
     end
 
-    local isWeapon = false
-    if istable( spawnEnt ) then
-        isWeapon = ( spawnEnt[ 2 ] or false )
-        spawnEnt = spawnEnt[ 1 ]
-    end
-
-    local spawnCount = GLAMBDA:Random( 3, 8 )
-    return self:SpawnPickup( spawnEnt, spawnCount, function( self )
-        if !self:GetState( "GiveSelfAmmo" ) then return true end
-        local ammoCount, curType = self:GetWeaponAmmo()
-        return ( !curType or curType != ammoType or ammoCount >= maxAmmo )
-    end, isWeapon )
+    return ( self:GetCombatChance( 100 ) and "FindTarget" or true )
 end
 
 --
@@ -123,7 +129,7 @@ function GLAMBDA.Player:FindTarget()
         if self:InCombat() or !self:GetState( "FindTarget" ) then return true end
 
         local findTargets = self:FindInSphere( nil, 1500, function( ent )
-            return ( self:CanTarget( ent ) and self:IsVisible( ent ) )
+            return ( self:CanTarget( ent ) and ( !GLAMBDA:GetConVar( "combat_noplyrdming" ) or !ent:IsPlayer() ) and self:IsVisible( ent ) )
         end )
         if #findTargets != 0 then
             self:AttackTarget( findTargets[ GLAMBDA:Random( #findTargets ) ] )
@@ -211,7 +217,7 @@ function GLAMBDA.Player:HealWithMedkit( ent )
         self:LookTo( ent, 1, 3 )
         self:PressKey( IN_ATTACK )
     else
-        local path, cancelled = self:MoveToPos( ent, { sprint = !self:InRange( ent, 300 ), updatetime = 0.25, tol = 48, callback = function()
+        local path, cancelled = self:MoveToPos( ent, { sprint = true, updatetime = 0.25, tol = 48, callback = function()
             if !IsValid( ent ) or !self:CanTarget( ent ) or ent:Health() >= ent:GetMaxHealth() or self:GetCurrentWeapon() != "weapon_medkit" then return true end
             if self:InRange( ent, 70 ) then return false end
         end } )

@@ -103,7 +103,7 @@ GLAMBDA:AddToolgunTool( "Colour", function( self )
     --
     
     local traceEnt = self:GetToolTrace().Entity
-    if IsValid( traceEnt ) then 
+    if IsValid( traceEnt ) and !traceEnt:IsPlayer() then 
         if IsValid( traceEnt.AttachedEntity ) then traceEnt = traceEnt.AttachedEntity end
         traceEnt:SetColor( ColorRand( false ) ) 
         
@@ -268,7 +268,7 @@ GLAMBDA:AddToolgunTool( "Trails", function( self )
     --
     
     local traceEnt = self:GetToolTrace().Entity
-    if IsValid( traceEnt ) then 
+    if IsValid( traceEnt ) and !traceEnt:IsPlayer() then 
         if IsValid( traceEnt.SToolTrail ) then
             traceEnt.SToolTrail:Remove()
             traceEnt.SToolTrail = nil
@@ -302,7 +302,7 @@ GLAMBDA:AddToolgunTool( "Trails", function( self )
 end )
 
 GLAMBDA:AddToolgunTool( "Material", function( self )
-    local targetEnt = self:FindToolTarget( function( ent )
+    local targetEnt = self:FindToolTarget( nil, function( ent )
         return ( !ent:IsNPC() and !ent:IsNextBot() and !ent:IsPlayer() and IsValid( ent:GetPhysicsObject() ) )
     end ) 
     if !IsValid( targetEnt ) then return true end
@@ -313,7 +313,7 @@ GLAMBDA:AddToolgunTool( "Material", function( self )
     --
     
     local traceEnt = self:GetToolTrace().Entity
-    if IsValid( traceEnt ) then 
+    if IsValid( traceEnt ) and !traceEnt:IsPlayer() then 
         if IsValid( traceEnt.AttachedEntity ) then traceEnt = traceEnt.AttachedEntity end
 
         local material = table.Random( list.Get( "OverrideMaterials" ) )

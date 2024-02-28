@@ -2,6 +2,7 @@
 	"SpecialAttack_PanelCode": "            if !player:InRange( target, 350 ) or GLAMBDA:Random( 4 ) == 1 then return end\n            player:PressKey( IN_ATTACK2 )\n            return true\n        ",
 	"SpecialAttack": "            local args = { ... }\n            local player = args[ 1 ]\n            local weapon = args[ 2 ]\n            local target = args[ 3 ]\n            \n            if !player:InRange( target, 350 ) or GLAMBDA:Random( 4 ) == 1 then return end\n            player:PressKey( IN_ATTACK2 )\n            return true\n        ",
 	"Name": "Frag Grenade",
+	"Category": "Half-Life 2",
 	"OverrideAim": "            local args = { ... }\n            local player = args[ 1 ]\n            local weapon = args[ 2 ]\n            local target = args[ 3 ]\n            \n            local targPos = target:GetPos()\n            return ( targPos - vector_up * ( player:RangeTo( targPos ) * 0.2 ) )\n        ",
 	"OverrideAim_PanelCode": "            local targPos = target:GetPos()\n            return ( targPos - vector_up * ( player:RangeTo( targPos ) * 0.2 ) )\n        ",
 	"AmmoEntity": "weapon_frag"

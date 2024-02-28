@@ -197,64 +197,20 @@ function GLAMBDA.Player:UpdateOnPath()
 
     local how = segment.type
     if how == 2 then self:PressKey( IN_JUMP ) end
-
+    
     self.FollowPath_Pos = segment.pos
     self.FollowPath_EndT = ( CurTime() + 0.5 )
 end
 
--- The function path finding will use to well path find
-function GLAMBDA.Player:PathfindingGenerator()
-    local navi = self:GetNavigator()
-    local jumpPenalty = 5
-
-    return function( area, fromArea, ladder, elevator, length )
-        if !IsValid( fromArea ) then
-            -- First area in path, no cost
-            return 0
-        else
-            if !navi.loco:IsAreaTraversable( area ) then
-                -- Our locomotor says we can't move here
-                return -1
-            end
-    
-            -- Compute distance traveled along path so far
-            local dist = 0
-            if IsValid( ladder ) then
-                dist = ladder:GetBottom():Distance( ladder:GetTop() )
-            elseif length > 0 then
-                -- Optimization to avoid recomputing length
-                dist = length
-            else
-                dist = ( area:GetCenter() - fromArea:GetCenter() ):GetLength()
-            end
-            local cost = ( dist + fromArea:GetCostSoFar() )            
-            
-            if !IsValid( ladder ) then
-                -- Check height change
-                local deltaZ = fromArea:ComputeAdjacentConnectionHeightChange( area )
-                if deltaZ > self:GetStepSize() then
-                    if deltaZ > self:GetJumpPower() then
-                        -- Too high to reach
-                        return -1
-                    end
-        
-                    -- Jumping is slower than flat ground
-                    cost = ( cost + jumpPenalty * dist )
-                elseif deltaZ < -600 then
-                    -- Too far to drop
-                    return -1
-                end
-            end
-
-            return cost
-        end
-    end
-end
-
+local doorClasses = {
+    ["prop_door_rotating"] = true,
+    ["func_door"] = true,
+    ["func_door_rotating"] = true
+}
 -- Performs a check that will make this Player open doors
 function GLAMBDA.Player:DoorCheck()
     local ent = util.QuickTrace( self:EyePos(), self:GetAimVector() * 50, self:GetPlayer() ).Entity
-    if !IsValid( ent ) then return end
+    if !IsValid( ent ) or !doorClasses[ ent:GetClass() ] then return end
     
     self:LookTowards( ent:WorldSpaceCenter() )
     if CurTime() < self.DoorOpenCooldown then return end
@@ -274,7 +230,7 @@ local safecol = Color( 0, 255, 0, 10 )
 function GLAMBDA.Player:AvoidCheck()
     if !self:OnGround() then return end
 
-    local selfPos = self:GetPos()
+    local selfPos = ( self:GetPos() - self:GetVelocity() * FrameTime() * 2 )
     local selfRight = self:GetRight()
     local selfForward = self:GetForward()
 
@@ -291,13 +247,15 @@ function GLAMBDA.Player:AvoidCheck()
     local leftresult = util.TraceHull( tracetable )
     debugoverlay.Box( tracetable.start, tracetable.mins, tracetable.maxs, 0.1, ( leftresult.Hit and hitcol or safecol ), false )
 
-    if leftresult.Hit and rightresult.Hit then -- Back up
-        self:Approach( self:GetPos() - selfForward * 50, 0.25 )
+    if leftresult.Hit and rightresult.Hit then
+        self:PressKey( IN_JUMP )
+        return
     end
+
     if leftresult.Hit and !rightresult.Hit then -- Move to the right
-        self:Approach( self:GetPos() + selfRight * 50 )
+        self:Approach( selfPos + selfRight * 50 )
     elseif rightresult.Hit and !leftresult.Hit then  -- Move to the left
-        self:Approach( self:GetPos() - selfRight * 50 )
+        self:Approach( selfPos - selfRight * 50 )
     end
 
     --[[

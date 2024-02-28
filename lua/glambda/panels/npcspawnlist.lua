@@ -1,4 +1,5 @@
 local imageBgClr = Color( 72, 72, 72 )
+local cachedMats = {}
 
 local function OpenNPCPanel( ply )
     if !ply:IsSuperAdmin() then  
@@ -44,15 +45,25 @@ local function OpenNPCPanel( ply )
         npcImg:Dock( TOP )
         
         local npcData = gameList[ class ]
-        local iconMat = Material( npcData and npcData.IconOverride or "entities/" .. class .. ".png" )
-        if iconMat:IsError() then 
-            iconMat = Material( "entities/" .. class .. ".jpg" ) 
+        local iconMat = cachedMats[ class ]
+        if !iconMat then
+            iconMat = Material( npcData and npcData.IconOverride or "entities/" .. class .. ".png" )
             if iconMat:IsError() then 
-                iconMat = Material( "vgui/entities/" .. class ) 
+                iconMat = Material( "entities/" .. class .. ".jpg" ) 
+                if iconMat:IsError() then 
+                    iconMat = Material( "vgui/entities/" .. class ) 
+                end
             end
+            if !iconMat:IsError() then
+                npcImg:SetMaterial( iconMat )
+                cachedMats[ class ] = iconMat
+            else
+                cachedMats[ class ] = false
+            end
+        else
+            npcImg:SetMaterial( iconMat )
         end
-        if !iconMat:IsError() then npcImg:SetMaterial( iconMat ) end
-        
+
         local npcName = ( npcData and npcData.Name or class )
         PANEL:Label( npcName, npcPanel, TOP )
         

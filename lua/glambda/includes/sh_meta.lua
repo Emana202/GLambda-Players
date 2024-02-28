@@ -92,11 +92,11 @@ end
 
 metaTbl.IsTyping = ( metaTbl.IsTyping or plyMeta.IsTyping )
 function plyMeta:IsTyping()
+    local realOne = metaTbl.IsTyping( self )
     if self:IsGLambdaPlayer() then 
-        local queuedText = self:GetNW2String( "glambda_curtextmsg", "" )
-        return ( #queuedText != 0 ) 
+        return self:GetNW2Bool( "glambda_istexttyping", realOne )
     end
-    return metaTbl.IsTyping( self )
+    return realOne
 end
 
 metaTbl.IsPlayingTaunt = ( metaTbl.IsPlayingTaunt or plyMeta.IsPlayingTaunt )

@@ -49,7 +49,7 @@ local function OpenBirthdayPanel( ply )
         if !month or #month == 0 then return end
 
         local weekDay = math.floor( day:GetValue() )
-        LAMBDAFS:UpdateKeyValueFile( "glambda/plybirthday.json", { month = month, day = weekDay }, "json" ) 
+        PANEL:UpdateKeyValueFile( "glambda/plybirthday.json", { month = month, day = weekDay }, "json" ) 
         GLAMBDA:SendNotification( nil, "Changed the birthday date!", NOTIFY_HINT, nil, "buttons/button15.wav" )
 
         net.Start( "glambda_setupbirthday" )

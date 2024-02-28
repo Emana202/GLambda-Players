@@ -100,7 +100,10 @@ function GLAMBDA:CreateLambdaPlayer()
     --
     
     GLACE.State = "Idle"
+    GLACE.CmdSelectWeapon = "weapon_physgun"
+    GLACE.ForceWeapon = self:GetConVar( "combat_forcespawnwpn" )
     
+    GLACE.CurrentTextMsg = false
     GLACE.TypedTextMsg = ""
     GLACE.TextKeyEnt = nil
     GLACE.QueuedMessages = {}
@@ -132,8 +135,6 @@ function GLAMBDA:CreateLambdaPlayer()
 
     ply:SetNW2Vector( "glambda_plycolor", Vector( GLAMBDA:Random( 0.0, 1.0, true ), GLAMBDA:Random( 0.0, 1.0, true ), GLAMBDA:Random( 0.0, 1.0, true ) ) )
     ply:SetNW2Vector( "glambda_wpncolor", Vector( GLAMBDA:Random( 0.0, 1.0, true ), GLAMBDA:Random( 0.0, 1.0, true ), GLAMBDA:Random( 0.0, 1.0, true ) ) )
-    
-    ply:SetNW2String( "glambda_curtextmsg", "" )
 
     --
 
@@ -163,11 +164,13 @@ function GLAMBDA:CreateLambdaPlayer()
     --
 
     GLACE:SimpleTimer( 0, function()
-        local spawnWep = self:GetConVar( "combat_spawnweapon" )
-        if spawnWep == "random" then
-            GLACE:SelectRandomWeapon()
-        else
-            GLACE:SelectWeapon( spawnWep )
+        local spawnWep = GLACE.ForceWeapon
+        if spawnWep and #spawnWep != 0 then
+            if spawnWep == "random" then
+                GLACE:SelectRandomWeapon()
+            else
+                GLACE:SelectWeapon( spawnWep )
+            end
         end
 
         GLACE:ApplySpawnBehavior()

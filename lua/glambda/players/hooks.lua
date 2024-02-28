@@ -1,56 +1,65 @@
 -- Called every think
 function GLAMBDA.Player:Think()
-    if !self:IsSpeaking() then
-        local queuedText = self:GetNW2String( "glambda_curtextmsg", "" )
-        if #queuedText == 0 then
-            local queuedMsgs = self.QueuedMessages
-            if #queuedMsgs != 0 then
-                local msgTbl = queuedMsgs[ 1 ]
-                local msg = msgTbl[ 1 ]
-                local keyEnt = msgTbl[ 2 ]
+    if CurTime() > self.NextTextTypeT then 
+        local isTyping = false
 
-                local canUseText = false
-                local textTbl = GLAMBDA.TextMessages[ msg ]
-                if textTbl then 
-                    for _, text in RandomPairs( textTbl ) do
-                        local condMet, modLine = GLAMBDA.KEYWORD:IsValidCondition( self, text, keyEnt )
-                        if condMet then 
-                            msg = modLine
-                            canUseText = true
-                            break 
+        if !self:IsSpeaking() and ( !self:Alive() or !self:InCombat() and !self:IsPanicking() ) then
+            local queuedText = self.CurrentTextMsg
+            if !queuedText then
+                local queuedMsgs = self.QueuedMessages
+                if #queuedMsgs != 0 then
+                    local msgTbl = queuedMsgs[ 1 ]
+                    local msg = msgTbl[ 1 ]
+                    local keyEnt = msgTbl[ 2 ]
+
+                    local canUseText = false
+                    local textTbl = GLAMBDA.TextMessages[ msg ]
+                    if textTbl then 
+                        for _, text in RandomPairs( textTbl ) do
+                            local condMet, modLine = GLAMBDA.KEYWORD:IsValidCondition( self, text, keyEnt )
+                            if condMet then 
+                                msg = modLine
+                                canUseText = true
+                                break 
+                            end
                         end
+                    else
+                        local condMet, modLine = GLAMBDA.KEYWORD:IsValidCondition( self, text, keyEnt )
+                        if !condMet then return end
+                        
+                        msg = modLine
+                        canUseText = true
                     end
-                else
-                    local condMet, modLine = GLAMBDA.KEYWORD:IsValidCondition( self, text, keyEnt )
-                    if !condMet then return end
-                    
-                    msg = modLine
-                    canUseText = true
-                end
 
-                if canUseText then
-                    queuedText = GLAMBDA.KEYWORD:ModifyTextKeyWords( self, msg, keyEnt )
-                    self:SetNW2String( "glambda_curtextmsg", queuedText )
-                    self.TextKeyEnt = keyEnt
-                    self.TypedTextMsg = ""
+                    if canUseText then
+                        queuedText = GLAMBDA.KEYWORD:ModifyTextKeyWords( self, msg, keyEnt )
+                        self.CurrentTextMsg = queuedText
+                        self.TextKeyEnt = keyEnt
+                        self.TypedTextMsg = ""
+                    end
+                    
+                    table.remove( queuedMsgs, 1 )
                 end
-                
-                table.remove( queuedMsgs, 1 )
             end
-        end
-        if #queuedText != 0 and CurTime() >= self.NextTextTypeT then
-            local typedText = self.TypedTextMsg
-            local typedLen = #typedText
-            if typedLen >= #queuedText then
-                self:Say( typedText )
-                self:SetNW2String( "glambda_curtextmsg", "" )
-                self.TypedTextMsg = ""
-            else
-                local nextChar = queuedText[ typedLen + 1 ]
-                self.TypedTextMsg = typedText .. nextChar
-                self.NextTextTypeT = ( CurTime() + ( 1 / ( self:GetTextPerMinute() / 60 ) ) )
+            if queuedText then
+                local typedText = self.TypedTextMsg
+                local typedLen = #typedText
+                if typedLen >= #queuedText then
+                    self:Say( typedText )
+                    self.CurrentTextMsg = false
+                    self.TypedTextMsg = ""
+                else
+                    local nextChar = queuedText[ typedLen + 1 ]
+                    self.TypedTextMsg = typedText .. nextChar
+                    self.NextTextTypeT = ( CurTime() + ( 1 / ( self:GetTextPerMinute() / 60 ) ) )
+                    isTyping = true
+                end
             end
+        else
+            self.NextTextTypeT = ( CurTime() + GLAMBDA:Random( 0.1, 1, true ) )
         end
+        
+        self:SetNW2Bool( "glambda_istexttyping", isTyping )
     end
 
     if !self:Alive() or self:IsDisabled() then
@@ -95,7 +104,7 @@ function GLAMBDA.Player:Think()
             self:CancelMovement()
         end
 
-        if !self:InCombat() or self:GetState( "Retreat" ) and !IsValid( enemy ) then
+        if GLAMBDA:GetConVar( "combat_attackhostilenpcs" ) and ( !self:InCombat() or self:GetState( "Retreat" ) and !IsValid( enemy ) ) then
             local npcs = self:FindInSphere( nil, 1500, function( ent )
                 if !ent:IsNPC() and !ent:IsNextBot() or !ent.Disposition or !self:CanTarget( ent ) then return false end
                 return ( ent:Disposition( self:GetPlayer() ) == D_HT and self:IsVisible( ent ) )
@@ -135,19 +144,18 @@ function GLAMBDA.Player:Think()
             
             local isReloading = self:IsReloadingWeapon()
             local isPanicking = self:IsPanicking()
+            
+            local fireTr = self:Trace( nil, enemy, nil, MASK_SHOT_PORTAL )
+            local canShoot = ( fireTr.Fraction >= 0.95 or fireTr.Entity == enemy )
+
+            local aimFunc = self:GetWeaponStat( "OverrideAim" )
+            local aimPos = ( aimFunc and aimFunc( self, weapon, enemy, canShoot ) or enemy )
+
             local attackRange = self:GetWeaponStat( "AttackDistance", ( isMelee and 100 or 1000 ) )
             if isPanicking and !isMelee then attackRange = ( attackRange * 0.8 ) end
             
-            local canShoot = self:GetWeaponStat( "IsLethalWeapon", true )
-            if canShoot then
-                local fireTr = self:Trace( nil, enemy, nil, MASK_SHOT_PORTAL )
-                canShoot = ( fireTr.Fraction >= 0.9 or fireTr.Entity == enemy )
-            end
-            
-            local aimFunc = self:GetWeaponStat( "OverrideAim" )
-            local aimPos = ( aimFunc and aimFunc( self, weapon, enemy ) or enemy )
-
-            if canShoot and self:InRange( aimPos, attackRange, self:EyePos() ) then
+            local inAttackRange = self:InRange( aimPos, attackRange, self:EyePos() )
+            if canShoot and inAttackRange then
                 self:LookTo( aimPos, GLAMBDA:Random( 3 ), 3 )
                 if aimPos == enemy then aimPos = aimPos:WorldSpaceCenter() end
 
@@ -189,15 +197,23 @@ function GLAMBDA.Player:Think()
             if self:GetIsMoving() and !self:GetState( "Retreat" ) then
                 if CurTime() >= self.NextCombatPathUpdateT then
                     local keepDist = self:GetWeaponStat( "KeepDistance", ( isMelee and 50 or 500 ) )
-                    
-                    if isReloading or canShoot and self:InRange( enemy, keepDist ) then
+                    local inKeepRange = self:InRange( enemy, keepDist )
+
+                    local movePos = enemy
+                    if isReloading or canShoot and inKeepRange then
                         local moveAng = ( self:GetPos() - enemy:GetPos() ):Angle()
                         local potentialPos = ( self:GetPos() + moveAng:Forward() * GLAMBDA:Random( ( self:GetRunSpeed() * -0.5 ), keepDist ) + moveAng:Right() * GLAMBDA:Random( -keepDist, keepDist ) )
 
-                        self.CombatPathPosition = ( util.IsInWorld( potentialPos ) and potentialPos or self:Trace( self:GetPos(), potentialPos ).HitPos )
-                    else
-                        self.CombatPathPosition = enemy
+                        movePos = ( util.IsInWorld( potentialPos ) and potentialPos or self:Trace( self:GetPos(), potentialPos ).HitPos )
                     end
+
+                    local onMoveFunc = self:GetWeaponStat( "OverrideMovePos" )
+                    if onMoveFunc then
+                        local funcResult = onMoveFunc( self, weapon, enemy, ( movePos == enemy and enemy:GetPos() or movePos ), canShoot, inAttackRange, inKeepRange )
+                        if isvector( funcResult ) then movePos = funcResult end
+                    end
+
+                    self.CombatPathPosition = movePos
                     self.NextCombatPathUpdateT = ( CurTime() + 0.1 )
                 end
 
@@ -278,11 +294,24 @@ function GLAMBDA.Player:OnPlayerRespawn()
     end
 
     self:SimpleTimer( 0, function()
-        local spawnWep = GLAMBDA:GetConVar( "combat_spawnweapon" )
-        if spawnWep == "random" then
-            self:SelectRandomWeapon()
+        local spawnWep = self.ForceWeapon
+        if !GLAMBDA:GetConVar( "combat_keepforcewep" ) then
+            spawnWep = GLAMBDA:GetConVar( "combat_forcespawnwpn" )
+        end
+
+        if spawnWep and #spawnWep != 0 then
+            if spawnWep == "random" then
+                self:SelectRandomWeapon()
+            else
+                self:SelectWeapon( spawnWep )
+            end
         else
-            self:SelectWeapon( spawnWep )
+            spawnWep = self.SpawnWeapon
+            if spawnWep == "random" then
+                self:SelectRandomWeapon()
+            else
+                self:SelectWeapon( spawnWep )
+            end
         end
 
         if !GLAMBDA:GetConVar( "combat_spawnbehavior_initialspawn" ) then

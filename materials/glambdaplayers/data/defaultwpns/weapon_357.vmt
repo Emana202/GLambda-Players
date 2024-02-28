@@ -4,5 +4,6 @@
 		2.0
 	],
 	"Name": ".357 Magnum",
+	"Category": "Half-Life 2", 
 	"AmmoEntity": "item_ammo_357"
 }
