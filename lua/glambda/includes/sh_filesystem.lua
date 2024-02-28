@@ -1,20 +1,47 @@
+local file_CreateDir = file.CreateDir
+local file_Open = file.Open
+local util_TableToJSON = util.TableToJSON
+local util_Compress = util.Compress
+local util_JSONToTable = util.JSONToTable
+local util_Decompress = util.Decompress
+local table_insert = table.insert
+local pairs = pairs
+local file_Exists = file.Exists
+local table_HasValue = table.HasValue
+local table_RemoveByValue = table.RemoveByValue
+local file_Find = file.Find
+local ipairs = ipairs
+local IsValid = IsValid
+local CurTime = CurTime
+local net_Start = net.Start
+local net_WriteString = net.WriteString
+local net_WriteBool = net.WriteBool
+local net_Broadcast = SERVER and net.Broadcast
+local table_Add = table.Add
+local string_EndsWith = string.EndsWith
+local string_Explode = string.Explode
+local string_StripExtension = string.StripExtension
+local ErrorNoHalt = ErrorNoHalt
+
+--
+
 GLAMBDA.FILE = {}
 
 local FILE = GLAMBDA.FILE
 
-file.CreateDir( "glambda" )
+file_CreateDir( "glambda" )
 
 --
 
 function FILE:WriteFile( filename, content, type )
-	local f = file.Open( filename, ( ( type == "binary" or type == "compressed" ) and "wb" or "w" ), "DATA" )
+	local f = file_Open( filename, ( ( type == "binary" or type == "compressed" ) and "wb" or "w" ), "DATA" )
 	if !f then return end
 
     if type == "json" then
-        content = util.TableToJSON( content, true )
+        content = util_TableToJSON( content, true )
     elseif type == "compressed" then
-        content = util.TableToJSON( content )
-        content = util.Compress( content )
+        content = util_TableToJSON( content )
+        content = util_Compress( content )
     end
 
 	f:Write( content )
@@ -22,7 +49,7 @@ function FILE:WriteFile( filename, content, type )
 end
 
 function FILE:ReadFile( filename, type, path )
-	local f = file.Open( filename, ( type == "compressed" and "rb" or "r" ), ( path or "DATA" ) )
+	local f = file_Open( filename, ( type == "compressed" and "rb" or "r" ), ( path or "DATA" ) )
 	if !f then return end
 
     local str = f:Read( f:Size() )
@@ -30,10 +57,10 @@ function FILE:ReadFile( filename, type, path )
 
     if str and #str != 0 then 
         if type == "json" then
-            str = util.JSONToTable( str ) or {}
+            str = util_JSONToTable( str ) or {}
         elseif type == "compressed" then
-            str = util.Decompress( str ) or ""
-            str = util.JSONToTable( str ) or {}
+            str = util_Decompress( str ) or ""
+            str = util_JSONToTable( str ) or {}
         end
     end
 	return str
@@ -44,7 +71,7 @@ end
 function FILE:UpdateSequentialFile( filename, addcontent, type )
     local contents = FILE:ReadFile( filename, type, "DATA" )
     if contents then
-        table.insert( contents, addcontent )
+        table_insert( contents, addcontent )
         FILE:WriteFile( filename, contents, type )
     else
         FILE:WriteFile( filename, { addcontent }, type )
@@ -64,20 +91,20 @@ function FILE:UpdateKeyValueFile( filename, addcontent, type )
 end
 
 function FILE:FileHasValue( filename, value, type )
-    if !file.Exists( filename, "DATA" ) then return false end
+    if !file_Exists( filename, "DATA" ) then return false end
     local contents = FILE:ReadFile( filename, type, "DATA" )
-    return table.HasValue( contents, value )
+    return table_HasValue( contents, value )
 end
 
 function FILE:FileKeyIsValid( filename, key, type )
-    if !file.Exists( filename, "DATA" ) then return false end
+    if !file_Exists( filename, "DATA" ) then return false end
     local contents = FILE:ReadFile( filename, type, "DATA" )
     return contents[ key ] != nil
 end
 
 function FILE:RemoveVarFromSQFile( filename, var, type )
     local contents = FILE:ReadFile( filename, type, "DATA" )
-    table.RemoveByValue( contents, var )
+    table_RemoveByValue( contents, var )
     FILE:WriteFile( filename, contents, type )
 end
 
@@ -93,7 +120,7 @@ function FILE:MergeDirectory( dir, tbl, path, addDirs, addFunc )
     if dir[ #dir ] != "/" then dir = dir .. "/" end
     tbl = ( tbl or {} )
 
-    local files, dirs = file.Find( dir .. "*", ( path or "GAME" ), "nameasc" )    
+    local files, dirs = file_Find( dir .. "*", ( path or "GAME" ), "nameasc" )    
     if files then  
         for _, fileName in ipairs( files ) do
             if addFunc then addFunc( fileName, dir, tbl ) continue end
@@ -131,10 +158,10 @@ function FILE:CreateUpdateCommand( name, func, isClient, desc, settingName, relo
         func()
 
         if !isClient and ( SERVER ) then
-            net.Start( "glambda_updatedata" )
-                net.WriteString( name )
-                net.WriteBool( reloadMenu )
-            net.Broadcast()
+            net_Start( "glambda_updatedata" )
+                net_WriteString( name )
+                net_WriteBool( reloadMenu )
+            net_Broadcast()
         end
     end
 
@@ -148,21 +175,21 @@ FILE:CreateUpdateCommand( "names", function()
     local defaultNames = FILE:ReadFile( "materials/glambdaplayers/data/names.vmt", "json", "GAME" )
     local customNames = FILE:ReadFile( "glambda/customnames.json", "json" )
     
-    local mergeTbl = table.Add( defaultNames, customNames )
+    local mergeTbl = table_Add( defaultNames, customNames )
     GLAMBDA.Nicknames = FILE:MergeDirectory( "materials/glambdaplayers/data/customnames/", mergeTbl, nil, nil, function( fileName, fileDir, tbl )
         local nameTbl = {}
         local filePath = fileDir .. fileName
-        if string.EndsWith( filePath, ".json" ) then
+        if string_EndsWith( filePath, ".json" ) then
             local jsonContents = FILE:ReadFile( filePath, "json", "GAME" )
             for _, name in ipairs( jsonContents ) do
-                if table.HasValue( default, name ) then continue end
+                if table_HasValue( default, name ) then continue end
                 nameTbl[ #nameTbl + 1 ] = name
             end
         else
             local txtContents = FILE:ReadFile( filePath, nil, "GAME" )
             if txtContents then
-                for _, name in ipairs( string.Explode( "\n", txtcontents ) ) do
-                    if table.HasValue( default, name ) then continue end
+                for _, name in ipairs( string_Explode( "\n", txtcontents ) ) do
+                    if table_HasValue( default, name ) then continue end
                     nameTbl[ #nameTbl + 1 ] = name
                 end
             end
@@ -189,7 +216,7 @@ end, false, "Updates the list of voicelines the players will use to speak in voi
 
 local function MergeVoiceProfiles( tbl, path )
     local fullPath = "sound/" .. path
-    local _, profileFiles = file.Find( fullPath .. "*", "GAME", "nameasc" )
+    local _, profileFiles = file_Find( fullPath .. "*", "GAME", "nameasc" )
 
     for _, profile in ipairs( profileFiles ) do
         local profileTbl = {}
@@ -198,7 +225,7 @@ local function MergeVoiceProfiles( tbl, path )
             local typeName = data.name
             local typePath = fullPath .. profile .. "/" .. typeName .. "/"
     
-            local voicelines = file.Find( typePath .. "*", "GAME", "nameasc" )
+            local voicelines = file_Find( typePath .. "*", "GAME", "nameasc" )
             if !voicelines or #voicelines == 0 then continue end
     
             local lineTbl = FILE:MergeDirectory( typePath )
@@ -215,7 +242,7 @@ FILE:CreateUpdateCommand( "voiceprofiles", function()
     if GLAMBDA:GetConVar( "util_mergelambdafiles" ) then 
         MergeVoiceProfiles( voiceProfiles, "lambdaplayers/voiceprofiles/" )
 
-        local _, zetaVPs = file.Find( "sound/zetaplayer/custom_vo/vp_*", "GAME", "nameasc" )
+        local _, zetaVPs = file_Find( "sound/zetaplayer/custom_vo/vp_*", "GAME", "nameasc" )
         for _, profile in ipairs( zetaVPs ) do
             local profileTbl = {}
 
@@ -223,7 +250,7 @@ FILE:CreateUpdateCommand( "voiceprofiles", function()
                 local typeName = data.name
                 local typePath = "sound/zetaplayer/custom_vo/" .. profile .. "/" .. typeName .. "/"
         
-                local voicelines = file.Find( typePath .. "*", "GAME", "nameasc" )
+                local voicelines = file_Find( typePath .. "*", "GAME", "nameasc" )
                 if !voicelines or #voicelines == 0 then continue end
         
                 local lineTbl = FILE:MergeDirectory( typePath )
@@ -242,14 +269,14 @@ local function MergeTextMessages( fileName, fileDir, tbl )
     if !content then
         local txtContents = FILE:ReadFile( fileDir .. fileName, nil, "GAME" )
         if !txtContents then return end
-        content = string.Explode( "\n", txtContents )
+        content = string_Explode( "\n", txtContents )
     end
 
-    local name = string.StripExtension( fileName )
-    local textType = string.Explode( "_", name )[ 1 ]
+    local name = string_StripExtension( fileName )
+    local textType = string_Explode( "_", name )[ 1 ]
 
     local typeTbl = ( tbl[ textType ] or {} )
-    table.Add( typeTbl, content )
+    table_Add( typeTbl, content )
     tbl[ textType ] = typeTbl
 end
 FILE:CreateUpdateCommand( "textmsgs", function()

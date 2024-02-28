@@ -1,3 +1,19 @@
+local CurTime = CurTime
+local RandomPairs = RandomPairs
+local table_remove = table.remove
+local table_Random = table.Random
+local IsValid = IsValid
+local isnumber = isnumber
+local istable = istable
+local util_IsInWorld = SERVER and util.IsInWorld
+local isvector = isvector
+local Vector = Vector
+local isangle = isangle
+local Angle = Angle
+local table_Copy = table.Copy
+local isstring = isstring
+local coroutine_wait = coroutine.wait
+
 -- Called every think
 function GLAMBDA.Player:Think()
     if CurTime() > self.NextTextTypeT then 
@@ -38,7 +54,7 @@ function GLAMBDA.Player:Think()
                         self.TypedTextMsg = ""
                     end
                     
-                    table.remove( queuedMsgs, 1 )
+                    table_remove( queuedMsgs, 1 )
                 end
             end
             if queuedText then
@@ -69,7 +85,7 @@ function GLAMBDA.Player:Think()
     end
 
     if CurTime() >= self.NextUniversalActionT then
-        local UAFunc = table.Random( GLAMBDA.UniversalActions )
+        local UAFunc = table_Random( GLAMBDA.UniversalActions )
         UAFunc( self )
         self.NextUniversalActionT = ( CurTime() + GLAMBDA:Random( 10, 15, true ) )
     end
@@ -204,7 +220,7 @@ function GLAMBDA.Player:Think()
                         local moveAng = ( self:GetPos() - enemy:GetPos() ):Angle()
                         local potentialPos = ( self:GetPos() + moveAng:Forward() * GLAMBDA:Random( ( self:GetRunSpeed() * -0.5 ), keepDist ) + moveAng:Right() * GLAMBDA:Random( -keepDist, keepDist ) )
 
-                        movePos = ( util.IsInWorld( potentialPos ) and potentialPos or self:Trace( self:GetPos(), potentialPos ).HitPos )
+                        movePos = ( util_IsInWorld( potentialPos ) and potentialPos or self:Trace( self:GetPos(), potentialPos ).HitPos )
                     end
 
                     local onMoveFunc = self:GetWeaponStat( "OverrideMovePos" )
@@ -253,7 +269,7 @@ function GLAMBDA.Player:ThreadedThink()
                     elseif isangle( stateArg ) then
                         stateArg = Angle( stateArg.p, stateArg.y, stateArg.r )
                     elseif istable( stateArg ) then
-                        stateArg = table.Copy( stateArg )
+                        stateArg = table_Copy( stateArg )
                     end
 
                     local result = statefunc( self, stateArg )
@@ -263,7 +279,7 @@ function GLAMBDA.Player:ThreadedThink()
                 end
             end
 
-            coroutine.wait( 0.1 )
+            coroutine_wait( 0.1 )
         else
             if ( CurTime() - self.LastDeathTime ) >= GLAMBDA:GetConVar( "player_respawn_time" ) and ( !self:IsSpeaking() or !GLAMBDA:GetConVar( "voice_norespawn" ) ) and !self:IsTyping() then
                 if !GLAMBDA:GetConVar( "player_respawn" ) then
@@ -275,7 +291,7 @@ function GLAMBDA.Player:ThreadedThink()
                 self:OnPlayerRespawn()
             end
 
-            coroutine.wait( GLAMBDA:Random( 0.1, 0.33, true ) )
+            coroutine_wait( GLAMBDA:Random( 0.1, 0.33, true ) )
         end
     end
 end

@@ -1,3 +1,49 @@
+local RealTime = RealTime
+local IsValid = IsValid
+local CurTime = CurTime
+local ipairs = ipairs
+local player_GetBots = player.GetBots
+local isnumber = isnumber
+local print = print
+local tostring = tostring
+local engine_TickInterval = engine.TickInterval
+local bit_band = bit.band
+local isentity = isentity
+local ErrorNoHaltWithStack = ErrorNoHaltWithStack
+local timer_Simple = timer.Simple
+local timer_Create = timer.Create
+local timer_Remove = timer.Remove
+local util_TraceLine = util.TraceLine
+local util_TraceHull = util.TraceHull
+local ents_FindInSphere = ents.FindInSphere
+local net_Start = net.Start
+local net_WritePlayer = net.WritePlayer
+local net_Broadcast = SERVER and net.Broadcast
+local net_WriteString = net.WriteString
+local net_WriteUInt = net.WriteUInt
+local net_WriteVector = net.WriteVector
+local net_WriteFloat = net.WriteFloat
+local undo_GetTable = undo.GetTable
+local undo_Do_Undo = SERVER and undo.Do_Undo
+local isstring = isstring
+local coroutine_wait = coroutine.wait
+local coroutine_create = coroutine.create
+local ents_Create = SERVER and ents.Create
+local string_match = string.match
+local ents_GetAll = ents.GetAll
+local math_abs = math.abs
+local pairs = pairs
+local hook_Add = hook.Add
+local hook_Remove = hook.Remove
+local net_Send = SERVER and net.Send
+local coroutine_status = coroutine.status
+local coroutine_resume = coroutine.resume
+local debugoverlay_Line = debugoverlay.Line
+local debugoverlay_Sphere = debugoverlay.Sphere
+local Color = Color
+local debugoverlay_Cross = debugoverlay.Cross
+local table_Empty = table.Empty
+
 -- Returns our current state
 function GLAMBDA.Player:GetState( checkState )
     local curState = self.State
@@ -40,7 +86,7 @@ function GLAMBDA.Player:CanType()
     if chatLimit <= 0 then return true end
 
     local count = 0
-    for _, ply in ipairs( player.GetBots() ) do
+    for _, ply in ipairs( player_GetBots() ) do
         if !ply:IsGLambdaPlayer() or !ply:IsTyping() then continue end
         count = ( count + 1 )
         if count >= chatLimit then return false end
@@ -93,10 +139,10 @@ local moveInputs = {
 -- This shouldn't be used with movement keys like IN_FORWARD
 function GLAMBDA.Player:PressKey( inkey )
     local cooldown = self.KeyPressCooldown[ inkey ]
-    if cooldown and ( CurTime() - cooldown ) < engine.TickInterval() then return end
+    if cooldown and ( CurTime() - cooldown ) < engine_TickInterval() then return end
 
     local buttonQueue = self.CmdButtonQueue
-    if bit.band( buttonQueue, inkey ) == inkey then return end -- Prevent the same key from being queued
+    if bit_band( buttonQueue, inkey ) == inkey then return end -- Prevent the same key from being queued
     self.CmdButtonQueue = ( buttonQueue + inkey )
 
     local isMoveKey = moveInputs[ inkey ]
@@ -112,7 +158,7 @@ end
 -- This is perfect for using movement keys like IN_FORWARD
 function GLAMBDA.Player:HoldKey( inkey )
     local buttonQueue = self.CmdButtonQueue
-    if bit.band( buttonQueue, inkey ) == inkey then return end -- Prevent the same key from being queued
+    if bit_band( buttonQueue, inkey ) == inkey then return end -- Prevent the same key from being queued
     self.CmdButtonQueue = ( buttonQueue + inkey )
 
     local isMoveKey = moveInputs[ inkey ]
@@ -126,7 +172,7 @@ end
 -- Removes a key from the button queue
 function GLAMBDA.Player:RemoveKey( inkey )
     local buttonQueue = self.CmdButtonQueue
-    if bit.band( buttonQueue, inkey ) == inkey then return end
+    if bit_band( buttonQueue, inkey ) == inkey then return end
     self.CmdButtonQueue = ( buttonQueue - inkey )
 end
 
@@ -197,7 +243,7 @@ end
 
 -- Creates a simple timer
 function GLAMBDA.Player:SimpleTimer( delay, func )
-    timer.Simple( delay, function() 
+    timer_Simple( delay, function() 
         if !IsValid( self ) then return end
         func()
     end )
@@ -206,15 +252,15 @@ end
 -- Creates a named timer
 function GLAMBDA.Player:Timer( name, delay, reps, func )
     local timername = "glacebase_timer_" .. self:GetPlayer():EntIndex() .. name
-    timer.Create( timername, delay, reps, function()
-        if !IsValid( self ) then timer.Remove( timername ) return end
+    timer_Create( timername, delay, reps, function()
+        if !IsValid( self ) then timer_Remove( timername ) return end
         func()
     end )
 end
 
 -- Removes a named timer
 function GLAMBDA.Player:RemoveTimer( name )
-    timer.Remove( "glacebase_timer_" .. self:GetPlayer():EntIndex() .. name )
+    timer_Remove( "glacebase_timer_" .. self:GetPlayer():EntIndex() .. name )
 end
 
 -- Simple trace
@@ -226,7 +272,7 @@ function GLAMBDA.Player:Trace( start, endpos, col, mask, filter )
     normaltrace.mask = mask or MASK_SOLID
     normaltrace.collisiongroup = col or COLLISION_GROUP_NONE
     
-    return util.TraceLine( normaltrace )
+    return util_TraceLine( normaltrace )
 end
 
 -- Hull trace
@@ -240,7 +286,7 @@ function GLAMBDA.Player:TraceHull( start, endpos, mins, maxs, col, mask, filter 
     hulltrace.mask = mask or MASK_SOLID
     hulltrace.collisiongroup = col or COLLISION_GROUP_NONE
     
-    return util.TraceHull( hulltrace )
+    return util_TraceHull( hulltrace )
 end
 
 -- Simple Find in sphere function with a filter function
@@ -248,7 +294,7 @@ end
 function GLAMBDA.Player:FindInSphere( pos, dist, filter )
     local entities = {}
     local ply = self:GetPlayer()
-    for _, ent in ipairs( ents.FindInSphere( ( pos or self:GetPos() ), dist ) ) do
+    for _, ent in ipairs( ents_FindInSphere( ( pos or self:GetPos() ), dist ) ) do
         if ent == ply or !IsValid( ent ) or ent.gb_IsGlaceNavigator or filter and !filter( ent ) then continue end
         entities[ #entities + 1 ] = ent
     end
@@ -296,9 +342,9 @@ end
 function GLAMBDA.Player:StopSpeaking()
     self:SetSpeechEndTime( 0 )
 
-    net.Start( "glambda_stopspeech" )
-        net.WritePlayer( self:GetPlayer() )
-    net.Broadcast()
+    net_Start( "glambda_stopspeech" )
+        net_WritePlayer( self:GetPlayer() )
+    net_Broadcast()
 end
 
 -- Plays a random voiceline from the given voicetype in a voice chat
@@ -322,13 +368,13 @@ function GLAMBDA.Player:PlayVoiceLine( voiceType, delay )
     end
     self:SetSpeechEndTime( RealTime() + 4 )
 
-    net.Start( "glambda_playvoicesnd" )
-        net.WritePlayer( self:GetPlayer() )
-        net.WriteString( voiceTbl[ GLAMBDA:Random( #voiceTbl ) ] )
-        net.WriteUInt( self:GetVoicePitch(), 8 )
-        net.WriteVector( self:GetPos() )
-        net.WriteFloat( delay )
-    net.Broadcast()
+    net_Start( "glambda_playvoicesnd" )
+        net_WritePlayer( self:GetPlayer() )
+        net_WriteString( voiceTbl[ GLAMBDA:Random( #voiceTbl ) ] )
+        net_WriteUInt( self:GetVoicePitch(), 8 )
+        net_WriteVector( self:GetPos() )
+        net_WriteFloat( delay )
+    net_Broadcast()
 end
 
 -- Sets our current state to the given one
@@ -344,15 +390,15 @@ end
 -- If "undoAll" is true, undo's every entity we have spawned
 function GLAMBDA.Player:UndoCommand( undoAll )
     local index = self:GetPlayer():UniqueID()
-    local undoTbl = undo.GetTable()[ index ]
+    local undoTbl = undo_GetTable()[ index ]
     if !undoTbl then return end
 
     if !undoAll then
         self:EmitSound( "buttons/button15.wav.wav", 60 )
-        undo.Do_Undo( undoTbl[ #undoTbl ] )
+        undo_Do_Undo( undoTbl[ #undoTbl ] )
         return
     end
-    for _, tbl in ipairs( undoTbl ) do undo.Do_Undo( tbl ) end
+    for _, tbl in ipairs( undoTbl ) do undo_Do_Undo( tbl ) end
 end
 
 -- Plays a given gesture animation and waits until it's finished
@@ -363,16 +409,16 @@ function GLAMBDA.Player:PlayGestureAndWait( index )
     local seqID = ( isSeq and self:LookupSequence( index ) or self:SelectWeightedSequence( index ) )
     if seqID <= 0 then return end
 
-    net.Start( "glambda_playgesture" )
-        net.WritePlayer( self:GetPlayer() )
-        net.WriteFloat( isSeq and self:GetSequenceActivity( seqID ) or index )
-    net.Broadcast()
+    net_Start( "glambda_playgesture" )
+        net_WritePlayer( self:GetPlayer() )
+        net_WriteFloat( isSeq and self:GetSequenceActivity( seqID ) or index )
+    net_Broadcast()
 
     local seqDur = self:SequenceDuration( seqID )
     self:Freeze( true )
     self:SetNW2Bool( "glambda_playingtaunt", true )
 
-    coroutine.wait( seqDur )
+    coroutine_wait( seqDur )
     self:Freeze( false )
     self:SetNW2Bool( "glambda_playingtaunt", false )
 end
@@ -383,7 +429,7 @@ function GLAMBDA.Player:ResetAI()
     self:SetState()
     self:CancelMovement()
     
-    self:SetThread( coroutine.create( function() 
+    self:SetThread( coroutine_create( function() 
         self:ThreadedThink() 
         print( "GLambda Players: " .. self:Name() .. "'s Threaded Think has stopped executing!" ) 
     end ) )
@@ -391,7 +437,7 @@ function GLAMBDA.Player:ResetAI()
     local navigator = self:GetNavigator()
     if IsValid( navigator ) then navigator:Remove() end
 
-    navigator = ents.Create( "glace_navigator" )
+    navigator = ents_Create( "glace_navigator" )
     navigator:SetOwner( self:GetPlayer() )
     navigator:Spawn()
     self:SetNavigator( navigator )
@@ -429,7 +475,7 @@ function GLAMBDA.Player:CanTarget( ent )
 
         local class = ent:GetClass()
         if class == "rd_target" then return false end
-        if string.match( class, "bullseye" ) then return false end
+        if string_match( class, "bullseye" ) then return false end
     else
         return false
     end
@@ -482,7 +528,7 @@ function GLAMBDA.Player:ApplySpawnBehavior()
     local getClosest = GLAMBDA:GetConVar( "combat_spawnbehavior_getclosest" )
     local pairGen = ( getClosest and ipairs or RandomPairs )
 
-    for _, ent in pairGen( ents.GetAll() ) do
+    for _, ent in pairGen( ents_GetAll() ) do
         if !IsValid( ent ) or !self:CanTarget( ent ) then continue end
         if spawnBehav == 1 and !ent:IsPlayer() or spawnBehav == 2 and !ent:IsNPC() and !ent:IsNextBot() then continue end
 
@@ -492,7 +538,7 @@ function GLAMBDA.Player:ApplySpawnBehavior()
         end
 
         local entDist = self:SqrRangeTo( ent )
-        local heightDiff = math.abs( selfZ - ent:GetPos().z )
+        local heightDiff = math_abs( selfZ - ent:GetPos().z )
         if searchDist and ( entDist + ( heightDiff * heightDiff ) ) > searchDist then continue end
 
         closeTarget = ent
@@ -550,8 +596,8 @@ function GLAMBDA.Player:Hook( hookName, uniqueName, func )
     local hookIdent = "GLambda-PlayerHook-#" .. self:EntIndex() .. "-" .. uniqueName
     self:DevMsg( "Created a hook: " .. hookName .. " | " .. uniqueName )
 
-    hook.Add( hookName, hookIdent, function( ... )
-        if !IsValid( self ) then hook.Remove( hookName, hookIdent ) return end
+    hook_Add( hookName, hookIdent, function( ... )
+        if !IsValid( self ) then hook_Remove( hookName, hookIdent ) return end
         return func( ... )
     end )
 end
@@ -565,10 +611,10 @@ function GLAMBDA.Player:InitializeHooks()
     self:Hook( "PlayerInitialSpawn", "NetworkToSpawnedPlayer", function( player )
         if player == ply or player:IsBot() then return end
 
-        net.Start( "glambda_playerinit" )
-            net.WritePlayer( ply )
-            net.WriteString( ply.gb_ProfilePicture )
-        net.Send( player )
+        net_Start( "glambda_playerinit" )
+            net_WritePlayer( ply )
+            net_WriteString( ply.gb_ProfilePicture )
+        net_Send( player )
     end )
 
     -- Reset the player's playermodel
@@ -592,7 +638,7 @@ function GLAMBDA.Player:InitializeHooks()
     self:Hook( "PostCleanupMap", "PostCleanupMap", function()
         local navigator = self:GetNavigator()
         if !IsValid( navigator ) then
-            navigator = ents.Create( "glace_navigator" )
+            navigator = ents_Create( "glace_navigator" )
             navigator:SetOwner( ply )
             navigator:Spawn()
             self:SetNavigator( navigator ) 
@@ -626,7 +672,7 @@ function GLAMBDA.Player:InitializeHooks()
 
         local replyChan = 200
         replyChan = ( replyChan + ( #self.QueuedMessages * 200 ) )
-        if string.match( text, self:Nick() ) then replyChan = ( replyChan * 0.33 ) end
+        if string_match( text, self:Nick() ) then replyChan = ( replyChan * 0.33 ) end
         if !self:GetTextingChance( replyChan ) then return end
 
         local replyTime = ( GLAMBDA:Random( 5, 20 ) / 10 )
@@ -647,13 +693,13 @@ function GLAMBDA.Player:InitializeHooks()
     self:Hook( "Think", "Think", function() 
         self:Think()
 
-        if coroutine.status( self:GetThread() ) != "dead" then
-            local ok, msg = coroutine.resume( self:GetThread() )
+        if coroutine_status( self:GetThread() ) != "dead" then
+            local ok, msg = coroutine_resume( self:GetThread() )
             if !ok then ErrorNoHaltWithStack( msg ) end
         end
 
         if GLAMBDA:GetConVar( "glambda_debug" ) then
-            debugoverlay.Line( self:EyePos(), self:GetEyeTrace().HitPos, 0.1, color_white, true ) 
+            debugoverlay_Line( self:EyePos(), self:GetEyeTrace().HitPos, 0.1, color_white, true ) 
         end
 
         -- STUCK MONITOR --
@@ -666,7 +712,7 @@ function GLAMBDA.Player:InitializeHooks()
                 elseif CurTime() > self.StillStuckTimer then
                     -- Still stuck
                     self:DevMsg( "IS STILL STUCK\n", self:GetPos() )
-                    debugoverlay.Sphere( self:GetPos(), 100, 1, Color( 255, 0, 0 ), true )
+                    debugoverlay_Sphere( self:GetPos(), 100, 1, Color( 255, 0, 0 ), true )
 
                     self:OnStuck()
                     self.StillStuckTimer = CurTime() + 1
@@ -679,10 +725,10 @@ function GLAMBDA.Player:InitializeHooks()
                     self.StuckTimer = CurTime() + 3
                     self.StuckPosition = self:GetPos()
                 else -- We are within the stuck radius. If we've been here too long, then, we are probably stuck
-                    debugoverlay.Line( self:WorldSpaceCenter(), self.StuckPosition, 1, Color( 255, 0, 0 ), true )
+                    debugoverlay_Line( self:WorldSpaceCenter(), self.StuckPosition, 1, Color( 255, 0, 0 ), true )
 
                     if CurTime() > self.StuckTimer then
-                        debugoverlay.Sphere( self:GetPos(), 100, 2, Color( 255, 0, 0 ), true )
+                        debugoverlay_Sphere( self:GetPos(), 100, 2, Color( 255, 0, 0 ), true )
                         self:DevMsg( "IS STUCK AT\n", self:GetPos() )
                         
                         self._ISSTUCK = true
@@ -691,7 +737,7 @@ function GLAMBDA.Player:InitializeHooks()
                 end
             end
             
-            debugoverlay.Cross( self.StuckPosition, 5, 1, color_white, true )
+            debugoverlay_Cross( self.StuckPosition, 5, 1, color_white, true )
         else -- Reset the stuck status
             self.StillStuckTimer = CurTime() + 1
             self.StuckTimer = CurTime() + 3
@@ -703,7 +749,7 @@ end
 function GLAMBDA.Player:BuildPersonalityTable( overrideTbl )
     local personaTbl = self.Personality
     if personaTbl then
-        table.Empty( personaTbl )
+        table_Empty( personaTbl )
     else
         personaTbl = {}
     end

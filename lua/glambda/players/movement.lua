@@ -1,3 +1,14 @@
+local coroutine_yield = coroutine.yield
+local IsValid = IsValid
+local CurTime = CurTime
+local math_max = math.max
+local util_QuickTrace = util.QuickTrace
+local Vector = Vector
+local Color = Color
+local FrameTime = FrameTime
+local util_TraceHull = util.TraceHull
+local debugoverlay_Box = debugoverlay.Box
+
 -- Start moving to the given position
 -- Use only in the coroutine threads, like state functions!
 function GLAMBDA.Player:MoveToPos( pos, options )
@@ -5,7 +16,7 @@ function GLAMBDA.Player:MoveToPos( pos, options )
     self:SetGoalTolerance( options.tol or 30 )
 
     self:ComputePathTo( pos )
-    while ( self:IsGeneratingPath() ) do coroutine.yield() end
+    while ( self:IsGeneratingPath() ) do coroutine_yield() end
 
     local path = self:GetPath()
     if !IsValid( path ) then return "failed" end
@@ -56,7 +67,7 @@ function GLAMBDA.Player:MoveToPos( pos, options )
             end
 
             if updateTime then
-                local time = math.max( updateTime, updateTime * ( path:GetLength() / 400 ) )
+                local time = math_max( updateTime, updateTime * ( path:GetLength() / 400 ) )
                 if path:GetAge() >= time then self:RecomputePath() end
             end
 
@@ -65,7 +76,7 @@ function GLAMBDA.Player:MoveToPos( pos, options )
             self:UpdateOnPath()
         end
 
-        coroutine.yield()
+        coroutine_yield()
     end
 
     self:SetIsMoving( false )
@@ -209,7 +220,7 @@ local doorClasses = {
 }
 -- Performs a check that will make this Player open doors
 function GLAMBDA.Player:DoorCheck()
-    local ent = util.QuickTrace( self:EyePos(), self:GetAimVector() * 50, self:GetPlayer() ).Entity
+    local ent = util_QuickTrace( self:EyePos(), self:GetAimVector() * 50, self:GetPlayer() ).Entity
     if !IsValid( ent ) or !doorClasses[ ent:GetClass() ] then return end
     
     self:LookTowards( ent:WorldSpaceCenter() )
@@ -238,14 +249,14 @@ function GLAMBDA.Player:AvoidCheck()
     tracetable.endpos = tracetable.start
     tracetable.filter = self:GetPlayer()
 
-    local rightresult = util.TraceHull( tracetable )
-    debugoverlay.Box( tracetable.start, tracetable.mins, tracetable.maxs, 0.1, ( rightresult.Hit and hitcol or safecol ), false )
+    local rightresult = util_TraceHull( tracetable )
+    debugoverlay_Box( tracetable.start, tracetable.mins, tracetable.maxs, 0.1, ( rightresult.Hit and hitcol or safecol ), false )
 
     tracetable.start = ( tracetable.start - selfRight * 25 )
     tracetable.endpos = tracetable.start
 
-    local leftresult = util.TraceHull( tracetable )
-    debugoverlay.Box( tracetable.start, tracetable.mins, tracetable.maxs, 0.1, ( leftresult.Hit and hitcol or safecol ), false )
+    local leftresult = util_TraceHull( tracetable )
+    debugoverlay_Box( tracetable.start, tracetable.mins, tracetable.maxs, 0.1, ( leftresult.Hit and hitcol or safecol ), false )
 
     if leftresult.Hit and rightresult.Hit then
         self:PressKey( IN_JUMP )

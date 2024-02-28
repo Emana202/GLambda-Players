@@ -1,3 +1,17 @@
+local GetConVar = GetConVar
+local Spawn_SENT = Spawn_SENT
+local Spawn_Weapon = Spawn_Weapon
+local Spawn_NPC = Spawn_NPC
+local GMODSpawnProp = GMODSpawnProp
+local Vector = Vector
+local util_TraceHull = util.TraceHull
+local table_Merge = table.Merge
+local util_GetPlayerTrace = util.GetPlayerTrace
+local IsValid = IsValid
+local IsFirstTimePredicted = IsFirstTimePredicted
+local EffectData = EffectData
+local util_Effect = util.Effect
+
 local drawToolEffects = GetConVar( "gmod_drawtooleffects" )
 
 --
@@ -30,7 +44,7 @@ local toolTr = {
     maxs = Vector()
 }
 function GLAMBDA.Player:GetToolTrace()
-    return ( util.TraceHull( table.Merge( util.GetPlayerTrace( self:GetPlayer() ), toolTr, true ) ) )
+    return ( util_TraceHull( table_Merge( util_GetPlayerTrace( self:GetPlayer() ), toolTr, true ) ) )
 end
 
 function GLAMBDA.Player:EmitToolgunFire()
@@ -51,14 +65,14 @@ function GLAMBDA.Player:EmitToolgunFire()
 	effectData:SetNormal( eyeTrace.HitNormal )
 	effectData:SetEntity( eyeTrace.Entity )
 	effectData:SetAttachment( eyeTrace.PhysicsBone )
-	util.Effect( "selection_indicator", effectData )
+	util_Effect( "selection_indicator", effectData )
 
 	effectData = EffectData()
 	effectData:SetOrigin( hitPos )
 	effectData:SetStart( self:GetShootPos() )
 	effectData:SetAttachment( 1 )
 	effectData:SetEntity( curWep )
-	util.Effect( "ToolTracer", effectData )
+	util_Effect( "ToolTracer", effectData )
 end
 
 function GLAMBDA.Player:FindToolTarget( dist, filter )

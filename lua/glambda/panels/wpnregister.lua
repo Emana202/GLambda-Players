@@ -1,3 +1,20 @@
+local Color = Color
+local vgui_Create = CLIENT and vgui.Create
+local list_Get = list.Get
+local surface_PlaySound = CLIENT and surface.PlaySound
+local pairs = pairs
+local istable = istable
+local table_concat = table.concat
+local ipairs = ipairs
+local CompileString = CompileString
+local table_Merge = table.Merge
+local Material = Material
+local SortedPairsByMemberValue = SortedPairsByMemberValue
+local file_Find = file.Find
+local string_StripExtension = string.StripExtension
+local net_Start = net.Start
+local net_SendToServer = CLIENT and net.SendToServer
+
 local imageBgClr = Color( 72, 72, 72 )
 local cachedMats = {}
 
@@ -18,12 +35,12 @@ local function OpenWeaponRegister( ply )
     local resetDefault = PANEL:Button( frame, BOTTOM, "Reset to Default" )
 
     local scrollPnl = PANEL:ScrollPanel( leftPanel, false, FILL )
-    local wpnLayout = vgui.Create( "DIconLayout", scrollPnl )
+    local wpnLayout = vgui_Create( "DIconLayout", scrollPnl )
     wpnLayout:Dock( FILL )
     wpnLayout:SetSpaceX( 5 )
     wpnLayout:SetSpaceY( 5 )
 
-    local wpnList = vgui.Create( "DListView", frame )
+    local wpnList = vgui_Create( "DListView", frame )
     wpnList:SetSize( 350, 1 )
     wpnList:DockMargin( 10, 0, 0, 0 )
     wpnList:Dock( LEFT )
@@ -31,10 +48,10 @@ local function OpenWeaponRegister( ply )
     wpnList:AddColumn( "Class Name", 2 )
     wpnList:AddColumn( "Category", 3 )
 
-    local gameList = list.Get( "Weapon" )
+    local gameList = list_Get( "Weapon" )
 
     local function OpenRegFrame( wpnName, wpnClass, wpnData )
-        surface.PlaySound( "buttons/lightswitch2.wav" )
+        surface_PlaySound( "buttons/lightswitch2.wav" )
 
         local wpnFullName = wpnName .. " (" .. wpnClass .. ")"
         local regFrame = PANEL:Frame( ( wpnData and "Editing" or "Registering" ) .. " Weapon: " .. wpnFullName, 560, 600 )
@@ -91,7 +108,7 @@ local function OpenWeaponRegister( ply )
                     for i = 1, #infoText do PANEL:Label( infoText[ i ], codeFrame, TOP ) end
                 end
 
-                PANEL:Label( "Accepted arguments: " .. table.concat( cbData.Arguments, ", " ), codeFrame, TOP )
+                PANEL:Label( "Accepted arguments: " .. table_concat( cbData.Arguments, ", " ), codeFrame, TOP )
 
                 local codeEntry = PANEL:TextEntry( codeFrame, FILL )
                 codeEntry:SetMultiline( true )
@@ -119,10 +136,10 @@ local function OpenWeaponRegister( ply )
                     argsCode = argsCode .. entryText
                     local compileCheck = CompileString( argsCode, wpnClass .. " " .. callback .. " Callback Error" )
                     if !compileCheck then 
-                        surface.PlaySound( "buttons/button11.wav" )
+                        surface_PlaySound( "buttons/button11.wav" )
                         return 
                     end
-                    surface.PlaySound( "buttons/button1.wav" )
+                    surface_PlaySound( "buttons/button1.wav" )
 
                     codeFrame:Close()
                     callbackCodes[ callback ] = { argsCode, entryText }
@@ -159,7 +176,7 @@ local function OpenWeaponRegister( ply )
             if hadData then
                 for _, line in ipairs( wpnList:GetLines() ) do
                     if line:GetColumnText( 2 ) == wpnClass then 
-                        table.Merge( wpnData, compileTbl, true )
+                        table_Merge( wpnData, compileTbl, true )
                         line:SetSortValue( 1, wpnData )
 
                         inList = true
@@ -196,7 +213,7 @@ local function OpenWeaponRegister( ply )
         wpnPanel:SetSize( 100, 120 )
         wpnPanel:SetBackgroundColor( imageBgClr )
         
-        local wpnImg = vgui.Create( "DImageButton", wpnPanel )
+        local wpnImg = vgui_Create( "DImageButton", wpnPanel )
         wpnImg:SetSize( 1, 100 )
         wpnImg:Dock( TOP )
         
@@ -239,7 +256,7 @@ local function OpenWeaponRegister( ply )
         GLAMBDA.WeaponList[ wepClass ] = nil
         PANEL:DeleteServerFile( "glambda/weapons/" .. wepClass .. ".dat" )
         
-        surface.PlaySound( "buttons/button15.wav" )
+        surface_PlaySound( "buttons/button15.wav" )
         self:RemoveLine( id )
         AddWeaponPanel( wepClass )
     end
@@ -256,14 +273,14 @@ local function OpenWeaponRegister( ply )
         end
         wpnList:Clear()
 
-        local defWpns = file.Find( "materials/glambdaplayers/data/defaultwpns/*.vmt", "GAME", "nameasc" )
+        local defWpns = file_Find( "materials/glambdaplayers/data/defaultwpns/*.vmt", "GAME", "nameasc" )
         if !defWpns or #defWpns == 0 then return end -- bruh
 
         for _, wpn in ipairs( defWpns ) do
             local wepData = GLAMBDA.FILE:ReadFile( "materials/glambdaplayers/data/defaultwpns/" .. wpn, "json", "GAME" )
             if !wepData then continue end -- :(
 
-            local wepClass = string.StripExtension( wpn )
+            local wepClass = string_StripExtension( wpn )
             local wepName = ( wepData.Name or ( gameList[ wepClass ] and gameList[ wepClass ].PrintName or wepClass ) )
             local category = ( wepData.Category or ( gameList[ wepClass ] and gameList[ wepClass ].Category ) )
 
@@ -283,8 +300,8 @@ local function OpenWeaponRegister( ply )
             if inList then AddWeaponPanel( wepClass ) end
         end
 
-        net.Start( "glambda_resetweaponlist" )
-        net.SendToServer()
+        net_Start( "glambda_resetweaponlist" )
+        net_SendToServer()
         GLAMBDA:SendNotification( nil, "Reset the weapon list to default!", NOTIFY_HINT, nil, "buttons/button5.wav" )
     end
 

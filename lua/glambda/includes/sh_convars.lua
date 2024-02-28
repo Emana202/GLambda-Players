@@ -1,3 +1,18 @@
+local istable = istable
+local isstring = isstring
+local string_Explode = string.Explode
+local isbool = isbool
+local tostring = tostring
+local GetConVar = GetConVar
+local CreateConVar = CreateConVar
+local table_Count = table.Count
+local concommand_Add = concommand.Add
+local IsValid = IsValid
+local SortedPairs = SortedPairs
+local string_upper = string.upper
+local string_sub = string.sub
+local pairs = pairs
+
 GLAMBDA.ConVars = ( GLAMBDA.ConVars or {} )
 
 if ( CLIENT ) then
@@ -34,7 +49,7 @@ function GLAMBDA:CreateConVar( name, value, desc, shouldSave, isClient, isUserin
     local cvarType
     local decimals
     if isstring( value ) then
-        local floatPoints = string.Explode( ".", value, false )
+        local floatPoints = string_Explode( ".", value, false )
         if #floatPoints != 1 then
             cvarType = "Float"
             decimals = #floatPoints[ 2 ]
@@ -64,7 +79,7 @@ function GLAMBDA:CreateConVar( name, value, desc, shouldSave, isClient, isUserin
 
     if CLIENT and settingsTbl then
         local settingsData = self.ConVars.Settings[ name ]
-        local index = ( settingsData and settingsData.index or ( table.Count( self.ConVars.Settings ) + 1 ) )
+        local index = ( settingsData and settingsData.index or ( table_Count( self.ConVars.Settings ) + 1 ) )
         self.ConVars.Settings[ name ] = {
             index = index,
             settings = settingsTbl
@@ -115,11 +130,11 @@ function GLAMBDA:CreateConCommand( name, func, isClient, desc, settingsTbl )
     if isClient and SERVER then return end
 
     local cmdName = "glambda_" .. name
-    if isClient or SERVER then concommand.Add( cmdName, func, nil, desc ) end
+    if isClient or SERVER then concommand_Add( cmdName, func, nil, desc ) end
 
     if CLIENT and settingsTbl then
         self.ConVars.Settings[ name ] = {
-            index = ( table.Count( self.ConVars.Settings ) + 1 ),
+            index = ( table_Count( self.ConVars.Settings ) + 1 ),
             settings = settingsTbl
         }
 
@@ -241,7 +256,7 @@ GLAMBDA:CreateConVar( "player_personalitypreset", "random", "The personality pre
         comboBox:AddChoice( "Custom Random", "customrng" )
 
         for preset, _ in SortedPairs( GLAMBDA.PersonalityPresets ) do
-            comboBox:AddChoice( string.upper( preset[ 1 ] ) .. string.sub( preset, 2, #preset ), preset )
+            comboBox:AddChoice( string_upper( preset[ 1 ] ) .. string_sub( preset, 2, #preset ), preset )
         end
         return false
     end

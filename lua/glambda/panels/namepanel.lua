@@ -1,5 +1,14 @@
-file.CreateDir( "glambda/nameimport" )
-file.CreateDir( "glambda/exportednames" )
+local file_CreateDir = file.CreateDir
+local chat_AddText = CLIENT and chat.AddText
+local vgui_Create = CLIENT and vgui.Create
+local string_Explode = string.Explode
+local ipairs = ipairs
+local table_HasValue = table.HasValue
+local table_RemoveByValue = table.RemoveByValue
+local table_Merge = table.Merge
+
+file_CreateDir( "glambda/nameimport" )
+file_CreateDir( "glambda/exportednames" )
 
 local function OpenNamePanel( ply )
     if !ply:IsSuperAdmin() then  
@@ -9,16 +18,16 @@ local function OpenNamePanel( ply )
     local PANEL = GLAMBDA.PANEL
 
     local frame = PANEL:Frame( "Custom Name Editor", 300, 300 )
-    function frame:OnClose() chat.AddText( "Remember to Update Data after any changes!" ) end
+    function frame:OnClose() chat_AddText( "Remember to Update Data after any changes!" ) end
 
     local names = {}
     local hasData = false
 
-    local listView = vgui.Create( "DListView", frame )
+    local listView = vgui_Create( "DListView", frame )
     listView:Dock( FILL )
     listView:AddColumn( "Names", 1 )
 
-    local addNameEntry = vgui.Create( "DTextEntry", frame )
+    local addNameEntry = vgui_Create( "DTextEntry", frame )
     addNameEntry:SetPlaceholderText( "Enter names here!" )
     addNameEntry:Dock( BOTTOM )
 
@@ -42,12 +51,12 @@ local function OpenNamePanel( ply )
         local fileContent = LAMBDAFS:ReadFile( path, "json" )
         if !fileContent then
             fileContent = LAMBDAFS:ReadFile( path ) 
-            fileContent = string.Explode( "\n", fileContent )
+            fileContent = string_Explode( "\n", fileContent )
         end
         
         local count = 0
         for _, name in ipairs( fileContent ) do
-            if table.HasValue( names, name ) then continue end
+            if table_HasValue( names, name ) then continue end
             PANEL:UpdateSequentialFile( "glambda/customnames.json", name, "json" )
 
             local line = listView:AddLine( name )
@@ -56,15 +65,15 @@ local function OpenNamePanel( ply )
             count = ( count + 1 )
             names[ #names + 1 ] = name
         end
-        chat.AddText( "Imported " .. count .. " names to Server's Custom Names" )
+        chat_AddText( "Imported " .. count .. " names to Server's Custom Names" )
     end )
 
     function addNameEntry:OnEnter( value )
         if #value == 0 or !hasData then return end
         addNameEntry:SetText( "" )
 
-        if table.HasValue( names, value ) then
-            chat.AddText( "Server already has this name!" )
+        if table_HasValue( names, value ) then
+            chat_AddText( "Server already has this name!" )
             return 
         end
 
@@ -73,25 +82,25 @@ local function OpenNamePanel( ply )
 
         
         names[ #names + 1 ] = value
-        chat.AddText( "Added " .. value .. " to the Server's Custom Names" )
+        chat_AddText( "Added " .. value .. " to the Server's Custom Names" )
         PANEL:UpdateSequentialFile( "glambda/customnames.json", value, "json" )
     end
 
     function listView:OnRowRightClick( id, line )
-        chat.AddText( "Removed " .. line:GetSortValue( 1 ) .. " from the Server's names!" ) 
-        table.RemoveByValue( names , line:GetSortValue( 1 ) )
+        chat_AddText( "Removed " .. line:GetSortValue( 1 ) .. " from the Server's names!" ) 
+        table_RemoveByValue( names , line:GetSortValue( 1 ) )
 
         PANEL:RemoveVarFromSQFile( "glambda/customnames.json", line:GetSortValue( 1 ), "json" ) 
         listView:RemoveLine( id )
     end
 
-    chat.AddText( "Requesting Names from Server.." )
+    chat_AddText( "Requesting Names from Server.." )
     PANEL:RequestDataFromServer( "glambda/customnames.json", "json", function( data )
         hasData = true
         if !data then return end
 
         PANEL:SortStrings( data )
-        table.Merge( names, data ) 
+        table_Merge( names, data ) 
 
         for _, name in ipairs( data ) do
             local line = listView:AddLine( name )

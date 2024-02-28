@@ -1,3 +1,14 @@
+local IsValid = IsValid
+local vgui_Create = CLIENT and vgui.Create
+local ipairs = ipairs
+local string_lower = string.lower
+local surface_PlaySound = CLIENT and surface.PlaySound
+local pairs = pairs
+local timer_Simple = timer.Simple
+local file_Find = file.Find
+local util_KeyValuesToTable = util.KeyValuesToTable
+local Color = Color
+
 local function OpenPropPanel( ply )
     if IsValid( ply ) and !ply:IsSuperAdmin() then 
         GLAMBDA:SendNotification( ply, "You must be a super admin in order to use this!", NOTIFY_ERROR, nil, "buttons/button10.wav" )
@@ -8,10 +19,10 @@ local function OpenPropPanel( ply )
     local frame = PANEL:Frame( "Prop Panel", 800, 500 )
     PANEL:Label( "Click on models from the browser on the left to register them. Right click a row on the right to remove it", frame, TOP )
     
-    local clearprops = vgui.Create( "DButton", frame )
-    local resettodefault = vgui.Create( "DButton", frame )
-    local filebrowser = vgui.Create( "DFileBrowser", frame )
-    local proplist = vgui.Create( "DListView", frame )
+    local clearprops = vgui_Create( "DButton", frame )
+    local resettodefault = vgui_Create( "DButton", frame )
+    local filebrowser = vgui_Create( "DFileBrowser", frame )
+    local proplist = vgui_Create( "DListView", frame )
 
     resettodefault:Dock( BOTTOM )
     resettodefault:SetText( "Reset to Default List" )
@@ -25,7 +36,7 @@ local function OpenPropPanel( ply )
 
     function proplist:HasModel( mdl )
         for _, line in ipairs( self:GetLines() ) do 
-            if line:GetColumnText( 1 ) == string.lower( mdl ) then return true end
+            if line:GetColumnText( 1 ) == string_lower( mdl ) then return true end
         end
         return false
     end
@@ -40,7 +51,7 @@ local function OpenPropPanel( ply )
 
     function proplist:OnRowRightClick( id, line )
         self:RemoveLine( id )
-        surface.PlaySound( "buttons/button15.wav" )
+        surface_PlaySound( "buttons/button15.wav" )
     end
 
     function frame:OnClose()
@@ -66,17 +77,17 @@ local function OpenPropPanel( ply )
             return 
         end
 
-        proplist:AddLine( string.lower( path ) )
-        surface.PlaySound( "buttons/button15.wav" )
+        proplist:AddLine( string_lower( path ) )
+        surface_PlaySound( "buttons/button15.wav" )
     end
 
     local tree = filebrowser.Tree
 
-    timer.Simple( 0, function()
-        local files = file.Find( "settings/spawnlist/*", "GAME", "nameasc" )
+    timer_Simple( 0, function()
+        local files = file_Find( "settings/spawnlist/*", "GAME", "nameasc" )
         
         for _, spawnlist in ipairs( files ) do 
-            local tbl = util.KeyValuesToTable( GLAMBDA.FILE:ReadFile( "settings/spawnlist/" .. spawnlist, nil, "GAME" ) )
+            local tbl = util_KeyValuesToTable( GLAMBDA.FILE:ReadFile( "settings/spawnlist/" .. spawnlist, nil, "GAME" ) )
             
             local contents = tbl.contents
             if !contents then continue end
@@ -103,14 +114,14 @@ local function OpenPropPanel( ply )
                     icon:SetModel( contenttbl.model )
 
                     function icon:DoClick() 
-                        local mdl = string.lower( self:GetModelName() )
+                        local mdl = string_lower( self:GetModelName() )
                         if proplist:HasModel( mdl ) then 
                             GLAMBDA:SendNotification( ply, mdl .. " is already registered!", NOTIFY_ERROR, 3, "buttons/button10.wav" )
                             return 
                         end
 
                         proplist:AddLine( mdl )
-                        surface.PlaySound( "buttons/button15.wav" )
+                        surface_PlaySound( "buttons/button15.wav" )
                     end
                 end
             end

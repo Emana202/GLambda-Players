@@ -1,3 +1,14 @@
+local AddCSLuaFile = AddCSLuaFile
+local IsValid = IsValid
+local CurTime = CurTime
+local math_Clamp = math.Clamp
+local isvector = isvector
+local isentity = isentity
+local Path = Path
+local coroutine_yield = coroutine.yield
+
+--
+
 AddCSLuaFile()
 
 ENT.Base = "base_nextbot"
@@ -28,7 +39,7 @@ end
 
 function ENT:GetPath() return self._PATH end
 function ENT:GetCurrentSegment() return self.gb_CurrentSeg end
-function ENT:IncrementSegment() self.gb_CurrentSeg = math.Clamp( self.gb_CurrentSeg + 1, 1, #self._PATH:GetAllSegments() ) end
+function ENT:IncrementSegment() self.gb_CurrentSeg = math_Clamp( self.gb_CurrentSeg + 1, 1, #self._PATH:GetAllSegments() ) end
 
 function ENT:TranslateGoal()
     local goalPos = self.gb_GoalPosition
@@ -71,7 +82,7 @@ function ENT:PathToPos()
         if GLAMBDA:GetConVar( "debug_glace" ) then self._PATH:Draw() end
         self._PATH:MoveCursorToClosestPosition( GLACE:GetPos() )
         
-        coroutine.yield()
+        coroutine_yield()
     end
 end
 
@@ -79,7 +90,7 @@ function ENT:RunBehaviour()
 
     while true do
         self:PathToPos()
-        coroutine.yield()
+        coroutine_yield()
     end
 
 end

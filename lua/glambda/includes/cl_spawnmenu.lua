@@ -1,8 +1,25 @@
+local game_SinglePlayer = game.SinglePlayer
+local spawnmenu_AddToolTab = spawnmenu.AddToolTab
+local hook_Add = hook.Add
+local Color = Color
+local RunConsoleCommand = RunConsoleCommand
+local LocalPlayer = LocalPlayer
+local net_Start = net.Start
+local net_WriteString = net.WriteString
+local net_SendToServer = net.SendToServer
+local tostring = tostring
+local pairs = pairs
+local spawnmenu_AddToolMenuOption = spawnmenu.AddToolMenuOption
+local SortedPairsByMemberValue = SortedPairsByMemberValue
+local tobool = tobool
+local isfunction = isfunction
+local vgui_Create = vgui.Create
+
 local function AddGLambdaPlayerTab()
-    if game.SinglePlayer() then return end
-    spawnmenu.AddToolTab( "GLambda Players", "GLambda Players", "glambdaplayers/icon/glambda.png" )
+    if game_SinglePlayer() then return end
+    spawnmenu_AddToolTab( "GLambda Players", "GLambda Players", "glambdaplayers/icon/glambda.png" )
 end
-hook.Add( "AddToolMenuTabs", "AddGLambdaPlayerTab", AddGLambdaPlayerTab )
+hook_Add( "AddToolMenuTabs", "AddGLambdaPlayerTab", AddGLambdaPlayerTab )
 
 --
 
@@ -15,10 +32,10 @@ local function InstallMPConVarHandling( PANEL, convar, panelType, isClientside )
             if isClientside then
                 RunConsoleCommand( convar, val and "1" or "0" )
             elseif LocalPlayer():IsSuperAdmin() then
-                net.Start( "glambda_updateconvar" )
-                    net.WriteString( convar )
-                    net.WriteString( val and "1" or "0" )
-                net.SendToServer()
+                net_Start( "glambda_updateconvar" )
+                    net_WriteString( convar )
+                    net_WriteString( val and "1" or "0" )
+                net_SendToServer()
             else
                 chat.AddText( "Only Super Admins can change Server-Side settings!" )
             end
@@ -30,10 +47,10 @@ local function InstallMPConVarHandling( PANEL, convar, panelType, isClientside )
             if isClientside then
                 RunConsoleCommand( convar, val )
             elseif LocalPlayer():IsSuperAdmin() then
-                net.Start( "glambda_updateconvar" )
-                    net.WriteString( convar )
-                    net.WriteString( val )
-                net.SendToServer()
+                net_Start( "glambda_updateconvar" )
+                    net_WriteString( convar )
+                    net_WriteString( val )
+                net_SendToServer()
             else
                 chat.AddText( "Only Super Admins can change Server-Side settings!" )
             end
@@ -43,10 +60,10 @@ local function InstallMPConVarHandling( PANEL, convar, panelType, isClientside )
             if isClientside then
                 RunConsoleCommand( convar, tostring( val ) )
             elseif LocalPlayer():IsSuperAdmin() then
-                net.Start( "glambda_updateconvar" )
-                    net.WriteString( convar )
-                    net.WriteString( tostring( val ) )
-                net.SendToServer()
+                net_Start( "glambda_updateconvar" )
+                    net_WriteString( convar )
+                    net_WriteString( tostring( val ) )
+                net_SendToServer()
             else
                 chat.AddText( "Only Super Admins can change Server-Side settings!" )
             end
@@ -62,20 +79,20 @@ local function InstallMPConVarHandling( PANEL, convar, panelType, isClientside )
                 RunConsoleCommand( gvar, tostring( col.g ) )
                 RunConsoleCommand( bvar, tostring( col.b ) )
             elseif LocalPlayer():IsSuperAdmin() then
-                net.Start( "glambda_updateconvar" )
-                    net.WriteString( rvar )
-                    net.WriteString( tostring( col.r ) )
-                net.SendToServer()
+                net_Start( "glambda_updateconvar" )
+                    net_WriteString( rvar )
+                    net_WriteString( tostring( col.r ) )
+                net_SendToServer()
 
-                net.Start( "glambda_updateconvar" )
-                    net.WriteString( gvar )
-                    net.WriteString( tostring( col.g ) )
-                net.SendToServer()
+                net_Start( "glambda_updateconvar" )
+                    net_WriteString( gvar )
+                    net_WriteString( tostring( col.g ) )
+                net_SendToServer()
 
-                net.Start( "glambda_updateconvar" )
-                    net.WriteString( bvar )
-                    net.WriteString( tostring( col.b ) )
-                net.SendToServer()
+                net_Start( "glambda_updateconvar" )
+                    net_WriteString( bvar )
+                    net_WriteString( tostring( col.b ) )
+                net_SendToServer()
             else
                 chat.AddText( "Only Super Admins can change Server-Side settings!" )
             end
@@ -85,10 +102,10 @@ local function InstallMPConVarHandling( PANEL, convar, panelType, isClientside )
             if isClientside then
                 RunConsoleCommand( convar, tostring( data ) )
             elseif LocalPlayer():IsSuperAdmin() then
-                net.Start( "glambda_updateconvar" )
-                    net.WriteString( convar )
-                    net.WriteString( tostring( data ) )
-                net.SendToServer()
+                net_Start( "glambda_updateconvar" )
+                    net_WriteString( convar )
+                    net_WriteString( tostring( data ) )
+                net_SendToServer()
             else
                 chat.AddText( "Only Super Admins can change Server-Side settings!" )
             end
@@ -98,9 +115,9 @@ local function InstallMPConVarHandling( PANEL, convar, panelType, isClientside )
             if isClientside then
                 RunConsoleCommand( convar )
             elseif LocalPlayer():IsSuperAdmin() then
-                net.Start( "glambda_runconcommand" )
-                    net.WriteString( convar )
-                net.SendToServer()
+                net_Start( "glambda_runconcommand" )
+                    net_WriteString( convar )
+                net_SendToServer()
             else
                 chat.AddText( "Only Super Admins can run Server-Side Console Commands!" )
             end
@@ -109,14 +126,14 @@ local function InstallMPConVarHandling( PANEL, convar, panelType, isClientside )
 end
 
 local function AddGLambdaPlayersOptions()
-    if game.SinglePlayer() then return end
+    if game_SinglePlayer() then return end
     
     local categories = {}
     local cvarSettings = GLAMBDA.ConVars.Settings
     for _, tbl in pairs( cvarSettings ) do categories[ tbl.settings.category ] = true end
 
     for catName, _ in pairs( categories ) do
-        spawnmenu.AddToolMenuOption( "GLambda Players", "Main", "glambda_spawnmenucat_" .. catName , catName, "", "", function( panel )
+        spawnmenu_AddToolMenuOption( "GLambda Players", "Main", "glambda_spawnmenucat_" .. catName , catName, "", "", function( panel )
             for _, tbl in SortedPairsByMemberValue( cvarSettings, "index", false ) do
                 local cvarTbl = tbl.settings
                 if cvarTbl.category != catName then continue end
@@ -155,7 +172,7 @@ local function AddGLambdaPlayersOptions()
                 elseif cvarTbl.cvarType == "Color" then
                     panel:Help( cvarTbl.name )
 
-                    settingPanel = vgui.Create( "DColorMixer", panel )
+                    settingPanel = vgui_Create( "DColorMixer", panel )
                     panel:AddItem( settingPanel )
 
                     settingPanel:SetConVarR( cvarTbl.red )
@@ -174,4 +191,4 @@ local function AddGLambdaPlayersOptions()
         end )
     end
 end
-hook.Add( "PopulateToolMenu", "AddGLambdaPlayersOptions", AddGLambdaPlayersOptions )
+hook_Add( "PopulateToolMenu", "AddGLambdaPlayersOptions", AddGLambdaPlayersOptions )

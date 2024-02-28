@@ -1,3 +1,26 @@
+local pairs = pairs
+local string_match = string.match
+local string_gsub = string.gsub
+local table_Count = table.Count
+local unpack = unpack
+local string_Replace = string.Replace
+local GetHostName = GetHostName
+local game_GetMap = game.GetMap
+local RandomPairs = RandomPairs
+local file_Find = file.Find
+local string_StripExtension = string.StripExtension
+local LambdaRNG = LambdaRNG
+local IsValid = IsValid
+local string_Explode = string.Explode
+local ipairs = ipairs
+local string_EndsWith = string.EndsWith
+local string_Left = string.Left
+local player_GetAll = player.GetAll
+local os_date = os.date
+local tonumber = tonumber
+
+--
+
 GLAMBDA.KEYWORD = {
     Normal = {},
     Conditional = {}
@@ -14,10 +37,10 @@ function KEYWORD:ModifyTextKeyWords( ply, text, keyEnt )
     if !text then return "" end
 
     for keyWord, func in pairs( self.Normal ) do
-        if !string.match( text, keyWord ) then continue end
+        if !string_match( text, keyWord ) then continue end
 
-        text = string.gsub( text, keyWord, function( ... )  
-            local count = table.Count( { ... } )
+        text = string_gsub( text, keyWord, function( ... )  
+            local count = table_Count( { ... } )
             local packed = {}
             for i = 1, count do packed[ #packed + 1 ] = ( func( ply, keyEnt ) or keyWord ) end
             return unpack( packed )
@@ -30,8 +53,8 @@ end
 function KEYWORD:IsValidCondition( ply, text, keyEnt ) 
     if text then
         for keyWord, func in pairs( self.Conditional ) do
-            if !string.match( text, keyWord ) then continue end
-            text = string.Replace( text, keyWord, "" )
+            if !string_match( text, keyWord ) then continue end
+            text = string_Replace( text, keyWord, "" )
             return func( ply, keyEnt ), text
         end
     end
@@ -47,7 +70,7 @@ KEYWORD:AddKeyWord( "Normal", "/servername/", function( ply ) return GetHostName
 KEYWORD:AddKeyWord( "Normal", "/deaths/", function( ply ) return ply:Deaths() end )
 KEYWORD:AddKeyWord( "Normal", "/ping/", function( ply ) return ply:Ping() end )
 KEYWORD:AddKeyWord( "Normal", "/kills/", function( ply ) return ply:Frags() end )
-KEYWORD:AddKeyWord( "Normal", "/map/", function() return game.GetMap() end )
+KEYWORD:AddKeyWord( "Normal", "/map/", function() return game_GetMap() end )
 
 --
 
@@ -58,8 +81,8 @@ KEYWORD:AddKeyWord( "Normal", "/rndply/", function( ply )
 end )
 
 KEYWORD:AddKeyWord( "Normal", "/rndmap/", function()
-    local maps = file.Find( "maps/gm_*", "GAME", "namedesc" )
-    return string.StripExtension( maps[ LambdaRNG( #maps ) ] )
+    local maps = file_Find( "maps/gm_*", "GAME", "namedesc" )
+    return string_StripExtension( maps[ LambdaRNG( #maps ) ] )
 end )
 
 KEYWORD:AddKeyWord( "Normal", "/keyent/", function( ply, keyEnt )
@@ -98,14 +121,14 @@ local propClasses = {
 }
 
 local function PropPrettyName( mdl )
-    local split = string.Explode( "/", mdl )
-    local basename = string.StripExtension( split[ #split ] )
-    basename = string.Replace( basename, "_", " " )
+    local split = string_Explode( "/", mdl )
+    local basename = string_StripExtension( split[ #split ] )
+    basename = string_Replace( basename, "_", " " )
     
-    for _, number in ipairs( numbers ) do basename = string.Replace( basename, number, "" ) end
+    for _, number in ipairs( numbers ) do basename = string_Replace( basename, number, "" ) end
     for _, ending in ipairs( endings ) do 
-        if string.EndsWith( basename, ending ) then 
-            basename = string.Left( basename, #basename - 1 ) 
+        if string_EndsWith( basename, ending ) then 
+            basename = string_Left( basename, #basename - 1 ) 
             break 
         end 
     end
@@ -128,10 +151,10 @@ end )
 
 KEYWORD:AddKeyWord( "Conditional", "|highping|", function( ply ) return ply:Ping() >= 150 end )
 KEYWORD:AddKeyWord( "Conditional", "|lowhp|", function( ply ) return ( ply:Health() / ply:GetMaxHealth() ) < 0.4 end )
-KEYWORD:AddKeyWord( "Conditional", "|quietserver|", function() return #player.GetAll() < 6 end )
-KEYWORD:AddKeyWord( "Conditional", "|activeserver|", function() return #player.GetAll() > 15 end )
-KEYWORD:AddKeyWord( "Conditional", "|amtime|", function() return os.date( "%p" ) == "am" end )
-KEYWORD:AddKeyWord( "Conditional", "|pmtime|", function() return os.date( "%p" ) == "pm" end )
+KEYWORD:AddKeyWord( "Conditional", "|quietserver|", function() return #player_GetAll() < 6 end )
+KEYWORD:AddKeyWord( "Conditional", "|activeserver|", function() return #player_GetAll() > 15 end )
+KEYWORD:AddKeyWord( "Conditional", "|amtime|", function() return os_date( "%p" ) == "am" end )
+KEYWORD:AddKeyWord( "Conditional", "|pmtime|", function() return os_date( "%p" ) == "pm" end )
 
 --
 
@@ -151,8 +174,8 @@ end )
 --
 
 local function IsCurrentDate( month, day )
-    local yearMonth = os.date( "%B" )
-    local weekDay = tonumber( os.date( "%d" ) )
+    local yearMonth = os_date( "%B" )
+    local weekDay = tonumber( os_date( "%d" ) )
     return ( yearMonth == month and weekDay == day )
 end
 

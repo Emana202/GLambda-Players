@@ -1,3 +1,11 @@
+local coroutine_wait = coroutine.wait
+local CurTime = CurTime
+local AngleRand = AngleRand
+local net_Start = net.Start
+local net_WriteString = net.WriteString
+local net_WriteVector = net.WriteVector
+local net_Broadcast = SERVER and net.Broadcast
+
 GLAMBDA.Buildings = ( GLAMBDA.Buildings or {} )
 
 --
@@ -22,10 +30,10 @@ GLAMBDA:AddBuildFunction( "props", "Allow Prop Spawning", "If the players are al
         if !self:CheckLimit( "props" ) then return end
 
         self:LookTo( self:GetPos() + self:GetForward() * GLAMBDA:Random( -500, 500 ) + self:GetRight() * GLAMBDA:Random( -500, 500 ) - self:GetUp() * GLAMBDA:Random( -25, 80 ), 1, 1 )
-        coroutine.wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
+        coroutine_wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
 
         self:SpawnProp( propTbl[ GLAMBDA:Random( #propTbl ) ] )
-        coroutine.wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
+        coroutine_wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
     end
 
     return true
@@ -38,10 +46,10 @@ GLAMBDA:AddBuildFunction( "npcs", "Allow NPC Spawning", "If the players are allo
     if #npcTbl == 0 then return end
 
     self:LookTo( self:GetPos() + self:GetForward() * GLAMBDA:Random( -500, 500 ) + self:GetRight() * GLAMBDA:Random( -500, 500 ) - self:GetUp() * GLAMBDA:Random( -25, 80 ), 1, 1 )
-    coroutine.wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
+    coroutine_wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
 
     self:SpawnNPC( npcTbl[ GLAMBDA:Random( #npcTbl ) ] )
-    coroutine.wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
+    coroutine_wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
 
     return true
 end )
@@ -53,10 +61,10 @@ GLAMBDA:AddBuildFunction( "sents", "Allow Entity Spawning", "If the players are 
     if #entTbl == 0 then return end
 
     self:LookTo( self:GetPos() + self:GetForward() * GLAMBDA:Random( -500, 500 ) + self:GetRight() * GLAMBDA:Random( -500, 500 ) - self:GetUp() * GLAMBDA:Random( -25, 80 ), 1, 1 )
-    coroutine.wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
+    coroutine_wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
 
     self:SpawnEntity( entTbl[ GLAMBDA:Random( #entTbl ) ] )
-    coroutine.wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
+    coroutine_wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
 
     return true
 end )
@@ -68,19 +76,19 @@ GLAMBDA:AddBuildFunction( "spraying", "Allow Spraying", "If the players are allo
     local targetPos = ( self:EyePos() + AngleRand( -180, 180 ):Forward() * 128 )
     self:LookTo( targetPos, 1, 1 )
     
-    coroutine.wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
+    coroutine_wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
 
     local trace = self:Trace( nil, targetPos )
     if !trace.Hit then return end
 
-    net.Start( "glambda_spray" )
-        net.WriteString( GLAMBDA.Sprays[ GLAMBDA:Random( #GLAMBDA.Sprays ) ] )
-        net.WriteVector( trace.HitPos )
-        net.WriteVector( trace.HitNormal )
-    net.Broadcast()
+    net_Start( "glambda_spray" )
+        net_WriteString( GLAMBDA.Sprays[ GLAMBDA:Random( #GLAMBDA.Sprays ) ] )
+        net_WriteVector( trace.HitPos )
+        net_WriteVector( trace.HitNormal )
+    net_Broadcast()
 
     self:EmitSound( "SprayCan.Paint" )
-    coroutine.wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
+    coroutine_wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
 
     return true
 end )

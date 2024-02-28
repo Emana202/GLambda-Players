@@ -1,7 +1,36 @@
+local file_Find = file.Find
+local ipairs = ipairs
+local include = include
+local FindMetaTable = FindMetaTable
+local game_SinglePlayer = game.SinglePlayer
+local ErrorNoHalt = ErrorNoHalt
+local player_GetCount = player.GetCount
+local game_MaxPlayers = game.MaxPlayers
+local player_CreateNextBot = SERVER and player.CreateNextBot
+local string_sub = string.sub
+local pairs = pairs
+local table_Merge = table.Merge
+local table_Copy = table.Copy
+local ErrorNoHaltWithStack = ErrorNoHaltWithStack
+local IsValid = IsValid
+local isfunction = isfunction
+local coroutine_create = coroutine.create
+local print = print
+local ents_Create = SERVER and ents.Create
+local net_Start = net.Start
+local net_WriteUInt = net.WriteUInt
+local net_WriteString = net.WriteString
+local net_Broadcast = SERVER and net.Broadcast
+local CurTime = CurTime
+local Vector = Vector
+local table_GetKeys = table.GetKeys
+
+--
+
 GLAMBDA.Player = {}
 
 local includePath = "glambda/players/"
-local includeFiles = file.Find( includePath .. "*.lua", "LUA", "nameasc" )
+local includeFiles = file_Find( includePath .. "*.lua", "LUA", "nameasc" )
 
 for _, lua in ipairs( includeFiles ) do
     include( includePath .. lua )
@@ -15,11 +44,11 @@ local PLAYER = FindMetaTable( "Player" )
 --
 
 function GLAMBDA:CreateLambdaPlayer()
-    if game.SinglePlayer() then 
+    if game_SinglePlayer() then 
         ErrorNoHalt( "GLambda Players: Trying to create a player in a single player session. (Create a multiplayer one instead!)" ) 
         return
     end
-    if player.GetCount() == game.MaxPlayers() then 
+    if player_GetCount() == game_MaxPlayers() then 
         ErrorNoHalt( "GLambda Players: No more players can be spawned. (Player Limit Reached!)" ) 
         return
     end
@@ -28,13 +57,13 @@ function GLAMBDA:CreateLambdaPlayer()
 
     
     local names = self.Nicknames
-    local ply = player.CreateNextBot( #names != 0 and names[ GLAMBDA:Random( #names ) ] or "GLambda Player" )
+    local ply = player_CreateNextBot( #names != 0 and names[ GLAMBDA:Random( #names ) ] or "GLambda Player" )
     ply.gb_IsLambdaPlayer = true
     
     local rndPm = self:GetRandomPlayerModel()
     local pfps = GLAMBDA.ProfilePictures
     if #pfps == 0 then
-        ply.gb_ProfilePicture = "spawnicons/" .. string.sub( rndPm, 1, #rndPm - 4 ) .. ".png"
+        ply.gb_ProfilePicture = "spawnicons/" .. string_sub( rndPm, 1, #rndPm - 4 ) .. ".png"
     else
         ply.gb_ProfilePicture = pfps[ GLAMBDA:Random( #pfps ) ]
     end
@@ -44,7 +73,7 @@ function GLAMBDA:CreateLambdaPlayer()
     local GLACE = { _PLY = ply }
 
     -- We copy these meta tables so we can run them on the GLACE table and it will be detoured to the player itself
-    for name, func in pairs( table.Merge( table.Copy( ENT ), table.Copy( PLAYER ), true ) ) do
+    for name, func in pairs( table_Merge( table_Copy( ENT ), table_Copy( PLAYER ), true ) ) do
         GLACE[ name ] = function( tblself, ... )
             local ply = GLACE._PLY
             if !ply:IsValid() then 
@@ -79,12 +108,12 @@ function GLAMBDA:CreateLambdaPlayer()
     
     --
     
-    GLACE:SetThread( coroutine.create( function() 
+    GLACE:SetThread( coroutine_create( function() 
         GLACE:ThreadedThink() 
         print( "GLambda Players: " .. ply:Name() .. "'s Threaded Think has stopped executing!" ) 
     end ) )
 
-    local navigator = ents.Create( "glace_navigator" )
+    local navigator = ents_Create( "glace_navigator" )
     navigator:SetOwner( ply )
     navigator:Spawn()
     
@@ -92,10 +121,10 @@ function GLAMBDA:CreateLambdaPlayer()
     navigator:SetPos( GLACE:GetPos() )
 
     -- Network this player to clients
-    net.Start( "glambda_waitforplynet" )
-        net.WriteUInt( ply:UserID(), 12 )
-        net.WriteString( ply.gb_ProfilePicture )
-    net.Broadcast()
+    net_Start( "glambda_waitforplynet" )
+        net_WriteUInt( ply:UserID(), 12 )
+        net_WriteString( ply.gb_ProfilePicture )
+    net_Broadcast()
 
     --
     
@@ -178,7 +207,7 @@ function GLAMBDA:CreateLambdaPlayer()
 
     local voiceProfile
     if GLAMBDA:Random( 100 ) <= self:GetConVar( "player_vp_chance" ) then
-        local profiles = table.GetKeys( self.VoiceProfiles )
+        local profiles = table_GetKeys( self.VoiceProfiles )
         voiceProfile = profiles[ GLAMBDA:Random( #profiles ) ]
     end
     GLACE.VoiceProfile = voiceProfile

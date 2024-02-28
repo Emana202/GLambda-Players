@@ -1,3 +1,11 @@
+local Color = Color
+local vgui_Create = CLIENT and vgui.Create
+local list_Get = list.Get
+local ipairs = ipairs
+local Material = Material
+local SortedPairsByMemberValue = SortedPairsByMemberValue
+local pairs = pairs
+
 local imageBgClr = Color( 72, 72, 72 )
 local cachedMats = {}
 
@@ -17,19 +25,19 @@ local function OpenNPCPanel( ply )
     local resetDefault = PANEL:Button( frame, BOTTOM, "Reset to Default List" )
 
     local scrollPnl = PANEL:ScrollPanel( leftPanel, false, FILL )
-    local npcLayout = vgui.Create( "DIconLayout", scrollPnl )
+    local npcLayout = vgui_Create( "DIconLayout", scrollPnl )
     npcLayout:Dock( FILL )
     npcLayout:SetSpaceX( 5 )
     npcLayout:SetSpaceY( 5 )
 
-    local npcList = vgui.Create( "DListView", frame )
+    local npcList = vgui_Create( "DListView", frame )
     npcList:SetSize( 350, 1 )
     npcList:DockMargin( 10, 0, 0, 0 )
     npcList:Dock( LEFT )
     npcList:AddColumn( "NPCs [Print Name]", 1 )
     npcList:AddColumn( "NPCs [Class Name]", 2 )
 
-    local gameList = list.Get( "NPC" )
+    local gameList = list_Get( "NPC" )
 
     local function AddNPCPanel( class )
         for _, v in ipairs( npcLayout:GetChildren() ) do
@@ -40,7 +48,7 @@ local function OpenNPCPanel( ply )
         npcPanel:SetSize( 100, 120 )
         npcPanel:SetBackgroundColor( imageBgClr )
         
-        local npcImg = vgui.Create( "DImageButton", npcPanel )
+        local npcImg = vgui_Create( "DImageButton", npcPanel )
         npcImg:SetSize( 1, 100 )
         npcImg:Dock( TOP )
         

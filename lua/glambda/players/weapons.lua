@@ -1,3 +1,9 @@
+local IsValid = IsValid
+local CurTime = CurTime
+local RandomPairs = RandomPairs
+local game_GetAmmoMax = game.GetAmmoMax
+local string_match = string.match
+
 -- Makes us select the given weapon by its classname
 function GLAMBDA.Player:SelectWeapon( weapon )
     if self:GetNoWeaponSwitch() then return end
@@ -23,9 +29,6 @@ function GLAMBDA.Player:SelectWeapon( weapon )
     end
 
     self.CmdSelectWeapon = wepEnt
-    self.NextWeaponThinkT = 0
-    self.NextWeaponAttackT = ( CurTime() + 0.5 )
-
     return true
 end
 
@@ -35,6 +38,7 @@ function GLAMBDA.Player:SelectRandomWeapon( filter )
     curWep = ( IsValid( curWep ) and curWep:GetClass() or nil )
 
     for name, data in RandomPairs( GLAMBDA.WeaponList ) do
+        if !self:IsWeaponAllowed( name ) then continue end
         if filter and filter( name, data, curWep ) == false then continue end
         if !self:SelectWeapon( name ) then continue end
         return true
@@ -52,6 +56,12 @@ function GLAMBDA.Player:SelectLethalWeapon()
 end
 
 --
+
+-- Returns if the given weapon is allowed
+function GLAMBDA.Player:IsWeaponAllowed( wepClass )
+    local permitTbl = GLAMBDA.WeaponPermissions[ wepClass ]
+    return ( !permitTbl or permitTbl == true )
+end
 
 -- Returns the classname of our current weapon
 function GLAMBDA.Player:GetCurrentWeapon()
@@ -79,7 +89,7 @@ end
 -- Returns the max amount of ammo our weapon can have
 function GLAMBDA.Player:GetWeaponMaxAmmo()
     local _, ammoType = self:GetWeaponAmmo()
-    return ( !ammoType and -1 or game.GetAmmoMax( ammoType ) )
+    return ( !ammoType and -1 or game_GetAmmoMax( ammoType ) )
 end
 
 -- Returns if we are currently reloading our weapon
@@ -88,7 +98,7 @@ function GLAMBDA.Player:IsReloadingWeapon()
     if !IsValid( curWep ) then return false end
 
     if curWep.ARC9 then return curWep:GetReloading() end
-    return string.match( curWep:GetSequenceActivityName( curWep:GetSequence() ), "RELOAD" )
+    return string_match( curWep:GetSequenceActivityName( curWep:GetSequence() ), "RELOAD" )
 end
 
 --

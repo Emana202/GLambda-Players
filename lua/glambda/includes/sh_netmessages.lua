@@ -1,88 +1,123 @@
+local util_AddNetworkString = SERVER and util.AddNetworkString
+local net_Receive = net.Receive
+local net_ReadPlayer = net.ReadPlayer
+local IsValid = IsValid
+local RealTime = RealTime
+local net_ReadFloat = net.ReadFloat
+local table_Merge = table.Merge
+local net_ReadTable = net.ReadTable
+local file_Find = file.Find
+local ipairs = ipairs
+local file_Delete = file.Delete
+local GLAMBDA = GLAMBDA
+local GetConVar = GetConVar
+local net_ReadString = net.ReadString
+local concommand_Run = concommand.Run
+local print = print
+local net_ReadUInt = net.ReadUInt
+local Color = Color
+local net_Start = net.Start
+local net_WriteString = net.WriteString
+local net_WriteUInt = net.WriteUInt
+local net_SendToServer = CLIENT and net.SendToServer
+local chat_AddText = CLIENT and chat.AddText
+local RunConsoleCommand = RunConsoleCommand
+local net_ReadBool = net.ReadBool
+local string_EndsWith = string.EndsWith
+local CreateMaterial = CreateMaterial
+local Material = Material
+local util_DecalEx = CLIENT and util.DecalEx
+local Entity = Entity
+local net_ReadVector = net.ReadVector
+local sound_PlayFile = CLIENT and sound.PlayFile
+local net_WritePlayer = net.WritePlayer
+local net_WriteFloat = net.WriteFloat
+
 if ( SERVER ) then
 
-    util.AddNetworkString( "glambda_playerinit" )
-    util.AddNetworkString( "glambda_waitforplynet" )
-    util.AddNetworkString( "glambda_playerremove" )
-    util.AddNetworkString( "glambda_playvoicesnd" )
-    util.AddNetworkString( "glambda_stopspeech" )
-    util.AddNetworkString( "glambda_sendsndduration" )
-    util.AddNetworkString( "glambda_playgesture" )
-    util.AddNetworkString( "glambda_syncweapons" )
-    util.AddNetworkString( "glambda_sendnotify" )
-    util.AddNetworkString( "glambda_updatedata" )
-    util.AddNetworkString( "glambda_reloadfiles" )
-    util.AddNetworkString( "glambda_getbirthday" )
-    util.AddNetworkString( "glambda_sendbirthday" )
-    util.AddNetworkString( "glambda_setupbirthday" )
-    util.AddNetworkString( "glambda_updateconvar" )
-    util.AddNetworkString( "glambda_runconcommand" )
-    util.AddNetworkString( "glambda_spray" )
-    util.AddNetworkString( "glambda_resetweaponlist" )
-    util.AddNetworkString( "glambda_updatewepperms" )
+    util_AddNetworkString( "glambda_playerinit" )
+    util_AddNetworkString( "glambda_waitforplynet" )
+    util_AddNetworkString( "glambda_playerremove" )
+    util_AddNetworkString( "glambda_playvoicesnd" )
+    util_AddNetworkString( "glambda_stopspeech" )
+    util_AddNetworkString( "glambda_sendsndduration" )
+    util_AddNetworkString( "glambda_playgesture" )
+    util_AddNetworkString( "glambda_syncweapons" )
+    util_AddNetworkString( "glambda_sendnotify" )
+    util_AddNetworkString( "glambda_updatedata" )
+    util_AddNetworkString( "glambda_reloadfiles" )
+    util_AddNetworkString( "glambda_getbirthday" )
+    util_AddNetworkString( "glambda_sendbirthday" )
+    util_AddNetworkString( "glambda_setupbirthday" )
+    util_AddNetworkString( "glambda_updateconvar" )
+    util_AddNetworkString( "glambda_runconcommand" )
+    util_AddNetworkString( "glambda_spray" )
+    util_AddNetworkString( "glambda_resetweaponlist" )
+    util_AddNetworkString( "glambda_updatewepperms" )
 
     --
 
-    net.Receive( "glambda_sendsndduration", function()
-        local ply = net.ReadPlayer()
+    net_Receive( "glambda_sendsndduration", function()
+        local ply = net_ReadPlayer()
         if !IsValid( ply ) then return end
         
         local glace = ply:GetGlaceObject()
-        if glace then glace:SetSpeechEndTime( RealTime() + net.ReadFloat() ) end
+        if glace then glace:SetSpeechEndTime( RealTime() + net_ReadFloat() ) end
     end )
 
     --
 
-    net.Receive( "glambda_updatewepperms", function( len, ply )
+    net_Receive( "glambda_updatewepperms", function( len, ply )
         if !ply:IsSuperAdmin() then return end
-        table.Merge( GLAMBDA.WeaponPermissions, net.ReadTable() )
+        table_Merge( GLAMBDA.WeaponPermissions, net_ReadTable() )
     end )
 
-    net.Receive( "glambda_resetweaponlist", function( len, ply )
+    net_Receive( "glambda_resetweaponlist", function( len, ply )
         if !ply:IsSuperAdmin() then return end
 
-        local files = file.Find( "glambda/weapons/*.dat", "DATA", "nameasc" )
+        local files = file_Find( "glambda/weapons/*.dat", "DATA", "nameasc" )
         if !files then return end
 
         for _, fileName in ipairs( files ) do
-            file.Delete( "glambda/weapons/" .. fileName, "DATA" )
+            file_Delete( "glambda/weapons/" .. fileName, "DATA" )
         end
 
         GLAMBDA:ReadDefaultWeapons( true )
         GLAMBDA.DataUpdateFuncs[ "weapons" ]()
     end )
 
-    net.Receive( "glambda_updateconvar", function( len, ply )
+    net_Receive( "glambda_updateconvar", function( len, ply )
         if !ply:IsSuperAdmin() then return end
-        local cvar = GetConVar( net.ReadString() )
-        if cvar and cvar:IsFlagSet( FCVAR_LUA_SERVER ) then cvar:SetString( net.ReadString() ) end
+        local cvar = GetConVar( net_ReadString() )
+        if cvar and cvar:IsFlagSet( FCVAR_LUA_SERVER ) then cvar:SetString( net_ReadString() ) end
     end )
     
-    net.Receive( "glambda_runconcommand", function( len, ply )
+    net_Receive( "glambda_runconcommand", function( len, ply )
         if !ply:IsSuperAdmin() then return end
-        concommand.Run( ply, net.ReadString() )
+        concommand_Run( ply, net_ReadString() )
     end )
     
     --
 
     GLAMBDA.Birthdays = ( GLAMBDA.Birthdays or {} )
 
-    net.Receive( "glambda_sendbirthday", function( len, ply )
-        local month = net.ReadString()
+    net_Receive( "glambda_sendbirthday", function( len, ply )
+        local month = net_ReadString()
         if month == "NIL" then 
             print( "GLambda Players: " .. ply:Name() .. " has not set up their birthday date yet" )
             return 
         end
 
         print( "GLambda Players: Successfully received " .. ply:Name() .. "'s birthday!")
-        GLAMBDA.Birthdays[ ply:SteamID() ] = { month = month, day = net.ReadUInt( 5 ) }
+        GLAMBDA.Birthdays[ ply:SteamID() ] = { month = month, day = net_ReadUInt( 5 ) }
     end )
 
-    net.Receive( "glambda_setupbirthday", function( len, ply )
-        local month = net.ReadString()
+    net_Receive( "glambda_setupbirthday", function( len, ply )
+        local month = net_ReadString()
         if month == "NIL" then return end
 
         print( "GLambda Players: " .. ply:Name() .. " changed their birthday date")
-        GLAMBDA.Birthdays[ ply:SteamID() ] = { month = month, day = net.ReadUInt( 5 ) }
+        GLAMBDA.Birthdays[ ply:SteamID() ] = { month = month, day = net_ReadUInt( 5 ) }
     end )
 
 end
@@ -95,79 +130,79 @@ if ( CLIENT ) then
 
     --
 
-    net.Receive( "glambda_getbirthday", function()
+    net_Receive( "glambda_getbirthday", function()
         local birthdayData = GLAMBDA.FILE:ReadFile( "glambda/plybirthday.json", "json" )
 
-        net.Start( "glambda_sendbirthday" )
+        net_Start( "glambda_sendbirthday" )
         if birthdayData then
-            net.WriteString( birthdayData.month )
-            net.WriteUInt( birthdayData.day, 5 )
+            net_WriteString( birthdayData.month )
+            net_WriteUInt( birthdayData.day, 5 )
         else
-            net.WriteString( "NIL" )
-            net.WriteUInt( 1, 5 )
+            net_WriteString( "NIL" )
+            net_WriteUInt( 1, 5 )
         end
-        net.SendToServer()
+        net_SendToServer()
     end )
 
-    net.Receive( "glambda_reloadfiles", function()
+    net_Receive( "glambda_reloadfiles", function()
         GLAMBDA:LoadFiles()
-        chat.AddText( color_client, "Reloaded all GLambda-related files for your Client" )
+        chat_AddText( color_client, "Reloaded all GLambda-related files for your Client" )
         RunConsoleCommand( "spawnmenu_reload" )
     end )
 
-    net.Receive( "glambda_sendnotify", function()
-        GLAMBDA:SendNotification( nil, net.ReadString(), net.ReadUInt( 3 ), net.ReadFloat(), net.ReadString() )
+    net_Receive( "glambda_sendnotify", function()
+        GLAMBDA:SendNotification( nil, net_ReadString(), net_ReadUInt( 3 ), net_ReadFloat(), net_ReadString() )
     end )
 
-    net.Receive( "glambda_updatedata", function()
-        local dataName = net.ReadString()
+    net_Receive( "glambda_updatedata", function()
+        local dataName = net_ReadString()
         local updFunc = GLAMBDA.DataUpdateFuncs[ dataName ]
         if !updFunc then return end
 
         updFunc()
-        chat.AddText( 'GLambda: "' .. dataName .. '" data was updated by the Server' )
+        chat_AddText( 'GLambda: "' .. dataName .. '" data was updated by the Server' )
 
-        if net.ReadBool() then
+        if net_ReadBool() then
             RunConsoleCommand( "spawnmenu_reload" )
         end
     end )
 
-    net.Receive( "glambda_syncweapons", function()
-        local wepClass = net.ReadString()
-        local wepName = net.ReadString()
+    net_Receive( "glambda_syncweapons", function()
+        local wepClass = net_ReadString()
+        local wepName = net_ReadString()
         if wepName[ 1 ] == "#" then wepName = wepClass end
 
-        local wepCat = net.ReadString()
+        local wepCat = net_ReadString()
         GLAMBDA.WeaponList[ wepClass ] = { Name = wepName, Category = wepCat }
     end )
 
-    net.Receive( "glambda_playerinit", function()
-        local ply = net.ReadPlayer()
+    net_Receive( "glambda_playerinit", function()
+        local ply = net_ReadPlayer()
         if !IsValid( ply ) then return end
 
-        GLAMBDA:InitializeLambda( ply, net.ReadString() )
+        GLAMBDA:InitializeLambda( ply, net_ReadString() )
     end )
 
-    net.Receive( "glambda_waitforplynet", function()
-        GLAMBDA.WaitingForNetwork[ net.ReadUInt( 12 ) ] = {
-            net.ReadString()
+    net_Receive( "glambda_waitforplynet", function()
+        GLAMBDA.WaitingForNetwork[ net_ReadUInt( 12 ) ] = {
+            net_ReadString()
         }
     end )
 
-    net.Receive( "glambda_playgesture", function()
-        local ply = net.ReadPlayer()
+    net_Receive( "glambda_playgesture", function()
+        local ply = net_ReadPlayer()
         if !IsValid( ply ) then return end
 
-        local act = net.ReadFloat()
+        local act = net_ReadFloat()
         ply:AnimRestartGesture( GESTURE_SLOT_VCD, act, true )
     end )
     
     GLAMBDA.SprayDecals = ( GLAMBDA.SprayDecals or 1 )
-    net.Receive( "glambda_spray", function()
+    net_Receive( "glambda_spray", function()
         local material
-        local sprayPath = net.ReadString()
+        local sprayPath = net_ReadString()
 
-        if string.EndsWith( sprayPath, ".vtf" ) then
+        if string_EndsWith( sprayPath, ".vtf" ) then
             material = CreateMaterial( "GLambda_SprayMaterial#" .. GLAMBDA.SprayDecals, "LightmappedGeneric", {
                 [ "$basetexture" ] = sprayPath,
                 [ "$translucent" ] = 1,
@@ -209,7 +244,7 @@ if ( CLIENT ) then
         end
     
         -- Place the spray
-        util.DecalEx( material, Entity( 0 ), net.ReadVector(), net.ReadVector(), color_white, texWidth, texHeight )
+        util_DecalEx( material, Entity( 0 ), net_ReadVector(), net_ReadVector(), color_white, texWidth, texHeight )
     end )
 
     --
@@ -224,13 +259,13 @@ if ( CLIENT ) then
         if IsValid( snd ) then snd:Stop() end
     end
 
-    net.Receive( "glambda_playerremove", function()
-        local ply = net.ReadPlayer()
+    net_Receive( "glambda_playerremove", function()
+        local ply = net_ReadPlayer()
         StopCurrentVoice( ply )
     end )
 
-    net.Receive( "glambda_stopspeech", function()
-        local ply = net.ReadPlayer()
+    net_Receive( "glambda_stopspeech", function()
+        local ply = net_ReadPlayer()
         StopCurrentVoice( ply )
     end )
 
@@ -238,7 +273,7 @@ if ( CLIENT ) then
         if !IsValid( ply ) then return end
         StopCurrentVoice( ply )
 
-        sound.PlayFile( sndDir, "noplay" .. ( is3d and " 3d" or "" ), function( snd, errId, errName )
+        sound_PlayFile( sndDir, "noplay" .. ( is3d and " 3d" or "" ), function( snd, errId, errName )
             if errId == 21 then
                 PlaySoundFile( ply, sndDir, sndPitch, origin, delay, false )
                 return
@@ -280,14 +315,14 @@ if ( CLIENT ) then
             snd:SetVolume( ply:IsMuted() and 0 or GLAMBDA:GetConVar( "voice_volume" ) )
             snd:Set3DEnabled( GLAMBDA:GetConVar( "voice_globalchat" ) or is3d )
 
-            net.Start( "glambda_sendsndduration" )
-                net.WritePlayer( ply )
-                net.WriteFloat( ( sndLength / playRate ) + delay )
-            net.SendToServer()
+            net_Start( "glambda_sendsndduration" )
+                net_WritePlayer( ply )
+                net_WriteFloat( ( sndLength / playRate ) + delay )
+            net_SendToServer()
         end )
     end
-    net.Receive( "glambda_playvoicesnd", function()
-        PlaySoundFile( net.ReadPlayer(), net.ReadString(), net.ReadUInt( 8 ), net.ReadVector(), net.ReadFloat(), true )
+    net_Receive( "glambda_playvoicesnd", function()
+        PlaySoundFile( net_ReadPlayer(), net_ReadString(), net_ReadUInt( 8 ), net_ReadVector(), net_ReadFloat(), true )
     end )
 
 end

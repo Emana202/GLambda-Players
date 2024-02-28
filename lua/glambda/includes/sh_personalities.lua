@@ -1,9 +1,14 @@
+local string_lower = string.lower
+local RandomPairs = RandomPairs
+local pcall = pcall
+local ErrorNoHaltWithStack = ErrorNoHaltWithStack
+
 GLAMBDA.Personalities = {}
 
 --
 
 function GLAMBDA:CreatePersonalityType( personaName, func )
-    local infoName = "personality_" .. string.lower( personaName ) .. "chance"
+    local infoName = "personality_" .. string_lower( personaName ) .. "chance"
     self:CreateConVar( infoName, 30, 'The chance that a "' .. personaName .. '" personality chance will be executed.\nPersonality Preset should be set to "Custom" or "Custom Random" to affect newly spawned players!', nil, true, true, 0, 100, { 
         name = personaName .. " Chance", 
         category = "Client Settings" 
@@ -45,6 +50,7 @@ GLAMBDA:CreatePersonalityType( "Build", function( self )
 end )
 
 GLAMBDA:CreatePersonalityType( "Toolgun", function( self )
+    if !self:IsWeaponAllowed( "gmod_tool" ) then return end
     self:SelectWeapon( "gmod_tool" )
     self:SetNoWeaponSwitch( true )
 

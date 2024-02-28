@@ -1,3 +1,6 @@
+local hook_Add = hook.Add
+local bit_band = bit.band
+local isstring = isstring
 local IsValid = IsValid
 local isentity = isentity
 local LerpAngle = LerpAngle
@@ -5,7 +8,7 @@ local CurTime = CurTime
 local ents_Create = ents.Create
 
 -- Process the queued inputs from players
-hook.Add( "StartCommand", "GlaceBase-InputProcessing", function( ply, cmd )
+hook_Add( "StartCommand", "GlaceBase-InputProcessing", function( ply, cmd )
     if !ply:IsGLambdaPlayer() then return end
     
     cmd:ClearButtons()
@@ -20,8 +23,8 @@ hook.Add( "StartCommand", "GlaceBase-InputProcessing", function( ply, cmd )
 
     local selectWep = GLACE.CmdSelectWeapon
     if selectWep then
-        if bit.band( buttonQueue, IN_ATTACK ) == IN_ATTACK then buttonQueue = ( buttonQueue - IN_ATTACK ) end
-        if bit.band( buttonQueue, IN_ATTACK2 ) == IN_ATTACK2 then buttonQueue = ( buttonQueue - IN_ATTACK2 ) end
+        if bit_band( buttonQueue, IN_ATTACK ) == IN_ATTACK then buttonQueue = ( buttonQueue - IN_ATTACK ) end
+        if bit_band( buttonQueue, IN_ATTACK2 ) == IN_ATTACK2 then buttonQueue = ( buttonQueue - IN_ATTACK2 ) end
 
         if isentity( selectWep ) and IsValid( selectWep ) then
             cmd:SelectWeapon( selectWep )
@@ -33,6 +36,8 @@ hook.Add( "StartCommand", "GlaceBase-InputProcessing", function( ply, cmd )
         if equipFunc then equipFunc( self, weapon ) end
         
         GLACE.CmdSelectWeapon = nil
+        GLACE.NextWeaponThinkT = 0
+        GLACE.NextWeaponAttackT = ( CurTime() + 0.5 )
     end
 
     if buttonQueue > 0 then
@@ -42,7 +47,7 @@ hook.Add( "StartCommand", "GlaceBase-InputProcessing", function( ply, cmd )
 end )
 
 -- Process movement inputs from players
-hook.Add( "SetupMove", "Glacebase-MovementProcessing", function( ply,  mv, cmd )
+hook_Add( "SetupMove", "Glacebase-MovementProcessing", function( ply,  mv, cmd )
     if !ply:IsGLambdaPlayer() or !ply:Alive() then return end 
     
     local GLACE = ply:GetGlaceObject()

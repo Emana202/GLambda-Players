@@ -87,14 +87,27 @@ if ( CLIENT ) then
 
     --
 
-    hook.Add( "NetworkEntityCreated", "GLambda_NetworkInitPlayers", function( ent )
-        if !ent:IsValid() or !ent:IsPlayer() then return end
+    local lastNetworkTime = CurTime()
+    hook.Add( "Think", "GLambda_NetworkInitPlayers", function( ply )
+        local waitTbl = GLAMBDA.WaitingForNetwork
+        if !waitTbl or table.IsEmpty( waitTbl ) then return end
 
-        local netTbl = GLAMBDA.WaitingForNetwork[ ent:UserID() ]
-        if !netTbl then return end
+        for _, ply in player.Iterator() do
+            local userId = ply:UserID()
+            local netTbl = waitTbl[ userId ]
 
-        GLAMBDA:InitializeLambda( ent, netTbl[ 1 ] )
-        GLAMBDA.WaitingForNetwork[ ent:UserID() ] = nil
+            if !netTbl then continue end
+            lastNetworkTime = CurTime()
+
+            GLAMBDA:InitializeLambda( ply, netTbl[ 1 ] )
+            waitTbl[ userId ] = nil
+            return
+        end
+
+        if ( CurTime() - lastNetworkTime ) > 10 then
+            lastNetworkTime = CurTime()
+            table.Empty( waitTbl )
+        end
     end )
 
 end

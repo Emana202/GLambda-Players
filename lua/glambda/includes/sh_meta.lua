@@ -1,3 +1,7 @@
+local FindMetaTable = FindMetaTable
+local vgui_Create = CLIENT and vgui.Create
+local IsValid = IsValid
+
 local metaTbl = ( GLAMBDA.MetaTable or {} )
 GLAMBDA.MetaTable = metaTbl
 
@@ -11,7 +15,7 @@ if ( CLIENT ) then
     function panelMeta:SetPlayer( ply, size )
         local imagePfp = self.GLambdaAvatar
         if !imagePfp and ply:IsGLambdaPlayer() then            
-            imagePfp = vgui.Create( "DImage", self )
+            imagePfp = vgui_Create( "DImage", self )
             imagePfp:SetSize( 32, 32 )
             imagePfp:SetMouseInputEnabled( false )
             imagePfp:SetMaterial( ply.gb_ProfilePicture )

@@ -1,3 +1,14 @@
+local pairs = pairs
+local SortedPairsByMemberValue = SortedPairsByMemberValue
+local IsValid = IsValid
+local coroutine_wait = coroutine.wait
+local math_ceil = math.ceil
+local game_GetAmmoMax = game.GetAmmoMax
+local istable = istable
+local isbool = isbool
+local isentity = isentity
+local CurTime = CurTime
+
 function GLAMBDA.Player:Idle()
     if GLAMBDA:Random( 3 ) == 1 then
         self:MoveToPos( self:GetRandomPos() )
@@ -49,7 +60,7 @@ function GLAMBDA.Player:SpawnPickup( classname, count, failCheck, isWpn )
     end
 
     local spawnRate = GLAMBDA:Random( 0.15, 0.4, true )
-    coroutine.wait( spawnRate )
+    coroutine_wait( spawnRate )
 
     for i = 1, count do
         if failCheck and failCheck( self ) == true then break end
@@ -62,7 +73,7 @@ function GLAMBDA.Player:SpawnPickup( classname, count, failCheck, isWpn )
         else
             self:SpawnEntity( classname )    
         end
-        coroutine.wait( spawnRate )
+        coroutine_wait( spawnRate )
     end
 
     return true
@@ -70,7 +81,7 @@ end
 
 function GLAMBDA.Player:HealUp()
     if self:Health() < self:GetMaxHealth() then
-        local spawnCount = math.ceil( ( self:GetMaxHealth() - self:Health() ) / 25 )
+        local spawnCount = math_ceil( ( self:GetMaxHealth() - self:Health() ) / 25 )
         spawnCount = GLAMBDA:Random( ( spawnCount / 2 ), spawnCount )
         
         self:SpawnPickup( "item_healthkit", spawnCount, function( self )
@@ -83,7 +94,7 @@ end
 
 function GLAMBDA.Player:ArmorUp()
     if self:Armor() < self:GetMaxArmor() then
-        local spawnCount = math.ceil( ( self:GetMaxArmor() - self:Armor() ) / 15 )
+        local spawnCount = math_ceil( ( self:GetMaxArmor() - self:Armor() ) / 15 )
         spawnCount = GLAMBDA:Random( ( spawnCount / 3 ), spawnCount )
     
         self:SpawnPickup( "item_battery", spawnCount, function( self )
@@ -98,7 +109,7 @@ function GLAMBDA.Player:GiveSelfAmmo()
     local spawnEnt = self:GetWeaponStat( "AmmoEntity" )
     if spawnEnt then
         local ammoCount, ammoType = self:GetWeaponAmmo()
-        local maxAmmo = game.GetAmmoMax( ammoType )
+        local maxAmmo = game_GetAmmoMax( ammoType )
         if ammoCount < maxAmmo then
             if istable( spawnEnt ) and #spawnEnt > 1 and !isbool( spawnEnt[ 2 ] ) then
                 spawnEnt = spawnEnt[ GLAMBDA:Random( #spawnEnt ) ]
@@ -148,7 +159,7 @@ function GLAMBDA.Player:TBaggingPosition( pos )
     for i = 1, GLAMBDA:Random( 4, 10 ) do
         if !self:GetState( "TBaggingPosition" ) then break end
         self:HoldKey( IN_DUCK )
-        coroutine.wait( 0.4 )
+        coroutine_wait( 0.4 )
     end
 
     return true
@@ -180,7 +191,7 @@ function GLAMBDA.Player:Laughing( args )
     local movePos = args[ 2 ]
     local actTime = ( laughDelay * GLAMBDA:Random( 0.75, 1.1, true ) )
     if !movePos then
-        coroutine.wait( actTime )
+        coroutine_wait( actTime )
     else
         self:MoveToPos( movePos, { sprint = false, cbTime = actTime, callback = function( self ) return true end } )
     end

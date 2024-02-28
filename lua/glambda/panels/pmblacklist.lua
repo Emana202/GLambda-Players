@@ -1,3 +1,10 @@
+local IsValid = IsValid
+local vgui_Create = CLIENT and vgui.Create
+local SortedPairs = SortedPairs
+local player_manager_AllValidModels = player_manager.AllValidModels
+local pairs = pairs
+local chat_AddText = CLIENT and chat.AddText
+
 local function OpenPMBlacklistPanel( ply )
     if IsValid( ply ) and !ply:IsSuperAdmin() then 
         GLAMBDA:SendNotification( ply, "You must be a super admin in order to use this!", NOTIFY_ERROR, nil, "buttons/button10.wav" )
@@ -16,12 +23,12 @@ local function OpenPMBlacklistPanel( ply )
     rightPanel:DockMargin( 10, 0, 0, 0 )
 
     local pmScroll = PANEL:ScrollPanel( leftPanel, false, FILL )
-    local mdlLayout = vgui.Create( "DIconLayout", pmScroll )
+    local mdlLayout = vgui_Create( "DIconLayout", pmScroll )
     mdlLayout:Dock( FILL )
     mdlLayout:SetSpaceX( 5 )
     mdlLayout:SetSpaceY( 5 )
 
-    local blockList = vgui.Create( "DListView", rightPanel )
+    local blockList = vgui_Create( "DListView", rightPanel )
     blockList:Dock( FILL )
     blockList:AddColumn( "Blocked Playermodels", 1 )
     
@@ -38,7 +45,7 @@ local function OpenPMBlacklistPanel( ply )
         self:RemoveLine( id )
     end
 
-    for k, mdl in SortedPairs( player_manager.AllValidModels() ) do
+    for k, mdl in SortedPairs( player_manager_AllValidModels() ) do
         local icon = mdlLayout:Add( "SpawnIcon" )
         icon:SetModel( mdl )
 
@@ -55,7 +62,7 @@ local function OpenPMBlacklistPanel( ply )
         end
 
         PANEL:WriteServerFile( "glambda/pmblocklist.json", mdls, "json" ) 
-        chat.AddText( "Remember to Update Data after any changes!" )
+        chat_AddText( "Remember to Update Data after any changes!" )
     end
 
     --

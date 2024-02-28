@@ -1,3 +1,19 @@
+local AddCSLuaFile = AddCSLuaFile
+local pairs = pairs
+local undo_Create = SERVER and undo.Create
+local undo_SetPlayer = SERVER and undo.SetPlayer
+local undo_SetCustomUndoText = SERVER and undo.SetCustomUndoText
+local undo_AddEntity = SERVER and undo.AddEntity
+local undo_Finish = SERVER and undo.Finish
+local IsValid = IsValid
+local CurTime = CurTime
+local net_Start = net.Start
+local net_WritePlayer = net.WritePlayer
+local net_Broadcast = SERVER and net.Broadcast
+local timer_Simple = timer.Simple
+
+--
+
 AddCSLuaFile()
 
 ENT.Base = "base_point"
@@ -66,11 +82,11 @@ function ENT:InitializePlayer( creator )
     end
 
     local undoName = "GLambda Player ( " .. ply:Nick() .. " )"
-    undo.Create( undoName )
-        undo.SetPlayer( creator )
-        undo.SetCustomUndoText( "Undone " .. undoName )
-        undo.AddEntity( self )
-    undo.Finish( undoName )
+    undo_Create( undoName )
+        undo_SetPlayer( creator )
+        undo_SetCustomUndoText( "Undone " .. undoName )
+        undo_AddEntity( self )
+    undo_Finish( undoName )
 end
 
 function ENT:Think()
@@ -87,10 +103,10 @@ function ENT:OnRemove()
     local ply = self:GetOwner()
     if !IsValid( ply ) then return end
     
-    net.Start( "glambda_playerremove" )
-        net.WritePlayer( ply )
-    net.Broadcast()
+    net_Start( "glambda_playerremove" )
+        net_WritePlayer( ply )
+    net_Broadcast()
 
     local plyNick = self:GetCreator():Nick()
-    timer.Simple( 0, function() if IsValid( ply ) then ply:Kick( "GLambda: Removed by " .. plyNick ) end end )
+    timer_Simple( 0, function() if IsValid( ply ) then ply:Kick( "GLambda: Removed by " .. plyNick ) end end )
 end

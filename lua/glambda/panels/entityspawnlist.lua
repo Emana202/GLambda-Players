@@ -1,3 +1,11 @@
+local Color = Color
+local vgui_Create = CLIENT and vgui.Create
+local list_Get = list.Get
+local ipairs = ipairs
+local Material = Material
+local SortedPairsByMemberValue = SortedPairsByMemberValue
+local pairs = pairs
+
 local imageBgClr = Color( 72, 72, 72 )
 local cachedMats = {}
 
@@ -17,19 +25,19 @@ local function OpenEntityPanel( ply )
     local resetDefault = PANEL:Button( frame, BOTTOM, "Reset to Default List" ) 
 
     local scrollPnl = PANEL:ScrollPanel( leftPanel, false, FILL )
-    local entLayout = vgui.Create( "DIconLayout", scrollPnl )
+    local entLayout = vgui_Create( "DIconLayout", scrollPnl )
     entLayout:Dock( FILL )
     entLayout:SetSpaceX( 5 )
     entLayout:SetSpaceY( 5 )
 
-    local entList = vgui.Create( "DListView", frame )
+    local entList = vgui_Create( "DListView", frame )
     entList:SetSize( 350, 1 )
     entList:DockMargin( 10, 0, 0, 0 )
     entList:Dock( LEFT )
     entList:AddColumn( "ENTs [Print Name]", 1 )
     entList:AddColumn( "ENTs [Class Name]", 2 )
 
-    local gameList = list.Get( "SpawnableEntities" )
+    local gameList = list_Get( "SpawnableEntities" )
 
     local function AddENTPanel( class )
         for _, v in ipairs( entLayout:GetChildren() ) do
@@ -40,7 +48,7 @@ local function OpenEntityPanel( ply )
         entPanel:SetSize( 100, 120 )
         entPanel:SetBackgroundColor( imageBgClr )
         
-        local entImg = vgui.Create( "DImageButton", entPanel )
+        local entImg = vgui_Create( "DImageButton", entPanel )
         entImg:SetSize( 1, 100 )
         entImg:Dock( TOP )
         
@@ -80,7 +88,7 @@ local function OpenEntityPanel( ply )
         self:RemoveLine( id )
     end
 
-    local npcList = list.Get( "NPC" )
+    local npcList = list_Get( "NPC" )
     for _, v in SortedPairsByMemberValue( gameList, "Category" ) do
         if v.AdminOnly then continue end
         local class = v.ClassName

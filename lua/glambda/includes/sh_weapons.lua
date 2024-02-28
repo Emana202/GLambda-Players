@@ -1,7 +1,34 @@
+local file_CreateDir = file.CreateDir
+local net_Start = net.Start
+local net_WriteString = net.WriteString
+local net_Broadcast = SERVER and net.Broadcast
+local istable = istable
+local table_Merge = table.Merge
+local file_Find = file.Find
+local ipairs = ipairs
+local string_StripExtension = string.StripExtension
+local file_Exists = file.Exists
+local IsMounted = IsMounted
+local print = print
+local table_concat = table.concat
+local pairs = pairs
+local isstring = isstring
+local CompileString = CompileString
+local table_Empty = table.Empty
+local list_Get = list.Get
+local type = type
+local vgui_Create = CLIENT and vgui.Create
+local notification_AddLegacy = CLIENT and notification.AddLegacy
+local surface_PlaySound = CLIENT and surface.PlaySound
+local math_max = math.max
+local SortedPairs = SortedPairs
+local net_WriteTable = net.WriteTable
+local net_SendToServer = CLIENT and net.SendToServer
+
 GLAMBDA.WeaponList = ( GLAMBDA.WeaponList or {} )
 GLAMBDA.WeaponPermissions = ( GLAMBDA.WeaponPermissions or {} )
 
-file.CreateDir( "glambda/weapons" )
+file_CreateDir( "glambda/weapons" )
 
 --
 
@@ -9,15 +36,15 @@ function GLAMBDA:AddWeapon( wepName, wepData )
     wepData = ( wepData or {} )
 
     if ( SERVER ) then
-        net.Start( "glambda_syncweapons" )
-            net.WriteString( wepName )
-            net.WriteString( wepData.Name or "#" .. wepName )
-            net.WriteString( wepData.Category or "" )
-        net.Broadcast()
+        net_Start( "glambda_syncweapons" )
+            net_WriteString( wepName )
+            net_WriteString( wepData.Name or "#" .. wepName )
+            net_WriteString( wepData.Category or "" )
+        net_Broadcast()
     end
 
     if istable( wepName ) then
-        table.Merge( GLAMBDA.WeaponList, wepName )
+        table_Merge( GLAMBDA.WeaponList, wepName )
         return
     end
     
@@ -25,12 +52,12 @@ function GLAMBDA:AddWeapon( wepName, wepData )
 end
 
 function GLAMBDA:ReadDefaultWeapons( reset )
-    local defWpns = file.Find( "materials/glambdaplayers/data/defaultwpns/*.vmt", "GAME", "nameasc" )
+    local defWpns = file_Find( "materials/glambdaplayers/data/defaultwpns/*.vmt", "GAME", "nameasc" )
     if !defWpns or #defWpns == 0 then return end
 
     for _, wpn in ipairs( defWpns ) do
-        local wpnPath = "glambda/weapons/" .. string.StripExtension( wpn ) .. ".dat"
-        if !reset and file.Exists( wpnPath, "DATA" ) then continue end
+        local wpnPath = "glambda/weapons/" .. string_StripExtension( wpn ) .. ".dat"
+        if !reset and file_Exists( wpnPath, "DATA" ) then continue end
         self.FILE:WriteFile( wpnPath, self.FILE:ReadFile( "materials/glambdaplayers/data/defaultwpns/" .. wpn, nil, "GAME" ) )
     end
 end
@@ -82,7 +109,7 @@ GLAMBDA.WeaponCallbacks = {
     }
 }
 local function MergeWeapons( fileDir, path )
-    local wpns = file.Find( fileDir .. "*.dat", path, "nameasc" )
+    local wpns = file_Find( fileDir .. "*.dat", path, "nameasc" )
     if !wpns then return end
 
     for _, wpn in ipairs( wpns ) do
@@ -97,12 +124,12 @@ local function MergeWeapons( fileDir, path )
                 if !hasMounts then break end
             end
             if !hasMounts then
-                print( "GLambda Players: Unable to add " .. ( wpnData.Name or wepName ) .. " to weapon list [ " .. wpn .. " ]; No required mounts! " .. table.concat( mountsNeed, ", " ) )
+                print( "GLambda Players: Unable to add " .. ( wpnData.Name or wepName ) .. " to weapon list [ " .. wpn .. " ]; No required mounts! " .. table_concat( mountsNeed, ", " ) )
                 continue
             end
         end
 
-        local wepName = string.StripExtension( wpn )
+        local wepName = string_StripExtension( wpn )
         for callFunc, _ in pairs( GLAMBDA.WeaponCallbacks ) do
             local funcString = wpnData[ callFunc ]
             if !funcString or !isstring( funcString ) then continue end
@@ -118,7 +145,7 @@ local function MergeWeapons( fileDir, path )
     end
 end
 GLAMBDA.FILE:CreateUpdateCommand( "weapons", function()
-    table.Empty( GLAMBDA.WeaponList )
+    table_Empty( GLAMBDA.WeaponList )
 
     MergeWeapons( "glambda/weapons/", "DATA" )
     MergeWeapons( "materials/glambdaplayers/data/weapons/", "GAME" )
@@ -140,7 +167,7 @@ if ( CLIENT ) then
         local weplinelist = {}
         local weplistlist = {}
         local catDone = {}
-        local wepList = list.Get( "Weapon" )
+        local wepList = list_Get( "Weapon" )
     
         local isCvar = ( type( wepSelectVar ) == "ConVar" )
         local currentWep = ( isCvar and wepSelectVar:GetString() or wepSelectVar )
@@ -158,7 +185,7 @@ if ( CLIENT ) then
             if catDone[ wepCat ] then continue end
             catDone[ wepCat ] = true
 
-            local originlist = vgui.Create( "DListView", mainscroll )
+            local originlist = vgui_Create( "DListView", mainscroll )
             originlist:SetSize( 200, 400 )
             originlist:Dock( LEFT )
             originlist:AddColumn( wepCat, 1 )
@@ -171,9 +198,9 @@ if ( CLIENT ) then
                 end
     
                 if showNotif then
-                    notification.AddLegacy( "Selected " .. line:GetColumnText( 1 ) .. " from " .. wepCat .. " as a weapon!", NOTIFY_GENERIC, 3 )
+                    notification_AddLegacy( "Selected " .. line:GetColumnText( 1 ) .. " from " .. wepCat .. " as a weapon!", NOTIFY_GENERIC, 3 )
                 end
-                surface.PlaySound( "buttons/button15.wav" )
+                surface_PlaySound( "buttons/button15.wav" )
     
                 mainframe:Close()
             end
@@ -207,7 +234,7 @@ if ( CLIENT ) then
     
         if #weplistlist > 0 then
             function mainframe:OnSizeChanged( width )
-                local columnWidth = math.max( 200, ( width - 10 ) / #weplistlist )
+                local columnWidth = math_max( 200, ( width - 10 ) / #weplistlist )
                 for _, list in ipairs( weplistlist ) do
                     list:SetWidth( columnWidth )
                 end
@@ -226,9 +253,9 @@ if ( CLIENT ) then
                 end
 
                 if showNotif then
-                    notification.AddLegacy( "Selected none as a weapon!", NOTIFY_GENERIC, 3 )
+                    notification_AddLegacy( "Selected none as a weapon!", NOTIFY_GENERIC, 3 )
                 end
-                surface.PlaySound( "buttons/button15.wav" )
+                surface_PlaySound( "buttons/button15.wav" )
         
                 mainframe:Close()
             end )
@@ -242,9 +269,9 @@ if ( CLIENT ) then
                 end
     
                 if showNotif then
-                    notification.AddLegacy( "Selected random as a weapon!", NOTIFY_GENERIC, 3 )
+                    notification_AddLegacy( "Selected random as a weapon!", NOTIFY_GENERIC, 3 )
                 end
-                surface.PlaySound( "buttons/button15.wav" )
+                surface_PlaySound( "buttons/button15.wav" )
     
                 mainframe:Close()
             end )
@@ -270,7 +297,7 @@ if ( CLIENT ) then
 
             wepcheckboxlist[ wepCat ] = {}
     
-            local originpanel = vgui.Create( "DPanel", mainscroll )
+            local originpanel = vgui_Create( "DPanel", mainscroll )
             originpanel:Dock( LEFT )
             originpanel:SetSize( 200, 400 )
             originpanel:SetBackgroundColor( color_white )
@@ -307,7 +334,7 @@ if ( CLIENT ) then
         end
     
         function mainframe:OnSizeChanged( width )
-            local columnWidth = math.max( 200, ( width - 10 ) / #weporiginlist )
+            local columnWidth = math_max( 200, ( width - 10 ) / #weporiginlist )
             for _, list in ipairs( weporiginlist ) do
                 list:SetWidth( columnWidth )
             end
@@ -322,11 +349,11 @@ if ( CLIENT ) then
                 end
             end
 
-            net.Start( "glambda_updatewepperms" )
-                net.WriteTable( permTbl )
-            net.SendToServer()
+            net_Start( "glambda_updatewepperms" )
+                net_WriteTable( permTbl )
+            net_SendToServer()
 
-            table.Merge( GLAMBDA.WeaponPermissions, permTbl )
+            table_Merge( GLAMBDA.WeaponPermissions, permTbl )
             PANEL:UpdateKeyValueFile( "glambda/weaponpermissions.json", permTbl, "json" ) 
         end
         

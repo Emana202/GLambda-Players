@@ -1,3 +1,9 @@
+local math_floor = math.floor
+local net_Start = net.Start
+local net_WriteString = net.WriteString
+local net_WriteUInt = net.WriteUInt
+local net_SendToServer = CLIENT and net.SendToServer
+
 local months = {
     "January",
     "February",
@@ -48,14 +54,14 @@ local function OpenBirthdayPanel( ply )
         local _, month = box:GetSelected()
         if !month or #month == 0 then return end
 
-        local weekDay = math.floor( day:GetValue() )
+        local weekDay = math_floor( day:GetValue() )
         PANEL:UpdateKeyValueFile( "glambda/plybirthday.json", { month = month, day = weekDay }, "json" ) 
         GLAMBDA:SendNotification( nil, "Changed the birthday date!", NOTIFY_HINT, nil, "buttons/button15.wav" )
 
-        net.Start( "glambda_setupbirthday" )
-            net.WriteString( month )
-            net.WriteUInt( weekDay, 5 ) 
-        net.SendToServer()
+        net_Start( "glambda_setupbirthday" )
+            net_WriteString( month )
+            net_WriteUInt( weekDay, 5 ) 
+        net_SendToServer()
     end
 end
 

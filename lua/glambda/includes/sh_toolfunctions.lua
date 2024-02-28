@@ -1,9 +1,30 @@
+local string_lower = string.lower
+local IsValid = IsValid
+local VectorRand = VectorRand
+local coroutine_wait = coroutine.wait
+local util_IsValidPhysicsObject = util.IsValidPhysicsObject
+local table_Random = table.Random
+local list_Get = list.Get
+local MakeBalloon = MakeBalloon
+local undo_Create = SERVER and undo.Create
+local undo_AddEntity = SERVER and undo.AddEntity
+local constraint_Rope = SERVER and constraint.Rope
+local undo_SetPlayer = SERVER and undo.SetPlayer
+local undo_Finish = SERVER and undo.Finish
+local ColorRand = ColorRand
+local MakeDynamite = MakeDynamite
+local constraint_RemoveAll = SERVER and constraint.RemoveAll
+local timer_Simple = timer.Simple
+local EffectData = EffectData
+local util_Effect = util.Effect
+local util_SpriteTrail = SERVER and util.SpriteTrail
+
 GLAMBDA.ToolgunTools = ( GLAMBDA.ToolgunTools or {} )
 
 --
 
 function GLAMBDA:AddToolgunTool( name, func )
-    local cvar = self:CreateConVar( "tools_allow_" .. string.lower( name ), true, 'If the players are allowed to use the "' .. name .. '" toolgun tool.', {
+    local cvar = self:CreateConVar( "tools_allow_" .. string_lower( name ), true, 'If the players are allowed to use the "' .. name .. '" toolgun tool.', {
         name = "Allow " .. name .. " Tool",
         category = "Tools"
     } )
@@ -23,7 +44,7 @@ GLAMBDA:AddToolgunTool( "Balloon", function( self )
     end
 
     self:LookTo( ( targetEnt or self:GetPos() + VectorRand( -500, 500 ) ), 1, 1, 0.66 )
-    coroutine.wait( GLAMBDA:Random( 3, 10 ) * 0.1 )
+    coroutine_wait( GLAMBDA:Random( 3, 10 ) * 0.1 )
     
     --
 
@@ -31,9 +52,9 @@ GLAMBDA:AddToolgunTool( "Balloon", function( self )
     local hitEnt = trace.Entity
     if !IsValid( hitEnt ) or !hitEnt:IsPlayer() then
         local attachRope = ( GLAMBDA:Random( 3 ) != 1 )
-        if !attachRope or util.IsValidPhysicsObject( hitEnt, trace.PhysicsBone ) then
+        if !attachRope or util_IsValidPhysicsObject( hitEnt, trace.PhysicsBone ) then
             local hitPos = trace.HitPos
-            local rndBallon = table.Random( list.Get( "BalloonModels" ) )
+            local rndBallon = table_Random( list_Get( "BalloonModels" ) )
 
             local clrR = GLAMBDA:Random( 0, 255 )
             local clrG = GLAMBDA:Random( 0, 255 )
@@ -53,8 +74,8 @@ GLAMBDA:AddToolgunTool( "Balloon", function( self )
                 local newPos = ( hitPos + offset )
                 balloon:SetPos( newPos )
 
-                undo.Create( "Balloon" )
-                    undo.AddEntity( balloon )
+                undo_Create( "Balloon" )
+                    undo_AddEntity( balloon )
 
                     if attachRope then
                         local physBone = trace.PhysicsBone
@@ -66,22 +87,22 @@ GLAMBDA:AddToolgunTool( "Balloon", function( self )
                         end
 
                         local ropeLength = GLAMBDA:Random( 25, 500 )
-                        local constr, rope = constraint.Rope( balloon, hitEnt, 0, physBone, ropeStart, ropeEnd, 0, ropeLength, 0, 0.5, "cable/rope" )
+                        local constr, rope = constraint_Rope( balloon, hitEnt, 0, physBone, ropeStart, ropeEnd, 0, ropeLength, 0, 0.5, "cable/rope" )
                         if IsValid( constr ) then
-                            undo.AddEntity( constr )
+                            undo_AddEntity( constr )
                             self:AddCleanup( "balloons", constr )
                         end
                         if IsValid( rope ) then
-                            undo.AddEntity( rope )
+                            undo_AddEntity( rope )
                             self:AddCleanup( "balloons", rope )
                         end
                     end
 
-                    undo.SetPlayer( self:GetPlayer() )
-                undo.Finish()
+                    undo_SetPlayer( self:GetPlayer() )
+                undo_Finish()
 
                 self:EmitToolgunFire()
-                coroutine.wait( GLAMBDA:Random( 3, 10 ) * 0.1 )
+                coroutine_wait( GLAMBDA:Random( 3, 10 ) * 0.1 )
             end
         end
     end
@@ -98,7 +119,7 @@ GLAMBDA:AddToolgunTool( "Colour", function( self )
     if !IsValid( targetEnt ) then return true end
 
     self:LookTo( targetEnt, 1, 1, 0.66 )
-    coroutine.wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
+    coroutine_wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
 
     --
     
@@ -108,7 +129,7 @@ GLAMBDA:AddToolgunTool( "Colour", function( self )
         traceEnt:SetColor( ColorRand( false ) ) 
         
         self:EmitToolgunFire()
-        coroutine.wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
+        coroutine_wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
     end
 
     --
@@ -120,14 +141,14 @@ GLAMBDA:AddToolgunTool( "Dynamite", function( self )
     if !self:CheckLimit( "dynamite" ) then return true end
 
     self:LookTo( ( self:GetPos() + VectorRand( -500, 500 ) ), 1, 1, 0.66 )
-    coroutine.wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
+    coroutine_wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
 
     --
 
     local trace = self:GetToolTrace()
     local hitEnt = trace.Entity
     if !IsValid( hitEnt ) or !hitEnt:IsPlayer() then
-        local _, model = table.Random( list.Get( "DynamiteModels" ) )
+        local _, model = table_Random( list_Get( "DynamiteModels" ) )
         local damage = GLAMBDA:Random( 0, 500 )
         local remove = ( GLAMBDA:Random( 3 ) != 1 )
         local delay = GLAMBDA:Random( 1, 10 )
@@ -141,13 +162,13 @@ GLAMBDA:AddToolgunTool( "Dynamite", function( self )
             dynamite:Explode( nil, self:GetPlayer() )
             dynamite:SetPos( hitPos + offset )
         
-            undo.Create( "Dynamite" )
-                undo.AddEntity( dynamite )
-                undo.SetPlayer( self:GetPlayer() )
-            undo.Finish()
+            undo_Create( "Dynamite" )
+                undo_AddEntity( dynamite )
+                undo_SetPlayer( self:GetPlayer() )
+            undo_Finish()
             
             self:EmitToolgunFire()
-            coroutine.wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
+            coroutine_wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
         end
     end
 
@@ -163,14 +184,14 @@ GLAMBDA:AddToolgunTool( "Remover", function( self )
     if !IsValid( targetEnt ) then return true end
 
     self:LookTo( targetEnt, 1, 1, 0.66 )
-    coroutine.wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
+    coroutine_wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
 
     --
 
     local traceEnt = self:GetToolTrace().Entity
     if IsValid( traceEnt ) and !traceEnt:IsPlayer() then
-        constraint.RemoveAll( traceEnt )
-        timer.Simple( 1, function() if IsValid( traceEnt ) then traceEnt:Remove() end end )
+        constraint_RemoveAll( traceEnt )
+        timer_Simple( 1, function() if IsValid( traceEnt ) then traceEnt:Remove() end end )
 
         traceEnt:SetNotSolid( true )
         traceEnt:SetMoveType( MOVETYPE_NONE )
@@ -179,10 +200,10 @@ GLAMBDA:AddToolgunTool( "Remover", function( self )
         local effectData = EffectData()
         effectData:SetOrigin( traceEnt:GetPos() )
         effectData:SetEntity( traceEnt )
-        util.Effect( "entity_remove", effectData, true, true )
+        util_Effect( "entity_remove", effectData, true, true )
         
         self:EmitToolgunFire()
-        coroutine.wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
+        coroutine_wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
     end
 
     --
@@ -200,7 +221,7 @@ GLAMBDA:AddToolgunTool( "Rope", function( self )
     end
 
     self:LookTo( ( firstTarg or VectorRand( -500, 500 ) ), 1, 1, 0.66 )
-    coroutine.wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
+    coroutine_wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
 
     --
 
@@ -208,7 +229,7 @@ GLAMBDA:AddToolgunTool( "Rope", function( self )
     local firstEnt = firstTr.Entity
     if !IsValid( firstEnt ) or !firstEnt:IsPlayer() then
         self:EmitToolgunFire()
-        coroutine.wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
+        coroutine_wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
 
         local secondTarg = ( GLAMBDA:Random( 3 ) != 1 )
         if secondTarg then 
@@ -218,7 +239,7 @@ GLAMBDA:AddToolgunTool( "Rope", function( self )
         end
     
         self:LookTo( ( secondTarg or VectorRand( -500, 500 ) ), 1, 1, 0.66 )
-        coroutine.wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
+        coroutine_wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
 
         --
 
@@ -232,21 +253,21 @@ GLAMBDA:AddToolgunTool( "Rope", function( self )
             local rigid = ( GLAMBDA:Random( 2 ) == 1 )
             local color = ColorRand( false )
 
-            local constr, rope = constraint.Rope( firstEnt, secEnt, firstTr.PhysicsBone, secTr.PhysicsBone, firstTr.HitPos, secTr.HitPos, ( firstTr.HitPos - secTr.HitPos ):Length(), addLength, forceLimit, width, material, rigid, color )
+            local constr, rope = constraint_Rope( firstEnt, secEnt, firstTr.PhysicsBone, secTr.PhysicsBone, firstTr.HitPos, secTr.HitPos, ( firstTr.HitPos - secTr.HitPos ):Length(), addLength, forceLimit, width, material, rigid, color )
     		if IsValid( constr ) then
                 local ply = self:GetPlayer()
 
-                undo.Create( "Rope" )
-                    undo.AddEntity( constr )
-                    if IsValid( rope ) then undo.AddEntity( rope ) end
-                    undo.SetPlayer( ply )
-                undo.Finish()
+                undo_Create( "Rope" )
+                    undo_AddEntity( constr )
+                    if IsValid( rope ) then undo_AddEntity( rope ) end
+                    undo_SetPlayer( ply )
+                undo_Finish()
     
                 ply:AddCleanup( "ropeconstraints", constr )
                 if IsValid( rope ) then ply:AddCleanup( "ropeconstraints", rope ) end
                 
                 self:EmitToolgunFire()
-                coroutine.wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
+                coroutine_wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
             end
         end
     end
@@ -263,7 +284,7 @@ GLAMBDA:AddToolgunTool( "Trails", function( self )
     if !IsValid( targetEnt ) then return true end
 
     self:LookTo( targetEnt, 1, 1, 0.66 )
-    coroutine.wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
+    coroutine_wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
 
     --
     
@@ -274,25 +295,25 @@ GLAMBDA:AddToolgunTool( "Trails", function( self )
             traceEnt.SToolTrail = nil
         end
 
-        local material = table.Random( list.Get( "trail_materials" ) )
+        local material = table_Random( list_Get( "trail_materials" ) )
 		local length = GLAMBDA:Random( 0.1, 10, true )
 		local endSize = GLAMBDA:Random( 1, 128 )
 		local startSize = GLAMBDA:Random( 1, 128 )
 
-        local trail = util.SpriteTrail( traceEnt, 0, ColorRand( true ), false, startSize, endSize, length, 1 / ( ( startSize + endSize ) * 0.5 ), material .. ".vmt" )
+        local trail = util_SpriteTrail( traceEnt, 0, ColorRand( true ), false, startSize, endSize, length, 1 / ( ( startSize + endSize ) * 0.5 ), material .. ".vmt" )
         if IsValid( trail ) then
             traceEnt.SToolTrail = trail
 
             local ply = self:GetPlayer()
             ply:AddCleanup( "trails", trail )
 
-            undo.Create( "Trail" )
-                undo.AddEntity( trail )
-                undo.SetPlayer( ply )
-            undo.Finish()
+            undo_Create( "Trail" )
+                undo_AddEntity( trail )
+                undo_SetPlayer( ply )
+            undo_Finish()
 
             self:EmitToolgunFire()
-            coroutine.wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
+            coroutine_wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
         end
     end
 
@@ -308,7 +329,7 @@ GLAMBDA:AddToolgunTool( "Material", function( self )
     if !IsValid( targetEnt ) then return true end
 
     self:LookTo( targetEnt, 1, 1, 0.66 )
-    coroutine.wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
+    coroutine_wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
 
     --
     
@@ -316,11 +337,11 @@ GLAMBDA:AddToolgunTool( "Material", function( self )
     if IsValid( traceEnt ) and !traceEnt:IsPlayer() then 
         if IsValid( traceEnt.AttachedEntity ) then traceEnt = traceEnt.AttachedEntity end
 
-        local material = table.Random( list.Get( "OverrideMaterials" ) )
+        local material = table_Random( list_Get( "OverrideMaterials" ) )
         traceEnt:SetMaterial( material ) 
 
         self:EmitToolgunFire()
-        coroutine.wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
+        coroutine_wait( GLAMBDA:Random( 2, 10 ) * 0.1 )
     end
 
     --

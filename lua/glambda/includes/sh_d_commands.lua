@@ -1,3 +1,11 @@
+local IsValid = IsValid
+local ipairs = ipairs
+local player_GetBots = player.GetBots
+local pairs = pairs
+local file_Find = file.Find
+local file_Exists = file.Exists
+local print = print
+
 GLAMBDA:CreateConCommand( "debug_resetallai", function( ply )
 
     local plyValid = IsValid( ply )
@@ -6,7 +14,7 @@ GLAMBDA:CreateConCommand( "debug_resetallai", function( ply )
         return 
     end
 
-    for _, ply in ipairs( player.GetBots() ) do
+    for _, ply in ipairs( player_GetBots() ) do
         if !ply:IsGLambdaPlayer() then continue end
         ply:GetGlaceObject():ResetAI()
     end
@@ -22,7 +30,7 @@ GLAMBDA:CreateConCommand( "debug_kickallbots", function()
         return 
     end
 
-    for _, ply in ipairs( player.GetBots() ) do
+    for _, ply in ipairs( player_GetBots() ) do
         ply:Kick()
     end
 end, false, "Kicks all player bots from the server, including the non-GLambda ones.\nUse this if an error occurs upon a player's spawn and they become un-removable by normal means.\nYou must be a super admin in order to use this!", {
@@ -40,7 +48,7 @@ GLAMBDA:CreateConCommand( "cmd_transferlambda_clientdata", function( ply )
 
     for toCopy, newCopy in pairs( userData ) do
         if toCopy[ #toCopy ] == "/" then
-            local files = file.Find( toCopy .. "*", "DATA", "nameasc" )
+            local files = file_Find( toCopy .. "*", "DATA", "nameasc" )
             if !files then continue end
 
             for _, fileName in ipairs( files ) do
@@ -48,7 +56,7 @@ GLAMBDA:CreateConCommand( "cmd_transferlambda_clientdata", function( ply )
             end
         end
 
-        if !file.Exists( toCopy, "DATA" ) then continue end
+        if !file_Exists( toCopy, "DATA" ) then continue end
         GLAMBDA.FILE:WriteFile( newCopy, GLAMBDA.FILE:ReadFile( toCopy, "json" ), "json" )
     end
 
@@ -81,7 +89,7 @@ GLAMBDA:CreateConCommand( "cmd_transferlambda_serverdata", function( ply )
 
     for toCopy, newCopy in pairs( transferFiles ) do
         if toCopy[ #toCopy ] == "/" then
-            local files = file.Find( toCopy .. "*", "DATA", "nameasc" )
+            local files = file_Find( toCopy .. "*", "DATA", "nameasc" )
             if !files then continue end
 
             for _, fileName in ipairs( files ) do
@@ -89,7 +97,7 @@ GLAMBDA:CreateConCommand( "cmd_transferlambda_serverdata", function( ply )
             end
         end
 
-        if !file.Exists( toCopy, "DATA" ) then continue end
+        if !file_Exists( toCopy, "DATA" ) then continue end
         GLAMBDA.FILE:WriteFile( newCopy, GLAMBDA.FILE:ReadFile( toCopy, "json" ), "json" )
     end
 

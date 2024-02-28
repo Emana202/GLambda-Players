@@ -1,3 +1,26 @@
+local table_Empty = table.Empty
+local pairs = pairs
+local player_manager_AllValidModels = player_manager.AllValidModels
+local ipairs = ipairs
+local table_remove = table.remove
+local string_EndsWith = string.EndsWith
+local Material = Material
+local CreateMaterial = CreateMaterial
+local string_sub = string.sub
+local notification_AddLegacy = CLIENT and notification.AddLegacy
+local surface_PlaySound = CLIENT and surface.PlaySound
+local net_Start = net.Start
+local net_WriteString = net.WriteString
+local net_WriteUInt = net.WriteUInt
+local net_WriteFloat = net.WriteFloat
+local net_Send = SERVER and net.Send
+local math_randomseed = math.randomseed
+local os_time = os.time
+local SysTime = SysTime
+local math_random = math.random
+local math_Rand = math.Rand
+local string_upper = string.upper
+
 if ( SERVER ) then
 
     GLAMBDA.PlayerModels = ( GLAMBDA.PlayerModels or {
@@ -94,10 +117,10 @@ if ( SERVER ) then
     } )
 
     function GLAMBDA:UpdatePlayerModels()
-        table.Empty( self.PlayerModels.Addons )
+        table_Empty( self.PlayerModels.Addons )
         local blockList = GLAMBDA.FILE:ReadFile( "glambda/pmblocklist.json", "json" )
 
-        for _, mdl in pairs( player_manager.AllValidModels() ) do
+        for _, mdl in pairs( player_manager_AllValidModels() ) do
             local isDefaultMdl = false
             for _, defMdl in ipairs( self.PlayerModels.Default ) do
                 if mdl != defMdl then continue end
@@ -109,7 +132,7 @@ if ( SERVER ) then
                 local isBlocked = false
                 for k, blockedMdl in ipairs( blockList ) do
                     if mdl != blockedMdl then continue end
-                    table.remove( blockList, k )
+                    table_remove( blockList, k )
                     isBlocked = true; break
                 end
                 if isBlocked then continue end
@@ -153,7 +176,7 @@ if ( CLIENT ) then
         ply.gb_IsLambdaPlayer = true
         ply.gb_IsVoiceMuted = false
 
-        if !string.EndsWith( pfp, ".vtf" ) then
+        if !string_EndsWith( pfp, ".vtf" ) then
             pfp = Material( pfp )
         else
             pfp = CreateMaterial( "GLambda_PfpMaterial_" .. pfp, "UnlitGeneric", {
@@ -171,7 +194,7 @@ if ( CLIENT ) then
 
             if !pfp or pfp:IsError() then
                 local plyMdl = ply:GetModel()
-                pfp = Material( "spawnicons/" .. string.sub( plyMdl, 1, #plyMdl - 4 ) .. ".png" )
+                pfp = Material( "spawnicons/" .. string_sub( plyMdl, 1, #plyMdl - 4 ) .. ".png" )
             end
         end
         ply.gb_ProfilePicture = pfp
@@ -183,16 +206,16 @@ end
 
 function GLAMBDA:SendNotification( ply, text, notifyType, length, snd )
     if ( CLIENT ) then
-        notification.AddLegacy( text, ( notifyType or 0 ), ( length or 3 ) )
-        if snd and #snd != 0 then surface.PlaySound( snd ) end   
+        notification_AddLegacy( text, ( notifyType or 0 ), ( length or 3 ) )
+        if snd and #snd != 0 then surface_PlaySound( snd ) end   
     end
     if ( SERVER ) then
-        net.Start( "glambda_sendnotify" )
-            net.WriteString( text )
-            net.WriteUInt( ( notifyType or 0 ), 3 )
-            net.WriteFloat( length or 3 )
-            net.WriteString( snd or "" )
-        net.Send( ply )
+        net_Start( "glambda_sendnotify" )
+            net_WriteString( text )
+            net_WriteUInt( ( notifyType or 0 ), 3 )
+            net_WriteFloat( length or 3 )
+            net_WriteString( snd or "" )
+        net_Send( ply )
     end
 end
 
@@ -200,10 +223,10 @@ local rngCalled = 0
 function GLAMBDA:Random( min, max, float )
     rngCalled = ( rngCalled + 1 )
     if rngCalled > 32768 then rngCalled = 0 end
-    math.randomseed( os.time() + SysTime() + rngCalled )
+    math_randomseed( os_time() + SysTime() + rngCalled )
 
-    if !min and !max then return math.random() end
-    return ( float and math.Rand( min, max ) or ( max and math.random( min, max ) or math.random( min ) ) )
+    if !min and !max then return math_random() end
+    return ( float and math_Rand( min, max ) or ( max and math_random( min, max ) or math_random( min ) ) )
 end
 
 --
@@ -212,7 +235,7 @@ GLAMBDA.VoiceTypes = {}
 
 function GLAMBDA:AddVoiceType( typeName, defPath, voiceDesc )
     local cvar = self:CreateConVar( "voice_path_" .. typeName, defPath, "The filepath for the " .. typeName .. " voice type voicelines.\n" .. voiceDesc, {
-        name = string.upper( typeName[ 1 ] ) .. string.sub( typeName, 2, #typeName ) .. " Voice Type",
+        name = string_upper( typeName[ 1 ] ) .. string_sub( typeName, 2, #typeName ) .. " Voice Type",
         category = "Voice Type Paths"
     } )
 
