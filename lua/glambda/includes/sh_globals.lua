@@ -204,6 +204,29 @@ end
 
 --
 
+local infoTranslations = {
+    [ "Name" ]              = "name",
+    [ "PlayerModel" ]       = "model",
+    [ "ProfilePicture" ]    = "profilepicture",
+    [ "PlayerColor" ]       = "plycolor",
+    [ "WeaponColor" ]       = "physcolor",
+    [ "VoicePitch" ]        = "voicepitch",
+    [ "VoiceProfile" ]      = "voiceprofile",
+    [ "TextProfile" ]       = "textprofile",
+    [ "Personality" ]       = "personality",
+    [ "SkinGroup" ]         = "mdlSkin",
+    [ "BodyGroups" ]        = "bodygroups",
+
+    [ "Toolgun" ]           = "Tool",
+    [ "Cowardness" ]        = "Cowardly",
+}
+function GLAMBDA:GetProfileInfo( tbl, infoName )
+    if !tbl then return end
+    local info = tbl[ infoName ]
+    if !info then info = tbl[ infoTranslations[ infoName ] ] end
+    return info
+end
+
 function GLAMBDA:SendNotification( ply, text, notifyType, length, snd )
     if ( CLIENT ) then
         notification_AddLegacy( text, ( notifyType or 0 ), ( length or 3 ) )

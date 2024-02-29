@@ -1,5 +1,6 @@
 local file_CreateDir = file.CreateDir
 local file_Open = file.Open
+local file_Delete = file.Delete
 local util_TableToJSON = util.TableToJSON
 local util_Compress = util.Compress
 local util_JSONToTable = util.JSONToTable
@@ -64,6 +65,10 @@ function FILE:ReadFile( filename, type, path )
         end
     end
 	return str
+end
+
+function FILE:DeleteFile( filename )
+    file_Delete( filename, "DATA" )
 end
 
 --
@@ -282,38 +287,39 @@ end
 FILE:CreateUpdateCommand( "textmsgs", function()
     local textTbl = {}
     FILE:MergeDirectory( "materials/glambdaplayers/data/texttypes/", textTbl, nil, nil, MergeTextMessages )
-    FILE:MergeDirectory( "data/glambdaplayers/texttypes/", textTbl, nil, nil, MergeTextMessages )
-    
+    FILE:MergeDirectory( "glambda/texttypes/", textTbl, "DATA", nil, MergeTextMessages )
+
     if GLAMBDA:GetConVar( "util_mergelambdafiles" ) then 
-        FILE:MergeDirectory( "lambdaplayers/data/texttypes/", textTbl, nil, nil, MergeTextMessages )
-        FILE:MergeDirectory( "lambdaplayers/texttypes/", textTbl, nil, nil, MergeTextMessages )
+        FILE:MergeDirectory( "lambdaplayers/texttypes/", textTbl, "DATA", nil, MergeTextMessages )
     end
 
     GLAMBDA.TextMessages = textTbl
 end, false, "Updates the list of text messages the players will use to speak in text chat.", "Text Messages" )
 
--- function FILE:GetTextProfiles()
---     local textProfiles = {}
+local function MergeTextProfiles( tbl, path )
+    local _, profileFiles = file.Find( path .. "*", "GAME", "nameasc" )
+    for _, profile in ipairs( profileFiles ) do
+        tbl[ profile ] = {}
 
---     local profilePath = "materials/lambdaplayers/textprofiles/"
---     local _, profileFiles = file.Find( profilePath .. "*", "GAME", "nameasc" )
---     for _, profile in ipairs( profileFiles ) do
---         textProfiles[ profile ] = {}
+        for _, texttype in ipairs( file.Find( path .. profile .. "/*", "GAME", "nameasc" ) ) do
+            local typeName = string_StripExtension( texttype )
+            tbl[ profile ][ typeName ] = {}
 
---         for _, texttype in ipairs( file.Find( profileFiles .. profile .. "/*", "GAME", "nameasc" ) ) do
---             textProfiles[ profile ][ string.StripExtension( texttype ) ] = {}
-
---             local content = self:ReadFile( profileFiles .. profile .. "/" .. texttype, "json", "GAME" )
---             if !content then
---                 local txtcontents = self:ReadFile( profileFiles .. profile .. "/" .. texttype, nil, "GAME" )
---                 content = txtcontents and string.Explode( "\n", txtcontents ) or nil
---             end
---             if content then table_Add( textProfiles[ profile ][ string.StripExtension( texttype ) ], content ) end
---         end
---     end
-
---     return textProfiles
--- end
+            local content = FILE:ReadFile( path .. profile .. "/" .. texttype, "json", "GAME" )
+            if !content then
+                local txtcontents = FILE:ReadFile( path .. profile .. "/" .. texttype, nil, "GAME" )
+                content = ( txtcontents and string_Explode( "\n", txtcontents ) or nil )
+            end
+            if content then table_Add( tbl[ profile ][ typeName ], content ) end
+        end
+    end
+end
+FILE:CreateUpdateCommand( "textprofiles", function()
+    local textProfiles = {}
+    MergeTextProfiles( textProfiles, "materials/glambdaplayers/textprofiles/" )
+    if GLAMBDA:GetConVar( "util_mergelambdafiles" ) then MergeTextProfiles( textProfiles, "materials/lambdaplayers/textprofiles/" ) end
+    GLAMBDA.TextProfiles = textProfiles
+end, false, "Updates the list of text profiles the players will use to text chat as.", "Text Profiles" )
 
 FILE:CreateUpdateCommand( "sprays", function()
     local sprayTbl = {}
@@ -321,6 +327,12 @@ FILE:CreateUpdateCommand( "sprays", function()
     if GLAMBDA:GetConVar( "util_mergelambdafiles" ) then FILE:MergeDirectory( "materials/lambdaplayers/sprays/", sprayTbl ) end
     GLAMBDA.Sprays = sprayTbl
 end, false, "Updates the list of images and materials the players will use as their spray.", "Sprays" )
+
+--
+
+FILE:CreateUpdateCommand( "profiles", function()
+    GLAMBDA.PlayerProfiles = FILE:ReadFile( "glambda/profiles.json", "json" )
+end, false, "Updates the list of player profiles.", "Player Profiles" )
 
 --
 

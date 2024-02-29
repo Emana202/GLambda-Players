@@ -46,6 +46,12 @@ local util_Decompress = util.Decompress
 local net_ReadData = net.ReadData
 local AddCSLuaFile = AddCSLuaFile
 local include = include
+local ErrorNoHaltWithStack = ErrorNoHaltWithStack
+local hook_Add = hook.Add
+local hook_Remove = hook.Remove
+local coroutine_create = coroutine.create
+local coroutine_status = coroutine.status
+local coroutine_resume = coroutine.resume
 
 --
 
@@ -107,6 +113,7 @@ if ( CLIENT ) then
         local choiceindexes = { keys = {}, values = {} }
         local combobox = vgui_Create( "DComboBox", parent )
         if dock then combobox:Dock( dock ) end
+        combobox:SetSortItems( false )
 
         for k, v in pairs( options ) do 
             local keyName = ( sequential and v or k )
@@ -472,7 +479,7 @@ if ( CLIENT ) then
         net_SendToServer() 
     end
 
-    function PANEL:DeleteServerFile( filename, path ) 
+    function PANEL:DeleteServerFile( filename ) 
         net_Start( "glambda_deleteserverfile" )
             net_WriteString( filename )
         net_SendToServer() 
@@ -502,7 +509,7 @@ if ( SERVER ) then
 
     net_Receive( "glambda_deleteserverfile", function( len, ply )
         if !ply:IsSuperAdmin() then return end
-        file_Delete( net_ReadString(), "DATA" )
+        GLAMBDA.FILE:DeleteFile( net_ReadString() )
     end )
 
     net_Receive( "glambda_removevarfromkvfile", function( len, ply )
@@ -549,9 +556,9 @@ if ( SERVER ) then
         local content = GLAMBDA.FILE:ReadFile( filepath, _type, "DATA" )
         local bytes, index = 0, 0
 
-        LambdaCreateThread( function()
+        local thread = coroutine_create( function()
             print( "GLambda Players Net: Preparing to send data from " .. filepath .. " to " .. ply:Name() .. " | " .. ply:SteamID() )
-
+            
             if !content or table_IsEmpty( content ) then
                 net_Start( "glambda_returndata" )
                     net_WriteString( "!!NIL" ) -- JSON chunk
@@ -574,6 +581,17 @@ if ( SERVER ) then
             end
 
             print( "GLambda Players Net: Sent " .. string_NiceSize( bytes ) .. " to " .. ply:Name() .. " | " .. ply:SteamID() )
+        end )
+
+        local thinkName = "GLambda_SendDataThread" .. tostring( thread )
+        hook_Add( "Think", thinkName, function()
+            if coroutine_status( thread ) == "dead" then
+                hook_Remove( "Think", thinkName )
+                return
+            end
+
+            local ok, msg = coroutine_resume( thread )
+            if !ok then ErrorNoHaltWithStack( msg ) end
         end )
     end )
 

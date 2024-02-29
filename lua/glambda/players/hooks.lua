@@ -25,31 +25,11 @@ function GLAMBDA.Player:Think()
                 local queuedMsgs = self.QueuedMessages
                 if #queuedMsgs != 0 then
                     local msgTbl = queuedMsgs[ 1 ]
-                    local msg = msgTbl[ 1 ]
-                    local keyEnt = msgTbl[ 2 ]
+                    local textLine = self:GetTextLine( msgTbl[ 1 ], msgTbl[ 2 ] )
 
-                    local canUseText = false
-                    local textTbl = GLAMBDA.TextMessages[ msg ]
-                    if textTbl then 
-                        for _, text in RandomPairs( textTbl ) do
-                            local condMet, modLine = GLAMBDA.KEYWORD:IsValidCondition( self, text, keyEnt )
-                            if condMet then 
-                                msg = modLine
-                                canUseText = true
-                                break 
-                            end
-                        end
-                    else
-                        local condMet, modLine = GLAMBDA.KEYWORD:IsValidCondition( self, text, keyEnt )
-                        if !condMet then return end
-                        
-                        msg = modLine
-                        canUseText = true
-                    end
-
-                    if canUseText then
-                        queuedText = GLAMBDA.KEYWORD:ModifyTextKeyWords( self, msg, keyEnt )
-                        self.CurrentTextMsg = queuedText
+                    if textLine then
+                        queuedText = textLine
+                        self.CurrentTextMsg = textLine
                         self.TextKeyEnt = keyEnt
                         self.TypedTextMsg = ""
                     end

@@ -24,6 +24,8 @@ local net_Broadcast = SERVER and net.Broadcast
 local CurTime = CurTime
 local Vector = Vector
 local table_GetKeys = table.GetKeys
+local RandomPairs = RandomPairs
+local player_GetAll = player.GetAll
 
 --
 
@@ -54,22 +56,49 @@ function GLAMBDA:CreateLambdaPlayer()
     end
 
     --
+    
+    local profile, name, pfp, model
+    if self:Random( 100 ) <= self:GetConVar( "player_profile_chance" ) then
+        local profiles = self.PlayerProfiles
+        if profiles then 
+            for _, profData in RandomPairs( profiles ) do
+                local profName = self:GetProfileInfo( profData, "Name" )
+                local nameBusy = false
+                for _, ply in ipairs( player_GetAll() ) do
+                    if ply:Name() != profName then continue end
+                    nameBusy = true; break
+                end
+                if nameBusy then continue end
 
-    
-    local names = self.Nicknames
-    local ply = player_CreateNextBot( #names != 0 and names[ GLAMBDA:Random( #names ) ] or "GLambda Player" )
-    ply.gb_IsLambdaPlayer = true
-    
-    local rndPm = self:GetRandomPlayerModel()
-    local pfps = GLAMBDA.ProfilePictures
-    if #pfps == 0 then
-        ply.gb_ProfilePicture = "spawnicons/" .. string_sub( rndPm, 1, #rndPm - 4 ) .. ".png"
-    else
-        ply.gb_ProfilePicture = pfps[ GLAMBDA:Random( #pfps ) ]
+                profile = profData
+                name = profName
+                model = self:GetProfileInfo( profile, "PlayerModel" )
+                pfp = self:GetProfileInfo( profile, "ProfilePicture" )
+                break
+            end
+        end
     end
 
-    -- Creates a GLACE object for the specified player
+    if !name then
+        local names = self.Nicknames
+        name = ( #names != 0 and names[ self:Random( #names ) ] or "GLambda Player" )
+    end
 
+    local ply = player_CreateNextBot( name )
+    ply.gb_IsLambdaPlayer = true
+
+    if !model then model = self:GetRandomPlayerModel() end
+    if !pfp then
+        local pfps = self.ProfilePictures
+        if #pfps == 0 then
+            pfp = "spawnicons/" .. string_sub( model, 1, ( #model - 4 ) ) .. ".png"
+        else
+            pfp = pfps[ self:Random( #pfps ) ]
+        end
+    end
+    ply.gb_ProfilePicture = pfp
+
+    -- Creates a GLACE object for the specified player
     local GLACE = { _PLY = ply }
 
     -- We copy these meta tables so we can run them on the GLACE table and it will be detoured to the player itself
@@ -120,12 +149,6 @@ function GLAMBDA:CreateLambdaPlayer()
     GLACE:SetNavigator( navigator ) 
     navigator:SetPos( GLACE:GetPos() )
 
-    -- Network this player to clients
-    net_Start( "glambda_waitforplynet" )
-        net_WriteUInt( ply:UserID(), 12 )
-        net_WriteString( ply.gb_ProfilePicture )
-    net_Broadcast()
-
     --
     
     GLACE.State = "Idle"
@@ -148,8 +171,8 @@ function GLAMBDA:CreateLambdaPlayer()
     GLACE.NextAmmoCheckT = 0
     GLACE.NextWeaponAttackT = 0
     GLACE.NextWeaponThinkT = 0
-    GLACE.NextIdleLineT = ( CurTime() + GLAMBDA:Random( 5, 10 ) )
-    GLACE.NextUniversalActionT = ( CurTime() + GLAMBDA:Random( 10, 15, true ) ) 
+    GLACE.NextIdleLineT = ( CurTime() + self:Random( 5, 10 ) )
+    GLACE.NextUniversalActionT = ( CurTime() + self:Random( 10, 15, true ) ) 
     GLACE.LastDeathTime = 0
     GLACE.RetreatEndTime = 0
     GLACE.NextNPCCheckT = CurTime()
@@ -162,8 +185,8 @@ function GLAMBDA:CreateLambdaPlayer()
 
     --
 
-    ply:SetNW2Vector( "glambda_plycolor", Vector( GLAMBDA:Random( 0.0, 1.0, true ), GLAMBDA:Random( 0.0, 1.0, true ), GLAMBDA:Random( 0.0, 1.0, true ) ) )
-    ply:SetNW2Vector( "glambda_wpncolor", Vector( GLAMBDA:Random( 0.0, 1.0, true ), GLAMBDA:Random( 0.0, 1.0, true ), GLAMBDA:Random( 0.0, 1.0, true ) ) )
+    ply:SetNW2Vector( "glambda_plycolor", ( self:GetProfileInfo( profile, "PlayerColor" ) or Vector( self:Random( 0, 1, true ), self:Random( 0, 1, true ), self:Random( 0, 1, true ) ) ) )
+    ply:SetNW2Vector( "glambda_wpncolor", ( self:GetProfileInfo( profile, "WeaponColor" ) or Vector( self:Random( 0, 1, true ), self:Random( 0, 1, true ), self:Random( 0, 1, true ) ) ) )
 
     --
 
@@ -181,14 +204,29 @@ function GLAMBDA:CreateLambdaPlayer()
     --
 
     GLACE:SetSpeechEndTime( 0 )
-    GLACE:SetTextPerMinute( GLAMBDA:Random( 3, 10 ) * 100 )
-    GLACE:SetVoicePitch( GLAMBDA:Random( self:GetConVar( "voice_pitch_min" ), self:GetConVar( "voice_pitch_max" ) ) )
+    GLACE:SetTextPerMinute( self:Random( 3, 10 ) * 100 )
+    GLACE:SetVoicePitch( self:GetProfileInfo( profile, "VoicePitch" ) or self:Random( self:GetConVar( "voice_pitch_min" ), self:GetConVar( "voice_pitch_max" ) ) )
 
     --
 
-    GLACE:SetPlayerModel( rndPm )
+    GLACE:SetPlayerModel( model, ( profile == nil ) )
     GLACE:InitializeHooks( ply, GLACE )
-    GLACE:BuildPersonalityTable()
+
+
+    local persona = self:GetProfileInfo( profile, "Personality" )
+    if persona then
+        for name, _ in pairs( self.Personalities ) do
+            if name == "Speech" then
+                persona[ name ] = profile.voice
+            elseif name == "Texting" then
+                persona[ name ] = profile.text
+            else
+                persona[ name ] = GLAMBDA:GetProfileInfo( persona, name )
+            end
+        end
+    end
+
+    GLACE:BuildPersonalityTable( persona )
 
     --
 
@@ -205,14 +243,41 @@ function GLAMBDA:CreateLambdaPlayer()
         GLACE:ApplySpawnBehavior()
     end )
 
-    local voiceProfile
-    if GLAMBDA:Random( 100 ) <= self:GetConVar( "player_vp_chance" ) then
+    local voiceProfile, textProfile
+    if profile then
+        voiceProfile = self:GetProfileInfo( profile, "VoiceProfile" )
+        textProfile = self:GetProfileInfo( profile, "TextProfile" )
+
+        local mdlSkin = self:GetProfileInfo( profile, "SkinGroup" )
+        if mdlSkin then ply:SetSkin( mdlSkin ) end
+
+        local mdlBg = self:GetProfileInfo( profile, "BodyGroups" )
+        if mdlBg then
+            for index, val in pairs( mdlBg ) do
+                ply:SetBodygroup( index, val )
+            end
+        end
+    end
+
+    if !voiceProfile and self:Random( 100 ) <= self:GetConVar( "player_vp_chance" ) then
         local profiles = table_GetKeys( self.VoiceProfiles )
-        voiceProfile = profiles[ GLAMBDA:Random( #profiles ) ]
+        voiceProfile = profiles[ self:Random( #profiles ) ]
     end
     GLACE.VoiceProfile = voiceProfile
 
+    if !textProfile and self:Random( 100 ) <= self:GetConVar( "player_tp_chance" ) then
+        local profiles = table_GetKeys( self.TextProfiles )
+        textProfile = profiles[ self:Random( #profiles ) ]
+    end
+    GLACE.TextProfile = textProfile
+
     --
+
+    -- Network this player to clients
+    net_Start( "glambda_waitforplynet" )
+        net_WriteUInt( ply:UserID(), 12 )
+        net_WriteString( ply.gb_ProfilePicture )
+    net_Broadcast()
 
     return GLACE
 end

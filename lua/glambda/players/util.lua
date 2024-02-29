@@ -1,6 +1,7 @@
 local RealTime = RealTime
 local IsValid = IsValid
 local CurTime = CurTime
+local RandomPairs = RandomPairs
 local ipairs = ipairs
 local player_GetBots = player.GetBots
 local isnumber = isnumber
@@ -333,6 +334,36 @@ end
 
 --
 
+-- Returns a modified version of given message with keywords and conditions
+-- If msg is a text type, will return a random modified message from the message tbl
+function GLAMBDA.Player:GetTextLine( msg, keyEnt )
+    local textProfile, textTbl = self.TextProfile
+    local tpTbl = GLAMBDA.TextProfiles
+    if textProfile and tpTbl[ textProfile ] then
+        textTbl = tpTbl[ textProfile ][ msg ]
+    end
+    if !textTbl or #textTbl == 0 then
+        textTbl = GLAMBDA.TextMessages[ msg ]
+        if textTbl then
+            local rndMsg
+            for _, text in RandomPairs( textTbl ) do
+                local condMet, modLine = GLAMBDA.KEYWORD:IsValidCondition( self, text, keyEnt )
+                if !condMet then continue end 
+                rndMsg = modLine; break
+            end
+
+            if !rndMsg then return false end
+            msg = rndMsg
+        else
+            local condMet, modLine = GLAMBDA.KEYWORD:IsValidCondition( self, msg, keyEnt )
+            if !condMet then return false end
+            msg = modLine
+        end
+    end
+
+    return GLAMBDA.KEYWORD:ModifyTextKeyWords( self, msg, keyEnt )
+end
+
 -- Puts the given text message or text type and key entity into our text chat queue
 function GLAMBDA.Player:TypeMessage( msg, keyEnt )
     self.QueuedMessages[ #self.QueuedMessages + 1 ] = { msg, keyEnt }
@@ -550,7 +581,7 @@ function GLAMBDA.Player:ApplySpawnBehavior()
 end
 
 -- Sets our playermodel to the given model
-function GLAMBDA.Player:SetPlayerModel( mdl )
+function GLAMBDA.Player:SetPlayerModel( mdl, noBg )
     mdl = ( mdl or self.SpawnPlayerModel )
     self:SetModel( mdl )
     
@@ -558,7 +589,7 @@ function GLAMBDA.Player:SetPlayerModel( mdl )
         local pmSkin = self:GetSkin()
         local pmBodygroups = nil
 
-        if GLAMBDA:GetConVar( "player_rngbodygroups" ) then
+        if !noBg and GLAMBDA:GetConVar( "player_rngbodygroups" ) then
             local skinCount = self:SkinCount()
             if skinCount > 0 then 
                 pmSkin = GLAMBDA:Random( 0, ( skinCount - 1 ) )

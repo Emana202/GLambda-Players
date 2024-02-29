@@ -65,6 +65,11 @@ function ENT:InitializePlayer( creator )
         GLACE.VoiceProfile = spawnVP
     end
 
+    local spawnTP = creator:GetInfo( "glambda_player_spawn_tp" )
+    if GLAMBDA.TextProfiles[ spawnTP ] then
+        GLACE.TextProfile = spawnTP
+    end
+
     local spawnWep = GLACE.ForceWeapon
     if !GLAMBDA:GetConVar( "combat_keepforcewep" ) then
         spawnWep = GLAMBDA:GetConVar( "combat_forcespawnwpn" )

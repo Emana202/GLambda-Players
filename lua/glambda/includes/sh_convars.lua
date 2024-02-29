@@ -286,6 +286,19 @@ GLAMBDA:CreateConVar( "player_spawn_vp", "", "The voice profile your newly spawn
         return false
     end
 } )
+GLAMBDA:CreateConVar( "player_spawn_tp", "", "The text profile your newly spawned player will have upon creation.", nil, true, true, {
+    name = "Text Profile",
+    category = "Client Settings",
+    type = "Combo",
+    options = function( panel, comboBox )
+        comboBox:SetSortItems( false )
+        comboBox:AddChoice( "None", "" )
+        for tp, _ in SortedPairs( GLAMBDA.TextProfiles ) do
+            comboBox:AddChoice( tp, tp )
+        end
+        return false
+    end
+} )
 
 -- Server Settings --
 GLAMBDA:CreateConVar( "player_respawn", true, "If the players should be able to respawn when killed. Disabling will disconnect them instead.", {
@@ -302,6 +315,14 @@ GLAMBDA:CreateConVar( "player_respawn_spawnpoints", false, "If the players shoul
 } )
 GLAMBDA:CreateConVar( "player_vp_chance", 0, "The chance that a player will be created with a random voice profile assigned to them.", nil, nil, nil, 0, 100, {
     name = "Voice Profile Chance",
+    category = "Server Settings",
+} )
+GLAMBDA:CreateConVar( "player_tp_chance", 0, "The chance that a player will be created with a random text profile assigned to them.", nil, nil, nil, 0, 100, {
+    name = "Text Profile Chance",
+    category = "Server Settings",
+} )
+GLAMBDA:CreateConVar( "player_profile_chance", 0, "The chance that a player will be created with a random player profile assigned to them.", nil, nil, nil, 0, 100, {
+    name = "Player Profile Chance",
     category = "Server Settings",
 } )
 
@@ -332,11 +353,11 @@ GLAMBDA:CreateConVar( "voice_norespawn", true, "If the players that are currentl
     name = "No Respawn On Speech",
     category = "Voice Options",
 } )
-GLAMBDA:CreateConVar( "voice_pitch_min", 100, "The minimum value of the player's voice pitch they can spawn with.", nil, nil, nil, 50, 100, {
+GLAMBDA:CreateConVar( "voice_pitch_min", 100, "The minimum value of the player's voice pitch they can spawn with.", nil, nil, nil, 30, 100, {
     name = "Voice Pitch - Min",
     category = "Voice Options",
 } )
-GLAMBDA:CreateConVar( "voice_pitch_max", 100, "The maximum value of the player's voice pitch they can spawn with.", nil, nil, nil, 100, 200, {
+GLAMBDA:CreateConVar( "voice_pitch_max", 100, "The maximum value of the player's voice pitch they can spawn with.", nil, nil, nil, 100, 255, {
     name = "Voice Pitch - Max",
     category = "Voice Options",
 } )

@@ -42,6 +42,7 @@ end, false, "Kicks all player bots from the server, including the non-GLambda on
 
 local userData = {
     [ "lambdaplayers/playerbirthday.json" ] = "glambda/plybirthday.json",
+    [ "lambdaplayers/profiles.json" ]       = "glambda/profiles.json",
     [ "lambdaplayers/presets/" ] = "glambda/presets/",
 }
 GLAMBDA:CreateConCommand( "cmd_transferlambda_clientdata", function( ply )
@@ -63,7 +64,7 @@ GLAMBDA:CreateConCommand( "cmd_transferlambda_clientdata", function( ply )
     GLAMBDA:SendNotification( ply, "Transfered Lambda Data", 3, nil, "buttons/button15.wav" )
     print( "GLambda Players: Transfered Lambda client data files via console command." )
 
-end, true, "Transfers and copies the client data files from Lambda Players to GLambda Players, such as personality presets, birthday date, and etc.", { 
+end, true, "Transfers and copies the client data files from Lambda Players to GLambda Players, such as personality presets, birthday date, and etc.\nNOTE: This will override the existing ones instead of merging them!", { 
     name = "Transfer Lambda Client Data", 
     category = "Utilities" 
 } )
@@ -104,7 +105,7 @@ GLAMBDA:CreateConCommand( "cmd_transferlambda_serverdata", function( ply )
     if plyValid then GLAMBDA:SendNotification( ply, "Transfered Lambda Data", 3, nil, "buttons/button15.wav" ) end
     print( "GLambda Players: Transfered Lambda server data files via console command. Ran by ", ( plyValid and ply:Name() .. " | " .. ply:SteamID() or "Console" ) )
 
-end, false, "Transfers and copies the server data files from Lambda Players to GLambda Players, such as names, NPCs, props and etc.\nYou must be a super admin in order to use this! Make sure to update the affected data once done!", { 
+end, false, "Transfers and copies the server data files from Lambda Players to GLambda Players, such as names, NPCs, props and etc.\nYou must be a super admin in order to use this! Make sure to update the affected data once done!\nNOTE: This will override the existing ones instead of merging them!", { 
     name = "Transfer Lambda Server Data", 
     category = "Utilities" 
 } )
