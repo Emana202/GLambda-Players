@@ -149,7 +149,7 @@ GLAMBDA.FILE:CreateUpdateCommand( "weapons", function()
 
     MergeWeapons( "glambda/weapons/", "DATA" )
     MergeWeapons( "materials/glambdaplayers/data/weapons/", "GAME" )
-end, false, "Updates the list of weapons the players can use and equip.", "Weapon List", true )
+end, false, "Updates the list of weapons the players can use and equip.", "Weapon List" )
 
 if ( CLIENT ) then
 
@@ -194,7 +194,14 @@ if ( CLIENT ) then
             function originlist:DoDoubleClick( id, line )
                 local selectedWep = line:GetSortValue( 1 )
                 if ( !onSelectFunc or onSelectFunc( selectedWep ) != true ) and isCvar then
-                    wepSelectVar:SetString( selectedWep )
+                    if wepSelectVar:IsFlagSet( FCVAR_REPLICATED ) then
+                        net_Start( "glambda_updateconvar" )
+                            net_WriteString( wepSelectVar:GetName() )
+                            net_WriteString( selectedWep )
+                        net_SendToServer()
+                    else
+                        wepSelectVar:SetString( selectedWep )
+                    end
                 end
     
                 if showNotif then
@@ -249,7 +256,14 @@ if ( CLIENT ) then
             PANEL:Button( mainframe, BOTTOM, "Select None", function()
                 local selectedWep = ""
                 if ( !onSelectFunc or onSelectFunc( selectedWep ) != true ) and isCvar then
-                    wepSelectVar:SetString( selectedWep )
+                    if wepSelectVar:IsFlagSet( FCVAR_REPLICATED ) then
+                        net_Start( "glambda_updateconvar" )
+                            net_WriteString( wepSelectVar:GetName() )
+                            net_WriteString( selectedWep )
+                        net_SendToServer()
+                    else
+                        wepSelectVar:SetString( selectedWep )
+                    end
                 end
 
                 if showNotif then
@@ -265,7 +279,14 @@ if ( CLIENT ) then
             PANEL:Button( mainframe, BOTTOM, "Select Random", function()
                 local selectedWep = "random"
                 if ( !onSelectFunc or onSelectFunc( selectedWep ) != true ) and isCvar then
-                    wepSelectVar:SetString( selectedWep )
+                    if wepSelectVar:IsFlagSet( FCVAR_REPLICATED ) then
+                        net_Start( "glambda_updateconvar" )
+                            net_WriteString( wepSelectVar:GetName() )
+                            net_WriteString( selectedWep )
+                        net_SendToServer()
+                    else
+                        wepSelectVar:SetString( selectedWep )
+                    end
                 end
     
                 if showNotif then

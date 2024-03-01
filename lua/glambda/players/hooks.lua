@@ -302,7 +302,7 @@ function GLAMBDA.Player:OnPlayerRespawn()
                 self:SelectWeapon( spawnWep )
             end
         else
-            spawnWep = self.SpawnWeapon
+            spawnWep = ( self.SpawnWeapon or "weapon_physgun" )
             if spawnWep == "random" then
                 self:SelectRandomWeapon()
             else

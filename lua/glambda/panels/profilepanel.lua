@@ -222,7 +222,7 @@ local function OpenProfileEditor( ply )
     local scrollPnl = PANEL:ScrollPanel( frame, true, FILL )
 
     local mainPnl = PANEL:BasicPanel( scrollPnl, LEFT )
-    mainPnl:SetSize( 250, 200 )
+    mainPnl:SetSize( 300, 200 )
     mainPnl:Dock( LEFT )
     scrollPnl:AddPanel( mainPnl )
 
@@ -241,7 +241,7 @@ local function OpenProfileEditor( ply )
 
     PANEL:Label( "Profile Picture", mainScroll, TOP )
     PANEL:Label( "Enter a file path relative to", mainScroll, TOP )
-    PANEL:Label( table_concat( profilePicPaths, ", or " ), mainScroll, TOP )
+    PANEL:Label( profilePicPaths[ 1 ], mainScroll, TOP )
     PANEL:Label( "Leave blank for random", mainScroll, TOP )
     PANEL:URLLabel( "Click here to learn about Profile Pictures", "https://github.com/IcyStarFrost/Lambda-Players/wiki/Adding-Custom-Content#profile-pictures", mainScroll, TOP )
 
@@ -312,23 +312,54 @@ local function OpenProfileEditor( ply )
 
     --
 
-    PANEL:Label( "Voice Pitch", mainScroll, TOP )
+    PANEL:Label( "The Profile's voice pitch", mainScroll, TOP )
     local plyVcPitch = PANEL:NumSlider( mainScroll, TOP, 100, "Voice Pitch", 30, 255, 0 )
+
+    --
+
+    PANEL:Label( "Spawn Weapon", mainScroll, TOP )
+    local spawnWpnLbl = PANEL:Label( "The weapon to spawn with: None", mainScroll, TOP )
+    
+    local plySpawnWpn = ""
+    local function SetSpawnWeapon( wpn )
+        plySpawnWpn = wpn
+        spawnWpnLbl:SetText( "The weapon to spawn with: " .. ( GLAMBDA.WeaponList[ wpn ] and GLAMBDA.WeaponList[ wpn ].Name or "None" ) )
+    end
+    PANEL:Button( mainScroll, TOP, "Select Spawn Weapon", function()
+        GLAMBDA:WeaponSelectPanel( plySpawnWpn, true, false, true, false, function( selectWep )
+            SetSpawnWeapon( selectWep )
+        end )
+    end )
+
+    --
+
+    PANEL:Label( "Favorite Weapon", mainScroll, TOP )
+    local favWpnLbl = PANEL:Label( "The favorite weapon to use: None", mainScroll, TOP )
+    
+    local plyFavWpn = ""
+    local function SetFavoriteWeapon( wpn )
+        plyFavWpn = wpn
+        favWpnLbl:SetText( "The favorite weapon to use: " .. ( GLAMBDA.WeaponList[ wpn ] and GLAMBDA.WeaponList[ wpn ].Name or "None" ) )
+    end
+    PANEL:Button( mainScroll, TOP, "Select Favorite Weapon", function()
+        GLAMBDA:WeaponSelectPanel( plyFavWpn, true, false, true, false, function( selectWep )
+            SetFavoriteWeapon( selectWep )
+        end )
+    end )
 
     --
 
     local persSliders = {}
     local persPnl = PANEL:BasicPanel( scrollPnl )
-    persPnl:SetSize( 200, 200 )
+    persPnl:SetSize( 250, 200 )
     persPnl:Dock( LEFT )
     scrollPnl:AddPanel( persPnl )
 
     local persScroll = PANEL:ScrollPanel( persPnl, false, FILL )
 
     PANEL:Label( "-- Personality Settings --", persScroll, TOP )
-    PANEL:Label( "If this Profile should", persScroll, TOP )
-    PANEL:Label( "use these sliders", persScroll, TOP )
     local usePersona = PANEL:CheckBox( persScroll, TOP, true, "Use Personality Sliders" )
+    PANEL:Label( "If this Profile should use these sliders:", persScroll, TOP )
 
     for name, _ in SortedPairs( GLAMBDA.Personalities ) do 
         local numSlider = PANEL:NumSlider( persScroll, TOP, 30, name, 0, 100, 0 )
@@ -338,7 +369,7 @@ local function OpenProfileEditor( ply )
     --
 
     local mainPnl2 = PANEL:BasicPanel( scrollPnl )
-    mainPnl2:SetSize( 300, 200 )
+    mainPnl2:SetSize( 320, 200 )
     mainPnl2:Dock( LEFT )
     scrollPnl:AddPanel( mainPnl2 )
 
@@ -476,7 +507,9 @@ local function OpenProfileEditor( ply )
             VoicePitch = math_ceil( plyVcPitch:GetValue() ),
             PlayerColor = ( usePlyClr:GetChecked() and plyColor:GetVector() or nil ),
             WeaponColor = ( usePhysClr:GetChecked() and plyPhysClr:GetVector() or nil ),
-            SkinGroup = ( IsValid( skinSlider ) and math_ceil( skinSlider:GetValue() ) or nil )
+            SkinGroup = ( IsValid( skinSlider ) and math_ceil( skinSlider:GetValue() ) or nil ),
+            SpawnWeapon = ( #plySpawnWpn != 0 and plySpawnWpn or nil ),
+            FavoriteWeapon = ( #plyFavWpn != 0 and plyFavWpn or nil )
         }
 
         --
@@ -522,7 +555,10 @@ local function OpenProfileEditor( ply )
         plyVcPitch:SetValue( GLAMBDA:GetProfileInfo( infoTbl, "VoicePitch" ) )
         plyVP:SelectOptionByKey( GLAMBDA:GetProfileInfo( infoTbl, "VoiceProfile" ) or "" )
         plyTP:SelectOptionByKey( GLAMBDA:GetProfileInfo( infoTbl, "TextProfile" ) or "" )
-        
+
+        SetSpawnWeapon( infoTbl.SpawnWeapon or "" )
+        SetFavoriteWeapon( infoTbl.FavoriteWeapon or "" )
+
         --
         
         if IsValid( skinSlider ) then

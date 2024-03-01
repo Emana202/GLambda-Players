@@ -3,6 +3,7 @@ local CurTime = CurTime
 local RandomPairs = RandomPairs
 local game_GetAmmoMax = game.GetAmmoMax
 local string_match = string.match
+local table_Count = table.Count
 
 -- Makes us select the given weapon by its classname
 function GLAMBDA.Player:SelectWeapon( weapon )
@@ -36,6 +37,15 @@ end
 function GLAMBDA.Player:SelectRandomWeapon( filter )
     local curWep = self:GetActiveWeapon()
     curWep = ( IsValid( curWep ) and curWep:GetClass() or nil )
+
+    local favWpn = self.FavoriteWeapon
+    if favWpn then 
+        local wpnData = GLAMBDA.WeaponList[ favWpn ]
+        if wpnData and self:IsWeaponAllowed( favWpn ) and ( !filter or filter( favWpn, wpnData, curWep ) ) then
+            local wpnCount = table_Count( GLAMBDA.WeaponList )
+            if GLAMBDA:Random( wpnCount * 2 ) >= wpnCount and self:SelectWeapon( favWpn ) then return true end
+        end
+    end
 
     for name, data in RandomPairs( GLAMBDA.WeaponList ) do
         if !self:IsWeaponAllowed( name ) then continue end

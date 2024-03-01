@@ -255,7 +255,7 @@ function GLAMBDA.Player:Timer( name, delay, reps, func )
     local timername = "glacebase_timer_" .. self:GetPlayer():EntIndex() .. name
     timer_Create( timername, delay, reps, function()
         if !IsValid( self ) then timer_Remove( timername ) return end
-        func()
+        if func() == true then timer_Remove( timername ) return end
     end )
 end
 
@@ -701,7 +701,7 @@ function GLAMBDA.Player:InitializeHooks()
     self:Hook( "PlayerSay", "PlayerSay", function( player, text )
         if player == ply or !self:CanType() then return end
 
-        local replyChan = 200
+        local replyChan = 250
         replyChan = ( replyChan + ( #self.QueuedMessages * 200 ) )
         if string_match( text, self:Nick() ) then replyChan = ( replyChan * 0.33 ) end
         if !self:GetTextingChance( replyChan ) then return end

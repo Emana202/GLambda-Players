@@ -40,6 +40,7 @@ function ENT:InitializePlayer( creator )
     self.gb_PlyInitialized = true
     local ply = self:GetOwner()
     local GLACE = ply:GetGlaceObject()
+    if GLACE.HasProfileAssigned then return end
 
     local presetCvar = creator:GetInfo( "glambda_player_personalitypreset" )
     if presetCvar == "custom" then

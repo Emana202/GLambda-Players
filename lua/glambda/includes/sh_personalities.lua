@@ -51,11 +51,14 @@ end )
 
 GLAMBDA:CreatePersonalityType( "Toolgun", function( self )
     if !self:IsWeaponAllowed( "gmod_tool" ) then return end
-    self:SelectWeapon( "gmod_tool" )
-    self:SetNoWeaponSwitch( true )
+    local hasToolgun = false
 
     for name, toolTbl in RandomPairs( GLAMBDA.ToolgunTools ) do
         if !toolTbl[ 1 ]:GetBool() then continue end
+        if !hasToolgun and !toolTbl[ 3 ] and self:SelectWeapon( "gmod_tool" ) then
+            hasToolgun = true
+            self:SetNoWeaponSwitch( true )
+        end
 
         local result
         local ok, msg = pcall( function() result = toolTbl[ 2 ]( self ) end )

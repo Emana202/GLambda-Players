@@ -257,6 +257,10 @@ function GLAMBDA:CreateLambdaPlayer()
                 ply:SetBodygroup( index, val )
             end
         end
+
+        GLACE.HasProfileAssigned = true
+        GLACE.SpawnWeapon = profile.SpawnWeapon
+        GLACE.FavoriteWeapon = profile.FavoriteWeapon
     end
 
     if !voiceProfile and self:Random( 100 ) <= self:GetConVar( "player_vp_chance" ) then
