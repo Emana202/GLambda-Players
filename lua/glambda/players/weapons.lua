@@ -7,7 +7,8 @@ local table_Count = table.Count
 
 -- Makes us select the given weapon by its classname
 function GLAMBDA.Player:SelectWeapon( weapon )
-    if self:GetNoWeaponSwitch() then return end
+    if self:GetNoWeaponSwitch() then return false end
+    if GLAMBDA:RunHook( "GLambda_OnPlayerCanSelectWeapon", self, weapon ) == true then return false end
 
     local curWep = self:GetActiveWeapon()
     if IsValid( curWep ) and curWep:GetClass() == weapon then return end
@@ -128,6 +129,9 @@ local fallbackDefaults = {
         if weapon.IsTFAWeapon and !weapon.Primary.Automatic or weapon.ARC9 and weapon:GetCurrentFiremode() != -1 then
             return { 0.2, 0.3 }
         end
+    end,
+    NoSprintAttack = function( weapon )
+        return ( weapon.IsTFAWeapon or weapon.ARC9 and !weapon:GetProcessedValue( "ShootWhileSprint", true ) )
     end,
     AttackDistance = function( weapon )
         if weapon.ARC9 then

@@ -58,7 +58,11 @@ function GLAMBDA.Player:Think()
         self:SetNW2Bool( "glambda_istexttyping", isTyping )
     end
 
-    if !self:Alive() or self:IsDisabled() then
+    local isDead = !self:Alive()
+    local isDisabled = self:IsDisabled()
+    GLAMBDA:RunHook( "GLambda_OnPlayerThink", self, isDead, isDisabled )
+
+    if isDead or isDisabled then
         self.NextIdleLineT = ( CurTime() + GLAMBDA:Random( 5, 10 ) )
         self.NextUniversalActionT = ( CurTime() + GLAMBDA:Random( 10, 15, true ) )
         return 
@@ -151,20 +155,15 @@ function GLAMBDA.Player:Think()
             if isPanicking and !isMelee then attackRange = ( attackRange * 0.8 ) end
             
             local inAttackRange = self:InRange( aimPos, attackRange, self:EyePos() )
+            local canSprint = true
             if canShoot and inAttackRange then
                 self:LookTo( aimPos, GLAMBDA:Random( 3 ), 3 )
                 if aimPos == enemy then aimPos = aimPos:WorldSpaceCenter() end
 
-                local canSprint = true
-                if weapon.IsTFAWeapon then 
-                    canSprint = false
-                elseif weapon.ARC9 and !weapon:GetProcessedValue( "ShootWhileSprint", true ) then
-                    canSprint = false
-                end
-                self:SetSprint( canSprint )
-
                 local canFire = ( ( aimPos - self:EyePos() ):GetNormalized():Dot( self:GetAimVector() ) >= 0.95 )
-                if canFire then
+                if canFire and !GLAMBDA:RunHook( "GLambda_OnPlayerCanFireWeapon", self, weapon, enemy ) then
+                    canSprint = !self:GetWeaponStat( "NoSprintAttack", false )
+
                     local specialFire = self:GetWeaponStat( "SpecialAttack" )
                     if !specialFire or !specialFire( self, weapon, enemy ) then
                         if self:GetWeaponStat( "HasSecondaryFire" ) and GLAMBDA:Random() <= self:GetWeaponStat( "SecondaryFireChance" ) then
@@ -173,7 +172,7 @@ function GLAMBDA.Player:Think()
                             if !isReloading then
                                 self:HoldKey( IN_ATTACK )
                             end
-                        elseif CurTime() >= self.NextWeaponAttackT and CurTime() >= weapon:GetNextPrimaryFire() then
+                        elseif CurTime() >= self.NextWeaponAttackT and CurTime() > weapon:GetNextPrimaryFire() then
                             self:PressKey( IN_ATTACK )
 
                             local fireDelay = self:GetWeaponStat( "AttackDelay" )
@@ -186,9 +185,8 @@ function GLAMBDA.Player:Think()
                 end
 
                 self.NextAmmoCheckT = ( CurTime() + GLAMBDA:Random( 2, 8 ) )
-            else
-                self:SetSprint( true )
             end
+            self:SetSprint( canSprint )
 
             if self:GetIsMoving() and !self:GetState( "Retreat" ) then
                 if CurTime() >= self.NextCombatPathUpdateT then
@@ -209,7 +207,8 @@ function GLAMBDA.Player:Think()
                         if isvector( funcResult ) then movePos = funcResult end
                     end
 
-                    self.CombatPathPosition = movePos
+                    local hookPath = GLAMBDA:RunHook( "GLambda_OnPlayerCombatPath", self, movePos, enemy )
+                    self.CombatPathPosition = ( hookPath or movePos )
                     self.NextCombatPathUpdateT = ( CurTime() + 0.1 )
                 end
 
@@ -289,35 +288,34 @@ function GLAMBDA.Player:OnPlayerRespawn()
         self:SetEyeAngles( spawnAng )
     end
 
-    self:SimpleTimer( 0, function()
-        local spawnWep = self.ForceWeapon
-        if !GLAMBDA:GetConVar( "combat_keepforcewep" ) then
-            spawnWep = GLAMBDA:GetConVar( "combat_forcespawnwpn" )
-        end
-
-        if spawnWep and #spawnWep != 0 then
-            if spawnWep == "random" then
-                self:SelectRandomWeapon()
-            else
-                self:SelectWeapon( spawnWep )
-            end
+    local spawnWep = self.ForceWeapon
+    if !GLAMBDA:GetConVar( "combat_keepforcewep" ) then
+        spawnWep = GLAMBDA:GetConVar( "combat_forcespawnwpn" )
+    end
+    if spawnWep and #spawnWep != 0 then
+        if spawnWep == "random" then
+            self:SelectRandomWeapon()
         else
-            spawnWep = ( self.SpawnWeapon or "weapon_physgun" )
-            if spawnWep == "random" then
-                self:SelectRandomWeapon()
-            else
-                self:SelectWeapon( spawnWep )
-            end
+            self:SelectWeapon( spawnWep )
         end
+    else
+        spawnWep = ( self.SpawnWeapon or "weapon_physgun" )
+        if spawnWep == "random" then
+            self:SelectRandomWeapon()
+        else
+            self:SelectWeapon( spawnWep )
+        end
+    end
+    if !GLAMBDA:GetConVar( "combat_spawnbehavior_initialspawn" ) then
+        self:ApplySpawnBehavior()
+    end
 
-        if !GLAMBDA:GetConVar( "combat_spawnbehavior_initialspawn" ) then
-            self:ApplySpawnBehavior()
-        end
-    end )
+    GLAMBDA:RunHook( "GLambda_OnPlayerRespawn", self )
 end
 
 -- Called when this player is hurt
 function GLAMBDA.Player:OnHurt( attacker, healthLeft, damage )
+    GLAMBDA:RunHook( "GLambda_OnPlayerHurt", self, attacker, healthLeft, damage )
     if healthLeft <= 0 then return end
 
     if !self:IsPanicking() and attacker != self and IsValid( attacker ) then
@@ -358,6 +356,8 @@ function GLAMBDA.Player:OnKilled( attacker )
     self:SetNoWeaponSwitch( false )
     self:ResetAI()
     self:SetNW2Bool( "glambda_playingtaunt", false )
+
+    GLAMBDA:RunHook( "GLambda_OnPlayerKilled", self, attacker )
 end
 
 -- Called when a NPC, Nextbot, or player is killed
@@ -368,7 +368,7 @@ function GLAMBDA.Player:OnOtherKilled( victim, dmginfo )
         self:SetState()
         self:CancelMovement()
     end
-    if !self:Alive() then return end
+    if !self:Alive() or GLAMBDA:RunHook( "GLambda_OnPlayerOtherKilled", self, victim, dmginfo ) == true then return end
 
     local attacker = dmginfo:GetAttacker()
     if attacker == self:GetPlayer() then

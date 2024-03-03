@@ -1,8 +1,4 @@
 local GetConVar = GetConVar
-local Spawn_SENT = Spawn_SENT
-local Spawn_Weapon = Spawn_Weapon
-local Spawn_NPC = Spawn_NPC
-local GMODSpawnProp = GMODSpawnProp
 local Vector = Vector
 local util_TraceHull = util.TraceHull
 local table_Merge = table.Merge
@@ -11,8 +7,6 @@ local IsValid = IsValid
 local IsFirstTimePredicted = IsFirstTimePredicted
 local EffectData = EffectData
 local util_Effect = util.Effect
-
-local drawToolEffects = GetConVar( "gmod_drawtooleffects" )
 
 --
 

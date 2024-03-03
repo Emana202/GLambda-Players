@@ -100,6 +100,9 @@ local function OpenWeaponRegister( ply )
         end
         secondFire:OnChange( hadSecks )
 
+        PANEL:Label( "If this weapon can't be fired if the user is sprinting?", mainPnl, TOP )
+        local cantFireSprint = PANEL:CheckBox( mainPnl, TOP, ( wpnData.NoSprintAttack == nil and false or wpnData.NoSprintAttack ), "No Sprint Attack" )
+
         function isMelee:OnChange( value )
             attackDist:SetValue( value and 100 or 1000 )
             keepDist:SetValue( value and 50 or 500 )
@@ -171,6 +174,7 @@ local function OpenWeaponRegister( ply )
                 IsLethalWeapon = isLethal:GetChecked(),
                 IsMeleeWeapon = isMelee:GetChecked(),
                 Automatic = fullAuto:GetChecked(),
+                NoSprintAttack = cantFireSprint:GetChecked(),
 
                 HasSecondaryFire = secondFire:GetChecked(),
                 SecondaryFireChance = secFireChan:GetValue(),

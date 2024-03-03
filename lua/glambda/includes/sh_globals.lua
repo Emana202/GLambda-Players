@@ -20,6 +20,10 @@ local SysTime = SysTime
 local math_random = math.random
 local math_Rand = math.Rand
 local string_upper = string.upper
+local pcall = pcall
+local hook_GetTable = hook.GetTable
+local ErrorNoHaltWithStack = ErrorNoHaltWithStack
+local unpack = unpack
 
 if ( SERVER ) then
 
@@ -198,6 +202,8 @@ if ( CLIENT ) then
             end
         end
         ply.gb_ProfilePicture = pfp
+
+        self:RunHook( "GLambda_OnPlayerInitialize", ply )
     end
 
 end
@@ -250,6 +256,37 @@ function GLAMBDA:Random( min, max, float )
 
     if !min and !max then return math_random() end
     return ( float and math_Rand( min, max ) or ( max and math_random( min, max ) or math_random( min ) ) )
+end
+
+--
+
+GLAMBDA.HookTable = {
+    "OnPlayerSelectWeapon",
+    "OnPlayerOtherKilled",
+    "OnPlayerKilled",
+    "OnPlayerHurt",
+    "OnPlayerThink",
+    "OnPlayerChangeState",
+    "OnPlayerCanTarget",
+    "OnPlayerCanSelectWeapon",
+    "OnPlayerGetTextLine",
+    "OnPlayerPlayVoiceLine",
+    "OnPlayerInitialize",
+    "OnPlayerRespawn",
+}
+function GLAMBDA:RunHook( hookName, ... )
+    local hookTbl = hook_GetTable()[ hookName ]
+    if !hookTbl then return end
+
+    local args = { ... }
+    local a, b, c, d, e, f
+
+    for _, func in pairs( hookTbl ) do
+        local ok, msg = pcall( function() a, b, c, d, e, f = func( unpack( args ) ) end )
+        if !ok then ErrorNoHaltWithStack( msg ) end
+        if a or b or c or d or e or f then break end
+    end
+    return a, b, c, d, e, f
 end
 
 --

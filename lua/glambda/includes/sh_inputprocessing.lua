@@ -2,7 +2,6 @@ local hook_Add = hook.Add
 local bit_band = bit.band
 local isstring = isstring
 local IsValid = IsValid
-local isentity = isentity
 local LerpAngle = LerpAngle
 local CurTime = CurTime
 local ents_Create = ents.Create
@@ -26,18 +25,21 @@ hook_Add( "StartCommand", "GlaceBase-InputProcessing", function( ply, cmd )
         if bit_band( buttonQueue, IN_ATTACK ) == IN_ATTACK then buttonQueue = ( buttonQueue - IN_ATTACK ) end
         if bit_band( buttonQueue, IN_ATTACK2 ) == IN_ATTACK2 then buttonQueue = ( buttonQueue - IN_ATTACK2 ) end
 
-        if isentity( selectWep ) and IsValid( selectWep ) then
-            cmd:SelectWeapon( selectWep )
-        elseif isstring( selectWep ) and ply:HasWeapon( selectWep ) then
-            cmd:SelectWeapon( ply:GetWeapon( selectWep ) )
+        if isstring( selectWep ) and ply:HasWeapon( selectWep ) then
+            selectWep = ply:GetWeapon( selectWep )
         end
+        if IsValid( selectWep ) then
+            cmd:SelectWeapon( selectWep )
 
-        local equipFunc = GLACE:GetWeaponStat( "OnEquip" )
-        if equipFunc then equipFunc( self, weapon ) end
-        
-        GLACE.CmdSelectWeapon = nil
-        GLACE.NextWeaponThinkT = 0
-        GLACE.NextWeaponAttackT = ( CurTime() + 0.5 )
+            local equipFunc = GLACE:GetWeaponStat( "OnEquip" )
+            if equipFunc then equipFunc( self, selectWep ) end
+            
+            GLACE.CmdSelectWeapon = nil
+            GLACE.NextWeaponThinkT = 0
+            GLACE.NextWeaponAttackT = ( CurTime() + 0.5 )
+
+            GLAMBDA:RunHook( "GLambda_OnPlayerSelectWeapon", GLACE, selectWep )
+        end
     end
 
     if buttonQueue > 0 then

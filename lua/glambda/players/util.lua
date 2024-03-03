@@ -361,7 +361,8 @@ function GLAMBDA.Player:GetTextLine( msg, keyEnt )
         end
     end
 
-    return GLAMBDA.KEYWORD:ModifyTextKeyWords( self, msg, keyEnt )
+    msg = GLAMBDA.KEYWORD:ModifyTextKeyWords( self, msg, keyEnt )
+    return ( GLAMBDA:RunHook( "GLambda_OnPlayerGetTextLine", self, msg, keyEnt ) or msg )
 end
 
 -- Puts the given text message or text type and key entity into our text chat queue
@@ -393,6 +394,9 @@ function GLAMBDA.Player:PlayVoiceLine( voiceType, delay )
         if !voiceTbl or #voiceTbl == 0 then return end
     end
 
+    local rndSnd = voiceTbl[ GLAMBDA:Random( #voiceTbl ) ]
+    if GLAMBDA:RunHook( "GLambda_OnPlayerPlayVoiceLine", self, voiceType, rndSnd ) == true then return end
+
     self:SetLastVoiceType( voiceType )
     if !isnumber( delay ) then
         delay = ( delay == nil and GLAMBDA:Random( 0.1, 0.66, true ) or 0 )
@@ -401,7 +405,7 @@ function GLAMBDA.Player:PlayVoiceLine( voiceType, delay )
 
     net_Start( "glambda_playvoicesnd" )
         net_WritePlayer( self:GetPlayer() )
-        net_WriteString( voiceTbl[ GLAMBDA:Random( #voiceTbl ) ] )
+        net_WriteString( rndSnd )
         net_WriteUInt( self:GetVoicePitch(), 8 )
         net_WriteVector( self:GetPos() )
         net_WriteFloat( delay )
@@ -412,7 +416,11 @@ end
 -- "data" argument is a variable that'll be used while executing the state, can be a table if you have multiple
 function GLAMBDA.Player:SetState( state, data )
     state = ( state or "Idle" )
-    if self:GetState( state ) then return end
+
+    local curState = self:GetState()
+    if curState == state then return end
+    if GLAMBDA:RunHook( "GLambda_OnPlayerChangeState", self, curState, state, data ) == true then return end
+
     self.State = state
     self:SetStateArg( data )
 end
@@ -511,6 +519,7 @@ function GLAMBDA.Player:CanTarget( ent )
         return false
     end
 
+    if GLAMBDA:RunHook( "GLambda_OnPlayerCanTarget", self, ent ) == true then return end
     return true
 end
 
@@ -583,8 +592,13 @@ end
 -- Sets our playermodel to the given model
 function GLAMBDA.Player:SetPlayerModel( mdl, noBg )
     mdl = ( mdl or self.SpawnPlayerModel )
+    local forceMdl = GLAMBDA:RunHook( "GLambda_OnPlayerSetModel", self, mdl )
+    if forceMdl != nil then
+        if forceMdl == true then return end
+        mdl = forceMdl
+    end
     self:SetModel( mdl )
-    
+
     if mdl != self.SpawnPlayerModel then
         local pmSkin = self:GetSkin()
         local pmBodygroups = nil

@@ -204,7 +204,7 @@ function GLAMBDA:CreateLambdaPlayer()
     --
 
     GLACE:SetSpeechEndTime( 0 )
-    GLACE:SetTextPerMinute( self:Random( 3, 10 ) * 100 )
+    GLACE:SetTextPerMinute( self:Random( 4, 10 ) * 100 )
     GLACE:SetVoicePitch( self:GetProfileInfo( profile, "VoicePitch" ) or self:Random( self:GetConVar( "voice_pitch_min" ), self:GetConVar( "voice_pitch_max" ) ) )
 
     --
@@ -229,19 +229,6 @@ function GLAMBDA:CreateLambdaPlayer()
     GLACE:BuildPersonalityTable( persona )
 
     --
-
-    GLACE:SimpleTimer( 0, function()
-        local spawnWep = GLACE.ForceWeapon
-        if spawnWep and #spawnWep != 0 then
-            if spawnWep == "random" then
-                GLACE:SelectRandomWeapon()
-            else
-                GLACE:SelectWeapon( spawnWep )
-            end
-        end
-
-        GLACE:ApplySpawnBehavior()
-    end )
 
     local voiceProfile, textProfile
     if profile then
@@ -277,12 +264,23 @@ function GLAMBDA:CreateLambdaPlayer()
 
     --
 
+    local spawnWep = GLACE.ForceWeapon
+    if spawnWep and #spawnWep != 0 then
+        if spawnWep == "random" then
+            GLACE:SelectRandomWeapon()
+        else
+            GLACE:SelectWeapon( spawnWep )
+        end
+    end
+    GLACE:ApplySpawnBehavior()
+
     -- Network this player to clients
     net_Start( "glambda_waitforplynet" )
         net_WriteUInt( ply:UserID(), 12 )
         net_WriteString( ply.gb_ProfilePicture )
     net_Broadcast()
 
+    self:RunHook( "GLambda_OnPlayerInitialize", ply, GLACE )
     return GLACE
 end
 

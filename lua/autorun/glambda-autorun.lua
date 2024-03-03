@@ -30,9 +30,7 @@ function GLAMBDA:LoadFiles( caller )
 
     -- Our main include files
     local dirPath = "glambda/includes/"
-    local files = file_Find( dirPath .. "*.lua", "LUA", "nameasc" )
-
-    for _, luaFile in ipairs( files ) do
+    for _, luaFile in ipairs( file_Find( dirPath .. "*.lua", "LUA", "nameasc" ) ) do
         if string_StartWith( luaFile, "sv_" ) then
             include( dirPath .. luaFile )
             print( "GLambda Players: Included Server-Side Lua file [ " .. luaFile .. " ]" )
@@ -51,6 +49,28 @@ function GLAMBDA:LoadFiles( caller )
     end
 
     print( "GLambda Players: All base Lua include files have been loaded" )
+
+    -- External addon stuff
+    local dirPath = "glambda/extaddon/"
+    for _, luaFile in ipairs( file_Find( dirPath .. "*.lua", "LUA", "nameasc" ) ) do
+        if string_StartWith( luaFile, "sv_" ) then
+            include( dirPath .. luaFile )
+            print( "GLambda Players: Included Server-Side External Lua file [ " .. luaFile .. " ]" )
+        elseif string_StartWith( luaFile, "cl_" ) then
+            if ( SERVER ) then
+                AddCSLuaFile( dirPath .. luaFile )
+            else
+                include( dirPath .. luaFile )
+                print( "GLambda Players: Included Client-Side External Lua file [ " .. luaFile .. " ]" )
+            end
+        elseif string_StartWith( luaFile, "sh_" ) then
+            if ( SERVER ) then AddCSLuaFile( dirPath .. luaFile ) end
+            include( dirPath .. luaFile )
+            print( "GLambda Players: Included Shared External Lua file [ " .. luaFile .. " ]" )
+        end
+    end
+
+    print( "GLambda Players: All External Lua include files have been loaded" )
 
     -- The one and only, the GLambda Player --
     if ( SERVER ) then AddCSLuaFile( "glambda/glambda_player.lua" ) end
