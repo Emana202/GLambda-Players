@@ -6,6 +6,39 @@ local file_Find = file.Find
 local file_Exists = file.Exists
 local print = print
 
+GLAMBDA:CreateConCommand( "debug_notarget", function( ply )
+    
+    if !IsValid( ply ) then return end
+    if !ply:IsSuperAdmin() then
+        GLAMBDA:SendNotification( ply, "You must be a super admin in order to use this!", 1, nil, "buttons/button14.wav" )
+        return 
+    end
+
+    local flagSet = !ply:IsFlagSet( FL_NOTARGET )
+    GLAMBDA:SendNotification( ply, ( flagSet and "Enabled " or "Disabled " ) .. "No Target", 0, nil, "buttons/button14.wav" )
+    ply:SetNoTarget( flagSet )
+
+end, false, "Enables and disables No Target mode, making NPCs and supported Nextbots to ignore you.\nYou must be a super admin in order to use this!", {
+    name = "Enable No Target", 
+    category = "Debugging" 
+} )
+
+GLAMBDA:CreateConCommand( "debug_kickallbots", function( ply )
+    
+    if IsValid( ply ) and !ply:IsSuperAdmin() then
+        GLAMBDA:SendNotification( ply, "You must be a super admin in order to use this!", 1, nil, "buttons/button10.wav" )
+        return 
+    end
+
+    for _, ply in ipairs( player_GetBots() ) do
+        ply:Kick()
+    end
+
+end, false, "Kicks all player bots from the server, including the non-GLambda ones.\nUse this if an error occurs upon a player's spawn and they become un-removable by normal means.\nYou must be a super admin in order to use this!", {
+    name = "Kick All Player Bots", 
+    category = "Debugging" 
+} )
+
 GLAMBDA:CreateConCommand( "debug_resetallai", function( ply )
 
     local plyValid = IsValid( ply )
@@ -16,25 +49,11 @@ GLAMBDA:CreateConCommand( "debug_resetallai", function( ply )
 
     for _, ply in ipairs( player_GetBots() ) do
         if !ply:IsGLambdaPlayer() then continue end
-        ply:GetGlaceObject():ResetAI()
+        ply:GetGlace():ResetAI()
     end
 
 end, false, "Reset the AI of all spawned players. Useful is an error occurs that makes them stop entirely.\nYou must be a super admin in order to use this!", {
     name = "Reset All Players' AI", 
-    category = "Debugging" 
-} )
-
-GLAMBDA:CreateConCommand( "debug_kickallbots", function()
-    if IsValid( ply ) and !ply:IsSuperAdmin() then
-        GLAMBDA:SendNotification( ply, "You must be a super admin in order to use this!", 1, nil, "buttons/button10.wav" )
-        return 
-    end
-
-    for _, ply in ipairs( player_GetBots() ) do
-        ply:Kick()
-    end
-end, false, "Kicks all player bots from the server, including the non-GLambda ones.\nUse this if an error occurs upon a player's spawn and they become un-removable by normal means.\nYou must be a super admin in order to use this!", {
-    name = "Kick All Player Bots", 
     category = "Debugging" 
 } )
 
@@ -43,7 +62,7 @@ end, false, "Kicks all player bots from the server, including the non-GLambda on
 local userData = {
     [ "lambdaplayers/playerbirthday.json" ] = "glambda/plybirthday.json",
     [ "lambdaplayers/profiles.json" ]       = "glambda/profiles.json",
-    [ "lambdaplayers/presets/" ] = "glambda/presets/",
+    [ "lambdaplayers/presets/" ]            = "glambda/presets/",
 }
 GLAMBDA:CreateConCommand( "cmd_transferlambda_clientdata", function( ply )
 

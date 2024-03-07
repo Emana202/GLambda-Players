@@ -92,6 +92,7 @@ GLAMBDA:LoadFiles()
 
 --
 
+GLAMBDA.InitUpdatedData = false
 function GLAMBDA:UpdateData()
     if ( SERVER ) then
         if !file_Exists( "glambda/npclist.json", "DATA" ) then
@@ -109,7 +110,8 @@ function GLAMBDA:UpdateData()
         self:ReadDefaultWeapons()
     end
 
-    for _, func in pairs( self.DataUpdateFuncs ) do
+    for name, func in pairs( self.DataUpdateFuncs ) do
+        if name == "weapons" and !self.InitUpdatedData then continue end
         func()
     end
     
@@ -124,6 +126,8 @@ function GLAMBDA:UpdateData()
             self.FILE:WriteFile( "glambda/weaponpermissions.json", permTbl, "json" ) 
         end
     end
+
+    self.InitUpdatedData = true
 end
 GLAMBDA:UpdateData()
 

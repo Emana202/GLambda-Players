@@ -112,10 +112,14 @@ function plyMeta:IsPlayingTaunt()
     return realOne
 end
 
-function plyMeta:IsGLambdaPlayer()
-    return self.gb_IsLambdaPlayer
+function plyMeta:GetGlace()
+    return self._GLACETABLE
 end
 
-function plyMeta:GetGlaceObject()
-    return self._GLACETABLE
+--
+
+local entMeta = FindMetaTable( "Entity" )
+
+function entMeta:IsGLambdaPlayer()
+    return self.gb_IsLambdaPlayer
 end

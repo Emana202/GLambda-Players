@@ -57,20 +57,23 @@ if ( CLIENT ) then
 
             if ply:IsMuted() then
                 snd:SetVolume( 0 )
-            elseif isGlobal then
-                snd:SetVolume( voiceVol )
-                snd:Set3DEnabled( false )
             else
-                local sndVol = voiceVol
-                if !sndData.Is3D then
-                    sndVol = math.Clamp( voiceVol / ( eyePos:DistToSqr( lastPos ) / 90000 ), 0, 1 )
+                local plyVol = ( voiceVol * ply:GetVoiceVolumeScale() )
+                if isGlobal then
+                    snd:SetVolume( plyVol )
                     snd:Set3DEnabled( false )
                 else
-                    snd:Set3DEnabled( true )
-                    snd:SetPos( lastPos )
-                end
+                    local sndVol = plyVol
+                    if !sndData.Is3D then
+                        sndVol = math.Clamp( plyVol / ( eyePos:DistToSqr( lastPos ) / 90000 ), 0, 1 )
+                        snd:Set3DEnabled( false )
+                    else
+                        snd:Set3DEnabled( true )
+                        snd:SetPos( lastPos )
+                    end
 
-                snd:SetVolume( sndVol )
+                    snd:SetVolume( sndVol )
+                end
             end
 
             local leftC, rightC = snd:GetLevel()
@@ -128,4 +131,15 @@ if ( SERVER ) then
         GLAMBDA:UpdatePlayerModels()
     end )
 
+    hook.Add( "PlayerSpawnedNPC", "GLambda_OnPlayerPlySpawned", function( player, ent )
+        if player:IsGLambdaPlayer() or !ent.IsGLambdaSpawner then return end
+        ent:InitializePlayer( player )
+    end )
+
 end
+
+--
+
+hook.Add( "InitPostEntity", "GLambda_InitPostEntity", function()
+    GLAMBDA.DataUpdateFuncs[ "weapons" ]()
+end )

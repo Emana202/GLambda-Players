@@ -9,9 +9,7 @@ local table_Count = table.Count
 function GLAMBDA.Player:SelectWeapon( weapon )
     if self:GetNoWeaponSwitch() then return false end
     if GLAMBDA:RunHook( "GLambda_OnPlayerCanSelectWeapon", self, weapon ) == true then return false end
-
-    local curWep = self:GetActiveWeapon()
-    if IsValid( curWep ) and curWep:GetClass() == weapon then return end
+    if self:GetCurrentWeapon( weapon ) then return false end
 
     local wepEnt = self:GetWeapon( weapon )
     if !IsValid( wepEnt ) then
@@ -36,10 +34,9 @@ end
 
 -- Makes us select a random weapon
 function GLAMBDA.Player:SelectRandomWeapon( filter )
-    local curWep = self:GetActiveWeapon()
-    curWep = ( IsValid( curWep ) and curWep:GetClass() or nil )
-
+    local curWep = self:GetCurrentWeapon()
     local favWpn = self.FavoriteWeapon
+
     if favWpn then 
         local wpnData = GLAMBDA.WeaponList[ favWpn ]
         if wpnData and self:IsWeaponAllowed( favWpn ) and ( !filter or filter( favWpn, wpnData, curWep ) ) then
@@ -66,6 +63,20 @@ function GLAMBDA.Player:SelectLethalWeapon()
     end )
 end
 
+-- Makes us select our spawn weapon
+function GLAMBDA.Player:SelectSpawnWeapon()
+    local spawnWep = self.ForceWeapon
+    if !GLAMBDA:GetConVar( "combat_keepforcewep" ) then
+        spawnWep = GLAMBDA:GetConVar( "combat_forcespawnwpn" )
+    end
+    if !spawnWep or #spawnWep == 0 then
+        spawnWep = ( self.SpawnWeapon or "weapon_physgun" )
+    end
+
+    if spawnWep == "random" then return self:SelectRandomWeapon() end
+    return self:SelectWeapon( spawnWep )
+end
+
 --
 
 -- Returns if the given weapon is allowed
@@ -75,9 +86,15 @@ function GLAMBDA.Player:IsWeaponAllowed( wepClass )
 end
 
 -- Returns the classname of our current weapon
-function GLAMBDA.Player:GetCurrentWeapon()
+-- If 'class' is specified, returns if the current weapon is the one instead
+function GLAMBDA.Player:GetCurrentWeapon( class )
     local curWep = self:GetActiveWeapon()
-    return ( IsValid( curWep ) and curWep:GetClass() or "" )
+    if !IsValid( curWep ) then return end
+
+    local wepClass = curWep:GetClass()
+    if !class then return wepClass end
+
+    return ( class == wepClass )
 end
 
 -- Returns the amount of ammo in our weapon's clip

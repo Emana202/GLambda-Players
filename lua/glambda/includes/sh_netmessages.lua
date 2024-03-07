@@ -59,10 +59,7 @@ if ( SERVER ) then
 
     net_Receive( "glambda_sendsndduration", function()
         local ply = net_ReadPlayer()
-        if !IsValid( ply ) then return end
-        
-        local glace = ply:GetGlaceObject()
-        if glace then glace:SetSpeechEndTime( RealTime() + net_ReadFloat() ) end
+        if IsValid( ply ) then ply:GetGlace():SetSpeechEndTime( RealTime() + net_ReadFloat() ) end
     end )
 
     --
@@ -294,9 +291,9 @@ if ( CLIENT ) then
                 StopCurrentVoice( ply )
 
                 voiceChan.Sound = snd
-                voiceChan.LastSndPos = origin
-                voiceChan.PlayTime = playTime
                 voiceChan.VoiceVolume = 0
+                voiceChan.PlayTime = playTime
+                voiceChan.LastSndPos = origin
                 voiceChan.Is3D = is3d
             else
                 GLAMBDA.VoiceChannels[ ply ] = {

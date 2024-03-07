@@ -399,7 +399,7 @@ function GLAMBDA.Player:PlayVoiceLine( voiceType, delay )
 
     self:SetLastVoiceType( voiceType )
     if !isnumber( delay ) then
-        delay = ( delay == nil and GLAMBDA:Random( 0.1, 0.66, true ) or 0 )
+        delay = ( delay == nil and GLAMBDA:Random( 0.2, 0.8, true ) or 0 )
     end
     self:SetSpeechEndTime( RealTime() + 4 )
 
@@ -493,11 +493,10 @@ function GLAMBDA.Player:CanTarget( ent )
     if ent.gb_IsGlaceNavigator then return false end
     if ent.IsDrGNextbot and ent:IsDown() then return false end
     if ent == self:GetPlayer() then return false end
-    if ent:IsFlagSet( FL_NOTARGET ) then return false end
-
+    
     local wepTargetFunc = self:GetWeaponStat( "OnCanTarget" )
     if wepTargetFunc and !wepTargetFunc( self, self:GetActiveWeapon(), ent ) then return false end
-
+    
     if ent:IsPlayer() then
         if !ent:Alive() then return false end
         
@@ -506,6 +505,7 @@ function GLAMBDA.Player:CanTarget( ent )
             if !GLAMBDA:GetConVar( "combat_targetplys" ) then return false end
         end
     elseif ent:IsNPC() or ent:IsNextBot() then
+        if ent:IsFlagSet( FL_NOTARGET ) then return false end
         if ent:GetInternalVariable( "m_lifeState" ) != 0 then return false end
         if GLAMBDA:GetConVar( "combat_ignorefriendnpcs" ) then
             local dispFunc = ent.Disposition

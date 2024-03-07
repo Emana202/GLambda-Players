@@ -112,6 +112,7 @@ local function MergeWeapons( fileDir, path )
     local wpns = file_Find( fileDir .. "*.dat", path, "nameasc" )
     if !wpns then return end
 
+    local wpnList = list_Get( "Weapon" )
     for _, wpn in ipairs( wpns ) do
         local wpnData = GLAMBDA.FILE:ReadFile( fileDir .. wpn, "json" )
         if !wpnData then continue end
@@ -130,6 +131,11 @@ local function MergeWeapons( fileDir, path )
         end
 
         local wepName = string_StripExtension( wpn )
+        if !wpnList[ wepName ] then
+            print( "GLambda Players: Unable to add " .. ( wpnData.Name or wepName ) .. " to weapon list [ " .. wpn .. " ]; Weapon doesn't exist in the game list!" )
+            continue
+        end
+
         for callFunc, _ in pairs( GLAMBDA.WeaponCallbacks ) do
             local funcString = wpnData[ callFunc ]
             if !funcString or !isstring( funcString ) then continue end

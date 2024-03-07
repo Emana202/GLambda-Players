@@ -48,7 +48,7 @@ end
 
 function ENT:PathToPos()
     if !IsValid( self:GetOwner() ) then return end
-    local GLACE = self:GetOwner():GetGlaceObject()
+    local GLACE = self:GetOwner():GetGlace()
     
     local goalPos = self.gb_GoalPosition
     if !goalPos or ( isentity( goalPos ) and !IsValid( goalPos ) ) then

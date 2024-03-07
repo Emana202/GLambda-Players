@@ -41,24 +41,26 @@ function GLAMBDA.Player:GetToolTrace()
     return ( util_TraceHull( table_Merge( util_GetPlayerTrace( self:GetPlayer() ), toolTr, true ) ) )
 end
 
-function GLAMBDA.Player:EmitToolgunFire()
+local drawEffects
+function GLAMBDA.Player:EmitToolgunFire( trace )
     local curWep = self:GetActiveWeapon()
     if !IsValid( curWep ) or curWep:GetClass() != "gmod_tool" then return end
 
 	curWep:EmitSound( "Airboat.FireGunRevDown" )
 	curWep:SendWeaponAnim( ACT_VM_PRIMARYATTACK )
-    
 	self:SetAnimation( PLAYER_ATTACK1 )
-	if !IsFirstTimePredicted() or !GetConVar( "gmod_drawtooleffects" ):GetBool() then return end
+    
+    drawEffects = ( drawEffects or GetConVar( "gmod_drawtooleffects" ) )
+	if !IsFirstTimePredicted() or !drawEffects:GetBool() then return end
 
-    local eyeTrace = self:GetEyeTrace()
-    local hitPos = eyeTrace.HitPos
+    trace = ( trace or self:GetToolTrace() )
+    local hitPos = trace.HitPos
 
     local effectData = EffectData()
 	effectData:SetOrigin( hitPos )
-	effectData:SetNormal( eyeTrace.HitNormal )
-	effectData:SetEntity( eyeTrace.Entity )
-	effectData:SetAttachment( eyeTrace.PhysicsBone )
+	effectData:SetNormal( trace.HitNormal )
+	effectData:SetEntity( trace.Entity )
+	effectData:SetAttachment( trace.PhysicsBone )
 	util_Effect( "selection_indicator", effectData )
 
 	effectData = EffectData()
@@ -69,8 +71,8 @@ function GLAMBDA.Player:EmitToolgunFire()
 	util_Effect( "ToolTracer", effectData )
 end
 
-function GLAMBDA.Player:FindToolTarget( dist, filter )
-    local findEnts = self:FindInSphere( nil, ( dist or 400 ), function( ent )
+function GLAMBDA.Player:FindToolTarget( filter, dist )
+    local findEnts = self:FindInSphere( nil, ( dist or 500 ), function( ent )
         if filter and !filter( ent ) then return end
         if ent:IsPlayer() and !self:CanTarget( ent ) then return end
         return ( self:IsVisible( ent ) )

@@ -17,6 +17,7 @@ local timer_Simple = timer.Simple
 AddCSLuaFile()
 
 ENT.Base = "base_point"
+ENT.IsGLambdaSpawner = true
 
 function ENT:Initialize()
     local ply = GLAMBDA:CreateLambdaPlayer()
@@ -33,13 +34,13 @@ function ENT:Initialize()
     ply.Spawner = self    
     self:SetPos( spawnPos )
     self:SetOwner( ply:GetPlayer() )
-    self.gb_PlyInitialized = false
 end
 
 function ENT:InitializePlayer( creator )
-    self.gb_PlyInitialized = true
     local ply = self:GetOwner()
-    local GLACE = ply:GetGlaceObject()
+    if !IsValid( ply ) then return end
+
+    local GLACE = ply:GetGlace()
     if GLACE.HasProfileAssigned then return end
 
     local presetCvar = creator:GetInfo( "glambda_player_personalitypreset" )
@@ -93,16 +94,6 @@ function ENT:InitializePlayer( creator )
         undo_SetCustomUndoText( "Undone " .. undoName )
         undo_AddEntity( self )
     undo_Finish( undoName )
-end
-
-function ENT:Think()
-    if !self.gb_PlyInitialized then
-        local creator = self:GetCreator()
-        if IsValid( creator ) then self:InitializePlayer( creator ) end
-    else
-        self:NextThink( CurTime() )
-        return true
-    end
 end
 
 function ENT:OnRemove()

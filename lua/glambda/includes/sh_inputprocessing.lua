@@ -13,33 +13,36 @@ hook_Add( "StartCommand", "GlaceBase-InputProcessing", function( ply, cmd )
     cmd:ClearButtons()
     cmd:ClearMovement()
     
-    if !ply:Alive() or ply:IsTyping() then return end
+    local GLACE = ply:GetGlace()
+    if !ply:Alive() or ply:IsTyping() then 
+        GLACE.CmdButtonQueue = 0
+        return 
+    end
 
-    local GLACE = ply:GetGlaceObject()
     local buttonQueue = GLACE.CmdButtonQueue
     if GLACE.MoveSprint then buttonQueue = ( buttonQueue + IN_SPEED ) end
     if GLACE.MoveCrouch then buttonQueue = ( buttonQueue + IN_DUCK ) end
 
     local selectWep = GLACE.CmdSelectWeapon
     if selectWep then
-        if bit_band( buttonQueue, IN_ATTACK ) == IN_ATTACK then buttonQueue = ( buttonQueue - IN_ATTACK ) end
-        if bit_band( buttonQueue, IN_ATTACK2 ) == IN_ATTACK2 then buttonQueue = ( buttonQueue - IN_ATTACK2 ) end
-
         if isstring( selectWep ) and ply:HasWeapon( selectWep ) then
             selectWep = ply:GetWeapon( selectWep )
         end
         if IsValid( selectWep ) then
+            if bit_band( buttonQueue, IN_ATTACK ) == IN_ATTACK then buttonQueue = ( buttonQueue - IN_ATTACK ) end
+            if bit_band( buttonQueue, IN_ATTACK2 ) == IN_ATTACK2 then buttonQueue = ( buttonQueue - IN_ATTACK2 ) end
             cmd:SelectWeapon( selectWep )
 
             local equipFunc = GLACE:GetWeaponStat( "OnEquip" )
             if equipFunc then equipFunc( self, selectWep ) end
             
-            GLACE.CmdSelectWeapon = nil
             GLACE.NextWeaponThinkT = 0
             GLACE.NextWeaponAttackT = ( CurTime() + 0.5 )
-
+            
             GLAMBDA:RunHook( "GLambda_OnPlayerSelectWeapon", GLACE, selectWep )
         end
+
+        GLACE.CmdSelectWeapon = nil
     end
 
     if buttonQueue > 0 then
@@ -49,10 +52,10 @@ hook_Add( "StartCommand", "GlaceBase-InputProcessing", function( ply, cmd )
 end )
 
 -- Process movement inputs from players
-hook_Add( "SetupMove", "Glacebase-MovementProcessing", function( ply,  mv, cmd )
+hook_Add( "SetupMove", "Glacebase-MovementProcessing", function( ply, mv, cmd )
     if !ply:IsGLambdaPlayer() or !ply:Alive() then return end 
     
-    local GLACE = ply:GetGlaceObject()
+    local GLACE = ply:GetGlace()
     if GLACE:IsDisabled() then return end
 
     if !ply:IsTyping() then

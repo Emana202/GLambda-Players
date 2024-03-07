@@ -9,7 +9,6 @@ local game_GetMap = game.GetMap
 local RandomPairs = RandomPairs
 local file_Find = file.Find
 local string_StripExtension = string.StripExtension
-local LambdaRNG = LambdaRNG
 local IsValid = IsValid
 local string_Explode = string.Explode
 local ipairs = ipairs
@@ -82,7 +81,7 @@ end )
 
 KEYWORD:AddKeyWord( "Normal", "/rndmap/", function()
     local maps = file_Find( "maps/gm_*", "GAME", "namedesc" )
-    return string_StripExtension( maps[ LambdaRNG( #maps ) ] )
+    return string_StripExtension( maps[ GLAMBDA:Random( #maps ) ] )
 end )
 
 KEYWORD:AddKeyWord( "Normal", "/keyent/", function( ply, keyEnt )

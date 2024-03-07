@@ -183,13 +183,12 @@ function GLAMBDA.Player:Laughing( args )
     end
     self:LookTo( target, 1, 4 )
 
-    local laughDelay = ( GLAMBDA:Random( 2, 8 ) * 0.1 )
     if self:GetSpeechChance( 25 ) then
-        self:PlayVoiceLine( "laugh", laughDelay )
+        self:PlayVoiceLine( "laugh" )
     end
 
     local movePos = args[ 2 ]
-    local actTime = ( laughDelay * GLAMBDA:Random( 0.75, 1.1, true ) )
+    local actTime = ( GLAMBDA:Random( 5, 10 ) * 0.1 )
     if !movePos then
         coroutine_wait( actTime )
     else
@@ -220,7 +219,7 @@ function GLAMBDA.Player:Retreat( pos )
 end
 
 function GLAMBDA.Player:HealWithMedkit( ent )
-    if !IsValid( ent ) or !self:CanTarget( ent ) or ent:Health() >= ent:GetMaxHealth() or self:GetCurrentWeapon() != "weapon_medkit" then
+    if !IsValid( ent ) or !self:CanTarget( ent ) or ent:Health() >= ent:GetMaxHealth() or !self:GetCurrentWeapon( "weapon_medkit" ) then
         return true
     end
 
@@ -229,7 +228,7 @@ function GLAMBDA.Player:HealWithMedkit( ent )
         self:PressKey( IN_ATTACK )
     else
         local path, cancelled = self:MoveToPos( ent, { sprint = true, updatetime = 0.25, tol = 48, callback = function()
-            if !IsValid( ent ) or !self:CanTarget( ent ) or ent:Health() >= ent:GetMaxHealth() or self:GetCurrentWeapon() != "weapon_medkit" then return true end
+            if !IsValid( ent ) or !self:CanTarget( ent ) or ent:Health() >= ent:GetMaxHealth() or !self:GetCurrentWeapon( "weapon_medkit" ) then return true end
             if self:InRange( ent, 70 ) then return false end
         end } )
         if cancelled == true then return true end
