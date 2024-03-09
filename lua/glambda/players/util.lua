@@ -34,8 +34,6 @@ local string_match = string.match
 local ents_GetAll = ents.GetAll
 local math_abs = math.abs
 local pairs = pairs
-local hook_Add = hook.Add
-local hook_Remove = hook.Remove
 local net_Send = SERVER and net.Send
 local coroutine_status = coroutine.status
 local coroutine_resume = coroutine.resume
@@ -641,8 +639,8 @@ function GLAMBDA.Player:Hook( hookName, uniqueName, func )
     local hookIdent = "GLambda-PlayerHook-#" .. self:EntIndex() .. "-" .. uniqueName
     self:DevMsg( "Created a hook: " .. hookName .. " | " .. uniqueName )
 
-    hook_Add( hookName, hookIdent, function( ... )
-        if !IsValid( self ) then hook_Remove( hookName, hookIdent ) return end
+    hook.Add( hookName, hookIdent, function( ... )
+        if !IsValid( self ) then hook.Remove( hookName, hookIdent ) return end
         return func( ... )
     end )
 end

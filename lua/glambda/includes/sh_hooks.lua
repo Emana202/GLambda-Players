@@ -1,3 +1,26 @@
+local Material = Material
+local Vector = Vector
+local pairs = pairs
+local EyeAngles = EyeAngles
+local cam_Start3D2D = CLIENT and cam.Start3D2D
+local surface_SetDrawColor = CLIENT and surface.SetDrawColor
+local surface_SetMaterial = CLIENT and surface.SetMaterial
+local surface_DrawTexturedRect = CLIENT and surface.DrawTexturedRect
+local cam_End3D2D = CLIENT and cam.End3D2D
+local EyePos = EyePos
+local IsValid = IsValid
+local math_Clamp = math.Clamp
+local RealTime = RealTime
+local CurTime = CurTime
+local table_IsEmpty = table.IsEmpty
+local player_Iterator = player.Iterator
+local table_Empty = table.Empty
+local net_Start = net.Start
+local net_Send = SERVER and net.Send
+local print = print
+
+--
+
 if ( CLIENT ) then
 
     GLAMBDA.VoiceChannels = ( GLAMBDA.VoiceChannels or {} )
@@ -15,11 +38,11 @@ if ( CLIENT ) then
             ang:RotateAroundAxis( ang:Up(), -90 )
             ang:RotateAroundAxis( ang:Forward(), 90 )
 
-            cam.Start3D2D( ( sndData.LastSndPos + iconOffset ), ang, 1.0 )
-                surface.SetDrawColor( 255, 255, 255 )
-                surface.SetMaterial( voiceIcon )
-                surface.DrawTexturedRect( -8, -8, 16, 16 )
-            cam.End3D2D()
+            cam_Start3D2D( ( sndData.LastSndPos + iconOffset ), ang, 1.0 )
+                surface_SetDrawColor( 255, 255, 255 )
+                surface_SetMaterial( voiceIcon )
+                surface_DrawTexturedRect( -8, -8, 16, 16 )
+            cam_End3D2D()
         end
     end )
 
@@ -65,7 +88,7 @@ if ( CLIENT ) then
                 else
                     local sndVol = plyVol
                     if !sndData.Is3D then
-                        sndVol = math.Clamp( plyVol / ( eyePos:DistToSqr( lastPos ) / 90000 ), 0, 1 )
+                        sndVol = math_Clamp( plyVol - ( eyePos:Distance( lastPos ) / ( 300 * 1.5 ) ), 0, 1 )
                         snd:Set3DEnabled( false )
                     else
                         snd:Set3DEnabled( true )
@@ -93,9 +116,9 @@ if ( CLIENT ) then
     local lastNetworkTime = CurTime()
     hook.Add( "Think", "GLambda_NetworkInitPlayers", function( ply )
         local waitTbl = GLAMBDA.WaitingForNetwork
-        if !waitTbl or table.IsEmpty( waitTbl ) then return end
+        if !waitTbl or table_IsEmpty( waitTbl ) then return end
 
-        for _, ply in player.Iterator() do
+        for _, ply in player_Iterator() do
             local userId = ply:UserID()
             local netTbl = waitTbl[ userId ]
 
@@ -109,7 +132,7 @@ if ( CLIENT ) then
 
         if ( CurTime() - lastNetworkTime ) > 10 then
             lastNetworkTime = CurTime()
-            table.Empty( waitTbl )
+            table_Empty( waitTbl )
         end
     end )
 
@@ -120,8 +143,8 @@ if ( SERVER ) then
     hook.Add( "PlayerInitialSpawn", "GLambda_OnPlayerCreated", function( ply )
         if ply:IsBot() then return end
 
-        net.Start( "glambda_getbirthday" )
-        net.Send( ply )
+        net_Start( "glambda_getbirthday" )
+        net_Send( ply )
     
         print( "GLambda Players: Requesting " .. ply:Name() .. "'s birthday..." )
     end )

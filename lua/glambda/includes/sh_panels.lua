@@ -47,8 +47,6 @@ local net_ReadData = net.ReadData
 local AddCSLuaFile = AddCSLuaFile
 local include = include
 local ErrorNoHaltWithStack = ErrorNoHaltWithStack
-local hook_Add = hook.Add
-local hook_Remove = hook.Remove
 local coroutine_create = coroutine.create
 local coroutine_status = coroutine.status
 local coroutine_resume = coroutine.resume
@@ -584,9 +582,9 @@ if ( SERVER ) then
         end )
 
         local thinkName = "GLambda_SendDataThread" .. tostring( thread )
-        hook_Add( "Think", thinkName, function()
+        hook.Add( "Think", thinkName, function()
             if coroutine_status( thread ) == "dead" then
-                hook_Remove( "Think", thinkName )
+                hook.Remove( "Think", thinkName )
                 return
             end
 

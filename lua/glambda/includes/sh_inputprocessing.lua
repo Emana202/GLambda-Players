@@ -1,4 +1,3 @@
-local hook_Add = hook.Add
 local bit_band = bit.band
 local isstring = isstring
 local IsValid = IsValid
@@ -7,7 +6,7 @@ local CurTime = CurTime
 local ents_Create = ents.Create
 
 -- Process the queued inputs from players
-hook_Add( "StartCommand", "GlaceBase-InputProcessing", function( ply, cmd )
+hook.Add( "StartCommand", "GlaceBase-InputProcessing", function( ply, cmd )
     if !ply:IsGLambdaPlayer() then return end
     
     cmd:ClearButtons()
@@ -52,7 +51,7 @@ hook_Add( "StartCommand", "GlaceBase-InputProcessing", function( ply, cmd )
 end )
 
 -- Process movement inputs from players
-hook_Add( "SetupMove", "Glacebase-MovementProcessing", function( ply, mv, cmd )
+hook.Add( "SetupMove", "Glacebase-MovementProcessing", function( ply, mv, cmd )
     if !ply:IsGLambdaPlayer() or !ply:Alive() then return end 
     
     local GLACE = ply:GetGlace()

@@ -1,6 +1,5 @@
 local game_SinglePlayer = game.SinglePlayer
 local spawnmenu_AddToolTab = spawnmenu.AddToolTab
-local hook_Add = hook.Add
 local Color = Color
 local RunConsoleCommand = RunConsoleCommand
 local LocalPlayer = LocalPlayer
@@ -19,7 +18,7 @@ local function AddGLambdaPlayerTab()
     if game_SinglePlayer() then return end
     spawnmenu_AddToolTab( "GLambda Players", "GLambda Players", "glambdaplayers/icon/glambda.png" )
 end
-hook_Add( "AddToolMenuTabs", "AddGLambdaPlayerTab", AddGLambdaPlayerTab )
+hook.Add( "AddToolMenuTabs", "AddGLambdaPlayerTab", AddGLambdaPlayerTab )
 
 --
 
@@ -191,4 +190,4 @@ local function AddGLambdaPlayersOptions()
         end )
     end
 end
-hook_Add( "PopulateToolMenu", "AddGLambdaPlayersOptions", AddGLambdaPlayersOptions )
+hook.Add( "PopulateToolMenu", "AddGLambdaPlayersOptions", AddGLambdaPlayersOptions )
