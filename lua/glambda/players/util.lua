@@ -392,7 +392,7 @@ function GLAMBDA.Player:PlayVoiceLine( voiceType, delay )
         if !voiceTbl or #voiceTbl == 0 then return end
     end
 
-    local rndSnd = voiceTbl[ GLAMBDA:Random( #voiceTbl ) ]
+    local rndSnd = GLAMBDA:Random( voiceTbl )
     if GLAMBDA:RunHook( "GLambda_OnPlayerPlayVoiceLine", self, voiceType, rndSnd ) == true then return end
 
     self:SetLastVoiceType( voiceType )
@@ -431,7 +431,7 @@ function GLAMBDA.Player:UndoCommand( undoAll )
     if !undoTbl then return end
 
     if !undoAll then
-        self:EmitSound( "buttons/button15.wav.wav", 60 )
+        self:EmitSound( "buttons/button15.wav", 60 )
         undo_Do_Undo( undoTbl[ #undoTbl ] )
         return
     end

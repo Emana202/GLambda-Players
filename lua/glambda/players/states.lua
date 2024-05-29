@@ -60,12 +60,14 @@ function GLAMBDA.Player:SpawnPickup( classname, count, failCheck, isWpn )
     end
 
     local spawnRate = GLAMBDA:Random( 0.15, 0.4, true )
+    local lookPos = ( self:GetPos() + rndVec )
+    self:LookTo( lookPos, spawnRate * 2, 4 )
     coroutine_wait( spawnRate )
 
     for i = 1, count do
         if failCheck and failCheck( self ) == true then break end
 
-        local lookPos = ( self:GetPos() + rndVec )
+        lookPos = ( self:GetPos() + rndVec )
         self:LookTo( lookPos, spawnRate * 2, 4 )
 
         if isWpn then
@@ -112,7 +114,7 @@ function GLAMBDA.Player:GiveSelfAmmo()
         local maxAmmo = game_GetAmmoMax( ammoType )
         if ammoCount < maxAmmo then
             if istable( spawnEnt ) and #spawnEnt > 1 and !isbool( spawnEnt[ 2 ] ) then
-                spawnEnt = spawnEnt[ GLAMBDA:Random( #spawnEnt ) ]
+                spawnEnt = GLAMBDA:Random( spawnEnt )
             end
 
             local isWeapon = false
@@ -143,7 +145,7 @@ function GLAMBDA.Player:FindTarget()
             return ( self:CanTarget( ent ) and ( !GLAMBDA:GetConVar( "combat_noplyrdming" ) or !ent:IsPlayer() ) and self:IsVisible( ent ) )
         end )
         if #findTargets != 0 then
-            self:AttackTarget( findTargets[ GLAMBDA:Random( #findTargets ) ] )
+            self:AttackTarget( GLAMBDA:Random( findTargets ) )
             return true
         end
     end } )
@@ -167,7 +169,7 @@ end
 
 local acts = { ACT_GMOD_TAUNT_DANCE, ACT_GMOD_TAUNT_ROBOT, ACT_GMOD_TAUNT_MUSCLE, ACT_GMOD_TAUNT_CHEER }
 function GLAMBDA.Player:UseActTaunt()
-    self:PlayGestureAndWait( acts[ GLAMBDA:Random( #acts ) ] )
+    self:PlayGestureAndWait( GLAMBDA:Random( acts ) )
     return true
 end
 

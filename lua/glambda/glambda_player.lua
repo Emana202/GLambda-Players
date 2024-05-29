@@ -175,7 +175,7 @@ function GLAMBDA:CreateLambdaPlayer()
     GLACE.NextUniversalActionT = ( CurTime() + self:Random( 10, 15, true ) ) 
     GLACE.LastDeathTime = 0
     GLACE.RetreatEndTime = 0
-    GLACE.NextNPCCheckT = CurTime()
+    GLACE.LastNPCCheckT = CurTime()
     GLACE.NextSprayUseT = 0
 
     GLACE.LookTo_Pos = nil
@@ -252,13 +252,13 @@ function GLAMBDA:CreateLambdaPlayer()
 
     if !voiceProfile and self:Random( 100 ) <= self:GetConVar( "player_vp_chance" ) then
         local profiles = table_GetKeys( self.VoiceProfiles )
-        voiceProfile = profiles[ self:Random( #profiles ) ]
+        voiceProfile = self:Random( profiles )
     end
     GLACE.VoiceProfile = voiceProfile
 
     if !textProfile and self:Random( 100 ) <= self:GetConVar( "player_tp_chance" ) then
         local profiles = table_GetKeys( self.TextProfiles )
-        textProfile = profiles[ self:Random( #profiles ) ]
+        textProfile = self:Random( profiles )
     end
     GLACE.TextProfile = textProfile
 

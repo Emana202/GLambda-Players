@@ -37,6 +37,8 @@ function ENT:Initialize()
 end
 
 function ENT:InitializePlayer( creator )
+    self:SetCreator( creator )
+
     local ply = self:GetOwner()
     if !IsValid( ply ) then return end
 

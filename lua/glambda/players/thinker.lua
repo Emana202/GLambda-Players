@@ -60,8 +60,8 @@ function GLAMBDA.Player:Think()
         end
     end
 
-    if ( CurTime() - self.NextNPCCheckT ) >= 1 then
-        self.NextNPCCheckT = CurTime()
+    if ( CurTime() - self.LastNPCCheckT ) >= 1 then
+        self.LastNPCCheckT = CurTime()
 
         local enemy = self:GetEnemy()
         if self:InCombat() and !self:CanTarget( enemy ) then
@@ -78,8 +78,7 @@ function GLAMBDA.Player:Think()
                 return ( ent:Disposition( self:GetPlayer() ) == D_HT and self:IsVisible( ent ) )
             end )
             if #npcs != 0 then
-                local rndNpc = npcs[ GLAMBDA:Random( #npcs ) ]
-                self:AttackTarget( rndNpc )
+                self:AttackTarget( GLAMBDA:Random( npcs ) )
             end
         end
     end
@@ -195,7 +194,7 @@ function GLAMBDA.Player:HandleWeapon()
 
             local specialFire = self:GetWeaponStat( "SpecialAttack" )
             if !specialFire or !specialFire( self, weapon, enemy ) then
-                if self:GetWeaponStat( "HasSecondaryFire" ) and GLAMBDA:Random() <= self:GetWeaponStat( "SecondaryFireChance" ) then
+                if self:GetWeaponStat( "HasSecondaryFire" ) and GLAMBDA:Random( 100 ) <= self:GetWeaponStat( "SecondaryFireChance" ) then
                     self:PressKey( IN_ATTACK2 )
                 elseif self:GetWeaponStat( "Automatic", isMelee ) then
                     if !isReloading then
@@ -245,7 +244,7 @@ function GLAMBDA.Player:HandleWeapon()
 
         self:GetNavigator().gb_GoalPosition = self.CombatPathPosition
     end
-    
+
     local velocity = self:GetVelocity()
     if !isCrouched and ( isPanicking or canShoot and self:InRange( enemy, ( attackRange * ( isMelee and 10 or 2 ) ) ) ) and velocity:Length2D() >= ( self:GetRunSpeed() * 0.8 ) and self:OnGround() and GLAMBDA:Random( isPanicking and 25 or 35 ) == 1 then
         local collBounds = self:GetCollisionBounds()

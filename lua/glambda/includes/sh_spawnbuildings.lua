@@ -32,7 +32,7 @@ GLAMBDA:AddBuildFunction( "props", "Allow Prop Spawning", "If the players are al
         self:LookTo( self:GetPos() + self:GetForward() * GLAMBDA:Random( -500, 500 ) + self:GetRight() * GLAMBDA:Random( -500, 500 ) - self:GetUp() * GLAMBDA:Random( -25, 80 ), 2, 4, 0.66 )
         coroutine_wait( GLAMBDA:Random( 5, 15 ) * 0.1 )
 
-        self:SpawnProp( propTbl[ GLAMBDA:Random( #propTbl ) ] )
+        self:SpawnProp( GLAMBDA:Random( propTbl ) )
         coroutine_wait( GLAMBDA:Random( 5, 15 ) * 0.1 )
     end
 
@@ -48,7 +48,7 @@ GLAMBDA:AddBuildFunction( "npcs", "Allow NPC Spawning", "If the players are allo
     self:LookTo( self:GetPos() + self:GetForward() * GLAMBDA:Random( -500, 500 ) + self:GetRight() * GLAMBDA:Random( -500, 500 ) - self:GetUp() * GLAMBDA:Random( -25, 80 ), 2, 4, 0.66 )
     coroutine_wait( GLAMBDA:Random( 5, 15 ) * 0.1 )
 
-    self:SpawnNPC( npcTbl[ GLAMBDA:Random( #npcTbl ) ] )
+    self:SpawnNPC( GLAMBDA:Random( npcTbl ) )
     coroutine_wait( GLAMBDA:Random( 5, 15 ) * 0.1 )
 
     return true
@@ -63,14 +63,15 @@ GLAMBDA:AddBuildFunction( "sents", "Allow Entity Spawning", "If the players are 
     self:LookTo( self:GetPos() + self:GetForward() * GLAMBDA:Random( -500, 500 ) + self:GetRight() * GLAMBDA:Random( -500, 500 ) - self:GetUp() * GLAMBDA:Random( -25, 80 ), 2, 4, 0.66 )
     coroutine_wait( GLAMBDA:Random( 5, 15 ) * 0.1 )
 
-    self:SpawnEntity( entTbl[ GLAMBDA:Random( #entTbl ) ] )
+    self:SpawnEntity( GLAMBDA:Random( entTbl ) )
     coroutine_wait( GLAMBDA:Random( 5, 15 ) * 0.1 )
 
     return true
 end )
 
 GLAMBDA:AddBuildFunction( "spraying", "Allow Spraying", "If the players are allowed to use their sprays.", function( self )
-    if #GLAMBDA.Sprays == 0 or CurTime() <= self.NextSprayUseT then return end
+    local sprayTbl = GLAMBDA.Sprays
+    if #sprayTbl == 0 or CurTime() <= self.NextSprayUseT then return end
     self.NextSprayUseT = ( CurTime() + 10 )
 
     local targetPos = ( self:EyePos() + AngleRand( -180, 180 ):Forward() * 128 )
@@ -82,7 +83,7 @@ GLAMBDA:AddBuildFunction( "spraying", "Allow Spraying", "If the players are allo
     if !trace.Hit then return end
 
     net_Start( "glambda_spray" )
-        net_WriteString( GLAMBDA.Sprays[ GLAMBDA:Random( #GLAMBDA.Sprays ) ] )
+        net_WriteString( GLAMBDA:Random( sprayTbl ) )
         net_WriteVector( trace.HitPos )
         net_WriteVector( trace.HitNormal )
     net_Broadcast()

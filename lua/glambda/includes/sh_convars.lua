@@ -206,6 +206,10 @@ GLAMBDA:CreateConVar( "combat_keepforcewep", false, "If the player' forced (re)s
     name = "Keep Force Weapon",
     category = "Combat Settings",
 } )
+GLAMBDA:CreateConVar( "combat_targetplys", true, "If the player bots are allowed to target and attack real players.", {
+    name = "Target Real Players",
+    category = "Combat Settings",
+} )
 GLAMBDA:CreateConVar( "combat_noplyrdming", false, "If the players shouldn't randomly start attacking other players when searching for targets to attack.\nThey'll still attack them if they get hit or damaged by them.", {
     name = "No Player RDM'ing",
     category = "Combat Settings",

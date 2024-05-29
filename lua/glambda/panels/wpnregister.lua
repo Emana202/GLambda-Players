@@ -177,7 +177,7 @@ local function OpenWeaponRegister( ply )
                 NoSprintAttack = cantFireSprint:GetChecked(),
 
                 HasSecondaryFire = secondFire:GetChecked(),
-                SecondaryFireChance = secFireChan:GetValue(),
+                SecondaryFireChance = secFireChan2:GetValue(),
 
                 AttackDistance = attackDist:GetValue(),
                 KeepDistance = keepDist:GetValue(),

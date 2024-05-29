@@ -77,7 +77,5 @@ function GLAMBDA.Player:FindToolTarget( filter, dist )
         if ent:IsPlayer() and !self:CanTarget( ent ) then return end
         return ( self:IsVisible( ent ) )
     end )
-
-    if #findEnts == 0 then return end
-    return findEnts[ GLAMBDA:Random( #findEnts ) ]
+    return GLAMBDA:Random( findEnts )
 end

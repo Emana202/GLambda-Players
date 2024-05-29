@@ -265,7 +265,7 @@ GLAMBDA:AddToolgunTool( "Rope", function( self )
             local addLength = GLAMBDA:Random( 0, 500 )
             local forceLimit = GLAMBDA:Random( 0, 1000 )
             local width = GLAMBDA:Random( 0.5, 10, true )
-            local material = ropeMaterials[ GLAMBDA:Random( #ropeMaterials ) ]
+            local material = GLAMBDA:Random( ropeMaterials )
             local rigid = ( GLAMBDA:Random( 2 ) == 1 )
             local color = ColorRand( false )
 
@@ -632,7 +632,7 @@ GLAMBDA:AddToolgunTool( "Paint", function( self )
             local pos2 = ( trace.HitPos - trace.HitNormal )            
 
             local decals = list_Get( "PaintMaterials" )
-            util_Decal( decals[ GLAMBDA:Random( #decals ) ], pos1, pos2, self:GetPlayer() )
+            util_Decal( GLAMBDA:Random( decals ), pos1, pos2, self:GetPlayer() )
 
             self:GetActiveWeapon():EmitSound( "SprayCan.Paint" )
             coroutine_wait( GLAMBDA:Random( 5, 15 ) * 0.1 )

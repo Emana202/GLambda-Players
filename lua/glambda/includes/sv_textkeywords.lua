@@ -28,14 +28,21 @@ local KEYWORD = GLAMBDA.KEYWORD
 
 --
 
-function KEYWORD:AddKeyWord( type, keyWord, func )
-    self[ type ][ keyWord ] = func
+function KEYWORD:AddKeyWord( keyWord, func )
+    self.Normal[ keyWord ] = func
 end
+
+function KEYWORD:AddConditionalKeyWord( keyWord, func )
+    self.Conditional[ keyWord ] = func
+end
+
+--
 
 function KEYWORD:ModifyTextKeyWords( ply, text, keyEnt ) 
     if !text then return "" end
 
     for keyWord, func in pairs( self.Normal ) do
+        keyWord = "/" .. keyWord .. "/"
         if !string_match( text, keyWord ) then continue end
 
         text = string_gsub( text, keyWord, function( ... )  
@@ -52,7 +59,9 @@ end
 function KEYWORD:IsValidCondition( ply, text, keyEnt ) 
     if text then
         for keyWord, func in pairs( self.Conditional ) do
+            keyWord = "|" .. keyWord .. "|"
             if !string_match( text, keyWord ) then continue end
+            
             text = string_Replace( text, keyWord, "" )
             return func( ply, keyEnt ), text
         end
@@ -64,43 +73,43 @@ end
 --
 --
 
-KEYWORD:AddKeyWord( "Normal", "/self/", function( ply ) return ply:Nick() end )
-KEYWORD:AddKeyWord( "Normal", "/servername/", function( ply ) return GetHostName() end )
-KEYWORD:AddKeyWord( "Normal", "/deaths/", function( ply ) return ply:Deaths() end )
-KEYWORD:AddKeyWord( "Normal", "/ping/", function( ply ) return ply:Ping() end )
-KEYWORD:AddKeyWord( "Normal", "/kills/", function( ply ) return ply:Frags() end )
-KEYWORD:AddKeyWord( "Normal", "/map/", function() return game_GetMap() end )
+KEYWORD:AddKeyWord( "self", function( ply ) return ply:Nick() end )
+KEYWORD:AddKeyWord( "servername", function( ply ) return GetHostName() end )
+KEYWORD:AddKeyWord( "deaths", function( ply ) return ply:Deaths() end )
+KEYWORD:AddKeyWord( "ping", function( ply ) return ply:Ping() end )
+KEYWORD:AddKeyWord( "kills", function( ply ) return ply:Frags() end )
+KEYWORD:AddKeyWord( "map", function() return game_GetMap() end )
 
 --
 
-KEYWORD:AddKeyWord( "Normal", "/rndply/", function( ply )
+KEYWORD:AddKeyWord( "rndply", function( ply )
     for _, player in RandomPairs( player.GetAll() ) do
         if player != ply:GetPlayer() then return player:Nick() end
     end
 end )
 
-KEYWORD:AddKeyWord( "Normal", "/rndmap/", function()
-    local maps = file_Find( "maps/gm_*", "GAME", "namedesc" )
-    return string_StripExtension( maps[ GLAMBDA:Random( #maps ) ] )
+KEYWORD:AddKeyWord( "rndmap", function()
+    local maps = file_Find( "maps*.bsp", "GAME", "namedesc" )
+    return string_StripExtension( GLAMBDA:Random( maps ) )
 end )
 
-KEYWORD:AddKeyWord( "Normal", "/keyent/", function( ply, keyEnt )
+KEYWORD:AddKeyWord( "keyent", function( ply, keyEnt )
     if !IsValid( keyEnt ) then return "someone" end
     return ( keyEnt:IsPlayer() and keyEnt:Nick() or keyEnt:GetClass() )
 end )
 
-KEYWORD:AddKeyWord( "Normal", "/keyweapon/", function( ply, keyEnt )
+KEYWORD:AddKeyWord( "keyweapon", function( ply, keyEnt )
     if !IsValid( keyEnt ) then return "weapon" end
     return ( keyEnt.GetPrintName and keyEnt:GetPrintName() or keyEnt:GetClass() ) 
 end )
 
-KEYWORD:AddKeyWord( "Normal", "/weapon/", function( ply ) 
+KEYWORD:AddKeyWord( "weapon", function( ply ) 
     local curWep = ply:GetActiveWeapon()
     if !IsValid( curWep ) then return "weapon" end
     return ( curWep.GetPrintName and curWep:GetPrintName() or curWep:GetClass() ) 
 end )
 
-KEYWORD:AddKeyWord( "Normal", "/nearply/", function( ply )
+KEYWORD:AddKeyWord( "nearply", function( ply )
     local nearPlys = ply:FindInSphere( nil, 10000, function( ent )
         return ent:IsPlayer()
     end )
@@ -135,7 +144,7 @@ local function PropPrettyName( mdl )
     return basename
 end
 
-KEYWORD:AddKeyWord( "Normal", "/nearprop/", function( ply )
+KEYWORD:AddKeyWord( "nearprop", function( ply )
     local nearProps = ply:FindInSphere( nil, 1000, function( ent )
         return propClasses[ ent:GetClass() ]
     end )
@@ -148,25 +157,25 @@ end )
 --
 --
 
-KEYWORD:AddKeyWord( "Conditional", "|highping|", function( ply ) return ply:Ping() >= 150 end )
-KEYWORD:AddKeyWord( "Conditional", "|lowhp|", function( ply ) return ( ply:Health() / ply:GetMaxHealth() ) < 0.4 end )
-KEYWORD:AddKeyWord( "Conditional", "|quietserver|", function() return #player_GetAll() < 6 end )
-KEYWORD:AddKeyWord( "Conditional", "|activeserver|", function() return #player_GetAll() > 15 end )
-KEYWORD:AddKeyWord( "Conditional", "|amtime|", function() return os_date( "%p" ) == "am" end )
-KEYWORD:AddKeyWord( "Conditional", "|pmtime|", function() return os_date( "%p" ) == "pm" end )
+KEYWORD:AddConditionalKeyWord( "highping", function( ply ) return ply:Ping() >= 150 end )
+KEYWORD:AddConditionalKeyWord( "lowhp", function( ply ) return ( ply:Health() / ply:GetMaxHealth() ) < 0.4 end )
+KEYWORD:AddConditionalKeyWord( "quietserver", function() return #player_GetAll() < 6 end )
+KEYWORD:AddConditionalKeyWord( "activeserver", function() return #player_GetAll() > 15 end )
+KEYWORD:AddConditionalKeyWord( "amtime", function() return os_date( "%p" ) == "am" end )
+KEYWORD:AddConditionalKeyWord( "pmtime", function() return os_date( "%p" ) == "pm" end )
 
 --
 
-KEYWORD:AddKeyWord( "Conditional", "|crowded|", function( ply )
+KEYWORD:AddConditionalKeyWord( "crowded", function( ply )
     local nearPlys = ply:FindInSphere( nil, 500, function( ent ) return ent:IsPlayer() end )
     return ( #nearPlys > 5 )
 end )
-KEYWORD:AddKeyWord( "Conditional", "|alone|", function( ply )
+KEYWORD:AddConditionalKeyWord( "alone", function( ply )
     local nearPlys = ply:FindInSphere( nil, 2000, function( ent ) return ent:IsPlayer() end )
     return ( #nearPlys == 0 )
 end )
 
-KEYWORD:AddKeyWord( "Conditional", "|keyentishost|", function( ply, keyEnt )
+KEYWORD:AddConditionalKeyWord( "keyentishost", function( ply, keyEnt )
     return ( IsValid( keyEnt ) and keyEnt:IsPlayer() and keyEnt:IsListenServerHost() )
 end )
 
@@ -178,14 +187,14 @@ local function IsCurrentDate( month, day )
     return ( yearMonth == month and weekDay == day )
 end
 
-KEYWORD:AddKeyWord( "Conditional", "|addonbirthday|", function() return IsCurrentDate( "February", 16 ) end )
-KEYWORD:AddKeyWord( "Conditional", "|4thjuly|", function() return IsCurrentDate( "July", 4 ) end )
-KEYWORD:AddKeyWord( "Conditional", "|easter|", function() return IsCurrentDate( "April", 9 ) end )
-KEYWORD:AddKeyWord( "Conditional", "|thanksgiving|", function() return IsCurrentDate( "November", 24 ) end )
-KEYWORD:AddKeyWord( "Conditional", "|christmas|", function() return IsCurrentDate( "December", 25 ) end )
-KEYWORD:AddKeyWord( "Conditional", "|newyears|", function() return IsCurrentDate( "January", 1 ) end )
+KEYWORD:AddConditionalKeyWord( "addonbirthday", function() return IsCurrentDate( "February", 16 ) end )
+KEYWORD:AddConditionalKeyWord( "4thjuly", function() return IsCurrentDate( "July", 4 ) end )
+KEYWORD:AddConditionalKeyWord( "easter", function() return IsCurrentDate( "April", 9 ) end )
+KEYWORD:AddConditionalKeyWord( "thanksgiving", function() return IsCurrentDate( "November", 24 ) end )
+KEYWORD:AddConditionalKeyWord( "christmas", function() return IsCurrentDate( "December", 25 ) end )
+KEYWORD:AddConditionalKeyWord( "newyears", function() return IsCurrentDate( "January", 1 ) end )
 
-KEYWORD:AddKeyWord( "Conditional", "|birthday|", function()
+KEYWORD:AddConditionalKeyWord( "birthday", function()
     for _, birthDate in pairs( GLAMBDA.Birthdays ) do
         if !IsCurrentDate( birthDate.month, birthDate.day ) then continue end 
         return true

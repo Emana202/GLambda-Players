@@ -92,6 +92,11 @@ function GLAMBDA.Player:GetMovePosition()
     return ( IsValid( navigator ) and navigator:TranslateGoal() )
 end
 
+-- Returns if we are on a ladder
+function GLAMBDA.Player:IsOnLadder()
+    return ( self:GetMoveType() == MOVETYPE_LADDER )
+end
+
 -- Cancels and stops our movement
 function GLAMBDA.Player:CancelMovement()
     self:SetAbortMovement( self:GetIsMoving() )

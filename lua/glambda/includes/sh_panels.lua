@@ -393,7 +393,7 @@ if ( CLIENT ) then
         for _, v in SortedPairs( sortTbl ) do tbl[ #tbl + 1 ] = v end
     end
 
-    function PANEL:RequestDataFromServer( filepath, type, callback )
+    function PANEL:RequestDataFromServer( filepath, type, callback, no_msg )
         net_Start( "glambda_requestdata" )
             net_WriteString( filepath )
             net_WriteString( type )
@@ -409,29 +409,30 @@ if ( CLIENT ) then
             
             if !net_ReadBool() then return end
             callback( dataStr != "!!NIL" and util_JSONToTable( dataStr ) )
+            
+            if no_msg then return end
             chat_AddText( "Received all data from server! " .. string_NiceSize( bytes ) .. " of data was received" )
         end )
     end
 
-    function PANEL:RequestVariableFromServer( var, callback )
+    function PANEL:RequestVariableFromServer( var, callback, no_msg )
         net_Start( "glambda_requestvariable" )
             net_WriteString( var )
         net_SendToServer()
 
-        local datastring = ""
+        local dataStr = ""
         local bytes = 0
 
         net_Receive( "glambda_returnvariable", function() 
-            local chunkdata = net_ReadString()
-            local isdone = net_ReadBool()
-        
-            datastring = datastring .. chunkdata
-            bytes = bytes + #chunkdata
+            local chunkData = net_ReadString()
+            dataStr = dataStr .. chunkData
+            bytes = ( bytes + #chunkData )
 
-            if isdone then
-                callback( datastring != "!!NIL" and util_JSONToTable( datastring ) or nil )
-                chat_AddText( "Received all data from server! " .. string_NiceSize( bytes ) .. " of data was received" )
-            end
+            if !net_ReadBool() then return end
+            callback( dataStr != "!!NIL" and util_JSONToTable( dataStr ) or nil )
+
+            if no_msg then return end
+            chat_AddText( "Received all data from server! " .. string_NiceSize( bytes ) .. " of data was received" )
         end )
     end
 

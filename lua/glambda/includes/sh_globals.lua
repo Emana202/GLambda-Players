@@ -155,7 +155,7 @@ if ( SERVER ) then
         if self:GetConVar( "player_addonplymdls" ) then
             if self:GetConVar( "player_onlyaddonpms" ) then
                 mdlList = mdlTbl.Addons
-                return mdlList[ GLAMBDA:Random( #mdlList ) ]
+                if #mdlList != 0 then return GLAMBDA:Random( mdlList ) end
             end
             
             mdlCount = ( mdlCount + #mdlTbl.Addons )
@@ -166,7 +166,7 @@ if ( SERVER ) then
             mdlIndex = ( mdlIndex - defCount )
             mdlList = mdlTbl.Addons
         end
-        
+
         return mdlList[ mdlIndex ]
     end
 
@@ -255,6 +255,7 @@ function GLAMBDA:Random( min, max, float )
     math_randomseed( os_time() + SysTime() + rngCalled )
 
     if !min and !max then return math_random() end
+    if istable( min ) then return min[ math_random( #min ) ] end
     return ( float and math_Rand( min, max ) or ( max and math_random( min, max ) or math_random( min ) ) )
 end
 
@@ -306,11 +307,11 @@ function GLAMBDA:AddVoiceType( typeName, defPath, voiceDesc )
 end
 
 GLAMBDA:AddVoiceType( "idle",       "lambdaplayers/vo/idle/",       "Played when the player is idle and not panicking and in combat." )
-GLAMBDA:AddVoiceType( "taunt",      "lambdaplayers/vo/taunt/",      "Played when the player starts attacking someone and is in combat." )
-GLAMBDA:AddVoiceType( "death",      "lambdaplayers/vo/death/",      "Played when the player is killed." )
+GLAMBDA:AddVoiceType( "taunt",      "lambdaplayers/vo/taunt/",      "Played when the player starts attacking someone and/or is in combat." )
+GLAMBDA:AddVoiceType( "death",      "lambdaplayers/vo/death/",      "Played when the player dies." )
 GLAMBDA:AddVoiceType( "panic",      "lambdaplayers/vo/panic/",      "Played when the player is panicking and running away." )
-GLAMBDA:AddVoiceType( "kill",       "lambdaplayers/vo/kill/",       "Played when the player killed someone." )
-GLAMBDA:AddVoiceType( "witness",    "lambdaplayers/vo/witness/",    "Played when the player saw someone get killed." )
+GLAMBDA:AddVoiceType( "kill",       "lambdaplayers/vo/kill/",       "Played when the player kills its enemy." )
+GLAMBDA:AddVoiceType( "witness",    "lambdaplayers/vo/witness/",    "Played when the player sees someone die." )
 GLAMBDA:AddVoiceType( "assist",     "lambdaplayers/vo/assist/",     "Played when the player's enemy is killed by someone else." )
-GLAMBDA:AddVoiceType( "laugh",      "lambdaplayers/vo/laugh/",      "Played when the player saw someone get killed and plays a laugh taunt." )
+GLAMBDA:AddVoiceType( "laugh",      "lambdaplayers/vo/laugh/",      "Played when the player sees someone get killed and does \"act laugh\"." )
 GLAMBDA:AddVoiceType( "fall",       "lambdaplayers/vo/fall/",       "Played when the player is falling." )

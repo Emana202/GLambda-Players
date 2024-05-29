@@ -82,7 +82,7 @@ end
 -- Returns if the given weapon is allowed
 function GLAMBDA.Player:IsWeaponAllowed( wepClass )
     local permitTbl = GLAMBDA.WeaponPermissions[ wepClass ]
-    return ( !permitTbl or permitTbl == true )
+    return ( permitTbl == nil or permitTbl == true )
 end
 
 -- Returns the classname of our current weapon

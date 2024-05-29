@@ -396,7 +396,7 @@ if ( CLIENT ) then
                     break
                 end
             end
-        end )
+        end, true )
     end
 
 end
